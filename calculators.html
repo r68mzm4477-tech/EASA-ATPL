@@ -1,0 +1,40 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<title>ATPL Calculators</title>
+<script src="advanced-utils.js"></script>
+</head>
+
+<body style="font-family:sans-serif;padding:20px;background:#F4F7F9;">
+
+<h1>ATPL Calculators</h1>
+
+<div id="densityCalc"></div>
+
+<br><br>
+
+<div id="pressureCalc"></div>
+
+<script>
+
+makeCalculator("densityCalc",{
+  title:"Density Altitude Calculator",
+  fields:["PressureAltitude","OAT","ISA"],
+  resultLabel:"Density Altitude",
+  compute:(v)=> v.PressureAltitude + 120*(v.OAT-v.ISA)
+});
+
+makeCalculator("pressureCalc",{
+  title:"Pressure Altitude Calculator",
+  fields:["Elevation","QNH"],
+  resultLabel:"Pressure Altitude",
+  compute:(v)=> v.Elevation + (1013-v.QNH)*30
+});
+
+</script>
+
+</body>
+</html>

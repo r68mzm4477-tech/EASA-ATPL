@@ -1,0 +1,70 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aircraft Performance</title>
+<style>
+body{font-family:Arial;background:#F4F7F9;padding:20px;}
+.box{background:#fff;padding:18px;border-radius:10px;margin-bottom:18px;border:1px solid #D7DFE5;}
+input{width:100%;padding:10px;margin:8px 0;}
+button{padding:10px 14px;background:#16222C;color:#fff;border:none;border-radius:6px;}
+</style>
+</head>
+<body>
+
+<h1>032 Aircraft Performance</h1>
+
+<div class="box">
+<h2>Density Altitude Calculator</h2>
+
+<input id="pa" type="number" placeholder="Pressure Altitude">
+<input id="oat" type="number" placeholder="OAT">
+<input id="isa" type="number" placeholder="ISA Temp">
+
+<button onclick="calcDA()">Calculate</button>
+
+<p id="daOut"></p>
+
+<p><b>Exam Tip:</b> Hot, high and humid conditions reduce performance.</p>
+</div>
+
+<div class="box">
+<h2>Pressure Altitude Calculator</h2>
+
+<input id="elev" type="number" placeholder="Elevation">
+<input id="qnh" type="number" placeholder="QNH">
+
+<button onclick="calcPA()">Calculate</button>
+
+<p id="paOut"></p>
+
+<p><b>Exam Tip:</b> Lower QNH increases pressure altitude.</p>
+</div>
+
+<script>
+function calcDA(){
+ const pa = parseFloat(document.getElementById('pa').value || 0);
+ const oat = parseFloat(document.getElementById('oat').value || 0);
+ const isa = parseFloat(document.getElementById('isa').value || 0);
+
+ const da = pa + (120 * (oat - isa));
+
+ document.getElementById('daOut').innerHTML =
+   "Density Altitude: " + Math.round(da) + " ft";
+}
+
+function calcPA(){
+ const elev = parseFloat(document.getElementById('elev').value || 0);
+ const qnh = parseFloat(document.getElementById('qnh').value || 1013);
+
+ const pa = elev + ((1013 - qnh) * 30);
+
+ document.getElementById('paOut').innerHTML =
+   "Pressure Altitude: " + Math.round(pa) + " ft";
+}
+</script>
+
+</body>
+</html>

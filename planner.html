@@ -1,0 +1,38 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Study Planner</title>
+<style>
+body{font-family:Arial;background:#F4F7F9;padding:20px;}
+.box{background:#fff;padding:18px;border-radius:10px;border:1px solid #D7DFE5;}
+input{width:100%;padding:10px;margin:8px 0;}
+button{padding:10px 14px;background:#16222C;color:#fff;border:none;border-radius:6px;}
+</style>
+</head>
+<body>
+
+<h1>Study Planner</h1>
+
+<div class="box">
+<input id="goal" placeholder="Study Goal">
+<input id="hours" type="number" placeholder="Hours per day">
+
+<button onclick="savePlan()">Save Plan</button>
+
+<p id="out"></p>
+</div>
+
+<script>
+function savePlan(){
+ localStorage.setItem('studyGoal', document.getElementById('goal').value);
+ localStorage.setItem('studyHours', document.getElementById('hours').value);
+
+ document.getElementById('out').innerHTML = 'Plan saved successfully.';
+}
+</script>
+
+</body>
+</html>

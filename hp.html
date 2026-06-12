@@ -1,0 +1,1316 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" /><meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black" /><meta name="theme-color" content="#16222C" />
+<link rel="manifest" href="manifest.webmanifest" /><link rel="apple-touch-icon" href="icon-180.png" /><title>ATPL Human Performance</title>
+<script src="vendor-react.js"></script>
+<style>html,body{margin:0;padding:0;background:#E9EEF2;-webkit-text-size-adjust:100%;}#root{min-height:100vh;}
+.homebar{position:sticky;top:0;z-index:50;background:#0f1820;display:flex;align-items:center;gap:8px;padding:8px 14px;font:600 13px 'IBM Plex Mono',monospace;color:#9FB3C2;}.homebar a{color:#9FB3C2;text-decoration:none;}</style>
+</head><body><div class="homebar"><a href="index.html">‹ SUBJECTS</a></div><div id="root"></div>
+<script>const storageShim={async get(k){try{const v=localStorage.getItem(k);return v==null?null:{key:k,value:v}}catch(e){return null}},async set(k,v){try{localStorage.setItem(k,v);return{key:k,value:v}}catch(e){return null}},async delete(k){try{localStorage.removeItem(k);return{key:k,deleted:true}}catch(e){return null}},async list(p){try{return{keys:Object.keys(localStorage).filter(k=>!p||k.startsWith(p))}}catch(e){return null}}};if(!window.storage)window.storage=storageShim;</script>
+<script>const {useState,useEffect}=React;
+
+// ===================== SYLLABUS DATA =====================
+const TOPICS = [
+  {
+    id: "gaslaws",
+    code: "040·02",
+    title: "The Atmosphere & Gas Laws",
+    blurb: "Why altitude affects the body: Boyle, Dalton, Henry, respiration.",
+    cards: [
+      { t: "Oxygen and altitude", b: "The PERCENTAGE of oxygen in the atmosphere stays ~21% at all flight altitudes — what falls is the PARTIAL PRESSURE of oxygen as total pressure drops. The body cares about partial pressure, not percentage: that's why you can breathe 21% oxygen at 35,000 ft and still be unconscious in a minute." },
+      { t: "Boyle's law — expanding gas", b: "Gas volume is inversely proportional to pressure: as you climb, trapped gases EXPAND. This explains ear, sinus and tooth pain, gut distension, and why barotrauma happens. Gas roughly doubles in volume by 18,000 ft." },
+      { t: "Dalton's law — partial pressures", b: "Total pressure is the sum of the partial pressures of each gas. As altitude increases, the partial pressure of oxygen falls in proportion — the direct cause of HYPOXIC hypoxia. At sea level alveolar oxygen is comfortable; by 10,000 ft saturation starts to slide." },
+      { t: "Henry's law — dissolved gas", b: "The amount of gas dissolved in a liquid is proportional to the pressure above it. Reduce the pressure (climb) and dissolved NITROGEN comes out of solution as bubbles — the mechanism of DECOMPRESSION SICKNESS. Think of opening a fizzy drink." },
+      { t: "How breathing is controlled", b: "The respiratory centre is driven primarily by CARBON DIOXIDE levels in the blood, not by oxygen. This is why hypoxia is so insidious — low oxygen does not make you feel breathless. CO2 rises → you breathe faster; CO2 falls → the drive to breathe weakens." },
+      { t: "Oxygen transport", b: "Oxygen binds to haemoglobin in red blood cells. The oxygen dissociation curve is S-shaped: saturation stays near 97–98% up to about 10,000 ft, then falls away steeply — around 87–90% at 10,000 ft and roughly 65–70% by 20,000 ft. The curve's plateau is why symptoms are mild low down and sudden higher up.", dia: "dissociation" },
+    ],
+    quiz: [
+      { q: "With increasing altitude, the proportion of oxygen in the air:", o: ["Stays at about 21% — but its partial pressure falls", "Falls to about 10% by FL350", "Increases slightly", "Falls in direct proportion to temperature"], a: 0, e: "Composition is constant; it's the falling PARTIAL PRESSURE of O2 (Dalton's law) that causes hypoxia." },
+      { q: "Trapped gas pain in the ears, sinuses or gut during climb is explained by:", o: ["Boyle's law", "Henry's law", "Charles's law", "Bernoulli's principle"], a: 0, e: "Boyle: volume inversely proportional to pressure — trapped gas expands as cabin pressure falls." },
+      { q: "Decompression sickness is explained by:", o: ["Henry's law — dissolved nitrogen forming bubbles as pressure falls", "Dalton's law — oxygen partial pressure", "Boyle's law — lung expansion", "Osmosis"], a: 0, e: "Henry's law: less pressure means less gas held in solution, so nitrogen bubbles out of tissues and blood." },
+      { q: "The breathing rate is normally controlled by the level of:", o: ["Carbon dioxide in the blood", "Oxygen in the blood", "Nitrogen in the tissues", "Haemoglobin"], a: 0, e: "CO2 is the primary stimulus. Low oxygen barely registers — which is exactly why hypoxia creeps up without breathlessness." },
+      { q: "Approximate haemoglobin oxygen saturation at 10,000 ft is:", o: ["About 87–90%", "About 100%", "About 60%", "About 40%"], a: 0, e: "The S-shaped dissociation curve holds saturation high to ~10,000 ft, then drops steeply — the basis of the 10,000 ft oxygen rules." },
+      { q: "By approximately what altitude has trapped gas doubled in volume?", o: ["18,000 ft", "5,000 ft", "34,000 ft", "50,000 ft"], a: 0, e: "Pressure roughly halves by 18,000 ft, so trapped gas roughly doubles (Boyle's law)." },
+    ],
+  },
+  {
+    id: "hypoxia",
+    code: "040·02",
+    title: "Hypoxia & Hyperventilation",
+    blurb: "Types, symptoms, TUC values, and the hyperventilation trap.",
+    cards: [
+      { t: "The four types of hypoxia", b: "HYPOXIC: low oxygen partial pressure (altitude) — the aviation classic. ANAEMIC: reduced carrying capacity (blood loss, anaemia, CO poisoning). STAGNANT: poor circulation (G-loading, cold, shock). HISTOTOXIC: tissues can't use oxygen (alcohol, cyanide, drugs).", dia: "hypoxiatypes" },
+      { t: "Symptoms of hypoxia", b: "Insidious onset: euphoria and overconfidence, impaired judgement, slowed reactions, blue lips/fingertips (cyanosis), tingling, deteriorating vision — NIGHT vision suffers first, degrading from as low as about 5000 ft. The danger: the victim usually feels fine. Personality and symptoms vary between people but are fairly consistent for one individual." },
+      { t: "Time of useful consciousness", b: "TUC = time from oxygen loss to inability to act purposefully. Memorise: FL180 ~20–30 min · FL250 ~3–5 min · FL300 ~1–2 min · FL350 ~30–60 sec · FL400 ~15–20 sec. RAPID decompression roughly HALVES these times (lungs vent oxygen outward). Exercise also shortens TUC.", dia: "tuc" },
+      { t: "Actions on hypoxia", b: "Oxygen mask on 100%, check connections, descend below 10,000 ft, declare an emergency. Crew oxygen rules: flight crew use masks above cabin altitudes of 10,000 ft; quick-donning masks must go on within 5 seconds with one hand." },
+      { t: "Hyperventilation", b: "Over-breathing (usually from anxiety or stress) blows off too much CO2, raising blood pH (respiratory alkalosis). Symptoms: dizziness, tingling in fingers and lips, visual disturbance, muscle spasm (tetany), eventually fainting — which ironically self-corrects the breathing." },
+      { t: "Hypoxia vs hyperventilation", b: "The symptoms overlap heavily (tingling, dizziness, poor performance). The exam answer: at altitude, ASSUME HYPOXIA — go on oxygen and descend; that treats both. Hyperventilation is managed by consciously slowing the breathing rate (talking, counted breathing). Cyanosis suggests hypoxia; tetany/spasm suggests hyperventilation." },
+    ],
+    quiz: [
+      { q: "Carbon monoxide poisoning produces which type of hypoxia?", o: ["Anaemic", "Hypoxic", "Stagnant", "Histotoxic"], a: 0, e: "CO binds to haemoglobin far more readily than oxygen, slashing carrying capacity — anaemic hypoxia." },
+      { q: "The time of useful consciousness at FL350 after a slow decompression is approximately:", o: ["30–60 seconds", "5–10 minutes", "12 seconds", "3–5 minutes"], a: 0, e: "FL350 ≈ 30–60 s. Rapid decompression would roughly halve it. FL250 = 3–5 min, FL400 = 15–20 s." },
+      { q: "A rapid decompression compared with a slow one:", o: ["Roughly halves the TUC", "Doubles the TUC", "Does not change TUC", "Eliminates hypoxia risk"], a: 0, e: "Air (and its oxygen) is sucked OUT of the lungs in a rapid decompression, so useful consciousness time is about halved." },
+      { q: "Hyperventilation results in:", o: ["Reduced CO2 and increased blood pH (alkalosis)", "Increased CO2 and reduced pH", "Reduced oxygen percentage in the lungs", "Increased nitrogen absorption"], a: 0, e: "Washing out CO2 makes the blood more alkaline — causing tingling, dizziness and eventually tetany or fainting." },
+      { q: "Unsure whether a colleague at altitude is hypoxic or hyperventilating, you should:", o: ["Treat for hypoxia: 100% oxygen and descend", "Tell them to breathe faster", "Wait for cyanosis to confirm", "Give them coffee"], a: 0, e: "Oxygen and descent cure hypoxia and do no harm in hyperventilation — then slow the breathing rate. Always assume hypoxia first at altitude." },
+      { q: "The first sense degraded by mild hypoxia, from as low as ~5000 ft, is:", o: ["Night vision", "Hearing", "Touch", "Smell"], a: 0, e: "The retina's rods are extremely oxygen-hungry — night vision degrades at cabin altitudes well below where other symptoms appear." },
+    ],
+  },
+  {
+    id: "decompression",
+    code: "040·02",
+    title: "Pressurisation, DCS & Diving",
+    blurb: "Cabin altitude, decompression sickness, flying after diving.",
+    cards: [
+      { t: "The pressurised cabin", b: "Typical cruise cabin altitude is 6000–8000 ft — a compromise between comfort/physiology and structural fatigue. Maximum certified cabin altitude is normally 8000 ft. Passengers with heart/lung disease, anaemia or recent surgery can still be affected at these levels." },
+      { t: "Decompression sickness (DCS)", b: "Nitrogen bubbles forming in tissues and blood (Henry's law), generally a risk above 18,000 ft and increasingly above 25,000 ft. Forms: the BENDS (joint pain — most common), the CREEPS (skin tingling/itching), the CHOKES (chest pain, breathing difficulty — serious), STAGGERS/neurological (CNS — most serious)." },
+      { t: "Managing DCS", b: "Descend immediately, 100% oxygen, land as soon as possible, keep the victim still and warm. Severe cases need hyperbaric (recompression) treatment. Symptoms can appear or worsen AFTER landing — medical follow-up is mandatory." },
+      { t: "Flying after diving", b: "Diving loads the body with dissolved nitrogen, so flying afterwards multiplies DCS risk. Rules of thumb examined: wait at least 12 hours after a no-decompression-stop dive, and 24–48 hours after a dive REQUIRING decompression stops, before flying (including in a pressurised cabin at typical cabin altitudes)." },
+      { t: "Rapid decompression — recognition", b: "Bang, fog/mist in the cabin (cooling air condenses), rushing noise, debris, temperature drop, items flying towards the hole. Immediate actions: oxygen masks on (crew first — you're no use unconscious), establish communication, emergency descent to 10,000 ft or MSA." },
+      { t: "Ears, sinuses & barotrauma", b: "Pressure equalises through the eustachian tube, which works easily on CLIMB but poorly on DESCENT — middle-ear barotrauma (otic barotrauma) is therefore a descent problem, made worse by colds. Clear ears with swallowing, jaw movement or the Valsalva manoeuvre. Don't fly with a heavy cold." },
+    ],
+    quiz: [
+      { q: "Typical maximum cabin altitude in a pressurised transport aircraft is:", o: ["8000 ft", "12,000 ft", "2000 ft", "Sea level"], a: 0, e: "Cabins cruise at 6000–8000 ft — high enough to limit structural stress, low enough for passenger physiology." },
+      { q: "Joint pain caused by nitrogen bubbles after decompression is called:", o: ["The bends", "The chokes", "The creeps", "The staggers"], a: 0, e: "Bends = joints (most common). Creeps = skin. Chokes = chest/breathing. Staggers = neurological (most serious)." },
+      { q: "After a dive requiring decompression stops, you should not fly for at least:", o: ["24–48 hours", "2 hours", "8 hours", "7 days"], a: 0, e: "24–48 hours after decompression-stop dives; at least 12 hours after no-stop dives. Tissue nitrogen needs time to wash out." },
+      { q: "Mist or fog filling the cabin immediately after a loud bang indicates:", o: ["Rapid decompression — moisture condensing in cooling air", "An electrical fire", "Engine smoke", "De-icing fluid leak"], a: 0, e: "Sudden expansion cools the cabin air below its dew point — fog plus noise and pressure change = rapid decompression. Masks on first." },
+      { q: "Ear (otic) barotrauma is most likely during:", o: ["Descent", "Climb", "Level cruise", "Taxi"], a: 0, e: "The eustachian tube vents expanding air easily on climb but resists inflow on descent — pain, dulled hearing, possible eardrum damage, far worse with a cold." },
+      { q: "Decompression sickness generally becomes a significant risk above:", o: ["18,000 ft", "8000 ft", "5000 ft", "40,000 ft only"], a: 0, e: "Risk starts around 18,000 ft and rises sharply above 25,000 ft — and is dramatically increased by recent diving." },
+    ],
+  },
+  {
+    id: "circulation",
+    code: "040·02",
+    title: "Heart, Circulation & G-Forces",
+    blurb: "The cardiovascular system, blood pressure, acceleration effects.",
+    cards: [
+      { t: "The circulatory system", b: "The heart is a double pump: the RIGHT side sends deoxygenated blood to the lungs (pulmonary circulation); the LEFT side pumps oxygenated blood around the body (systemic circulation). Typical resting heart rate 60–80 bpm; blood is about 8% of body weight; red cells live ~120 days." },
+      { t: "Blood pressure", b: "Reported as systolic/diastolic — pressure during contraction over pressure during relaxation; a healthy norm is around 120/80 mmHg. Sustained hypertension (high BP) damages heart, vessels, kidneys and eyes, and is a major flag at medicals. Risk factors: smoking, obesity, stress, salt, family history." },
+      { t: "Coronary risk factors", b: "Coronary heart disease is a leading cause of licence loss. Controllable factors: smoking, diet/cholesterol, obesity, lack of exercise, stress, hypertension. Uncontrollable: age, sex, family history. The examiner wants you to know smoking is the single biggest controllable factor." },
+      { t: "Positive G (+Gz)", b: "Blood is forced towards the feet. Sequence with increasing +Gz: GREY-OUT (peripheral vision loss, ~3.5g), BLACKOUT (total vision loss, ~4.5g — still conscious!), then G-LOC (g-induced loss of consciousness, ~4.5–6g). Tolerance is improved by anti-G straining, anti-G suits, and being reclined; reduced by hypoxia, hypoglycaemia, hyperventilation and fatigue.", dia: "gforce" },
+      { t: "Negative G and rapid onset", b: "Negative G (−Gz) pushes blood towards the head: red-out, facial congestion — tolerated far worse (around −2 to −3g limit). Rapid G onset can cause G-LOC with NO grey-out warning, because the visual symptoms need a few seconds to develop." },
+      { t: "Donating blood & flying", b: "Blood donation temporarily reduces oxygen-carrying capacity. Guidance examined: crew should not fly for at least 24 hours after donating blood (and should avoid donating during periods of flying duty)." },
+    ],
+    quiz: [
+      { q: "The right side of the heart pumps:", o: ["Deoxygenated blood to the lungs", "Oxygenated blood to the body", "Oxygenated blood to the lungs", "Blood directly to the brain"], a: 0, e: "Right side → pulmonary circulation (to lungs); left side → systemic circulation (to body)." },
+      { q: "With steadily increasing +Gz, the order of symptoms is:", o: ["Grey-out, blackout, G-LOC", "Blackout, grey-out, red-out", "G-LOC, grey-out, blackout", "Red-out, blackout, G-LOC"], a: 0, e: "Peripheral vision goes first (~3.5g), then all vision (~4.5g, still conscious), then unconsciousness. Rapid onset can skip the warnings." },
+      { q: "During blackout under +Gz, the pilot is:", o: ["Still conscious but without vision", "Unconscious", "Asleep", "Hyperventilating"], a: 0, e: "Blackout is loss of VISION only — the retina's blood supply fails before the brain's. G-LOC is the loss of consciousness." },
+      { q: "Negative G primarily causes:", o: ["Red-out and facial congestion", "Grey-out", "Tunnel vision", "Improved G tolerance"], a: 0, e: "Blood driven headwards engorges facial and eye vessels — tolerated much worse than positive G (about −2 to −3g)." },
+      { q: "The most significant controllable risk factor for coronary heart disease is:", o: ["Smoking", "Age", "Family history", "Sex"], a: 0, e: "Age, sex and family history can't be changed; among the controllable factors, smoking tops the list." },
+      { q: "After donating blood, a crew member should not fly for at least:", o: ["24 hours", "1 hour", "7 days", "30 days"], a: 0, e: "Reduced oxygen-carrying capacity needs time to recover — at least 24 hours, and avoid donating during flying periods." },
+    ],
+  },
+  {
+    id: "vision",
+    code: "040·02",
+    title: "Vision & Visual Illusions",
+    blurb: "The eye, night vision, scanning, and approach illusions.",
+    cards: [
+      { t: "The eye — key anatomy", b: "Light passes through the cornea (most of the focusing power), the iris/pupil (light control), and the lens (fine focus/accommodation) onto the retina. The FOVEA contains only CONES: colour and fine detail, daylight, central vision. RODS dominate the periphery: monochrome, motion-sensitive, night vision. The optic nerve exit has no receptors — the blind spot.", dia: "eye" },
+      { t: "Night vision", b: "Rods take about 30 MINUTES to fully dark-adapt (cones ~7 minutes) and are destroyed in seconds by bright light. The fovea is rod-free, so at night look 10–15° OFF-CENTRE to put images on the rods. Night vision degrades with hypoxia from ~5000 ft and with smoking (CO)." },
+      { t: "Visual scanning & mid-air avoidance", b: "The eye only resolves detail at the fovea, so effective lookout uses short fixations in successive sectors (about 10° at a time, ~1–2 seconds each), not sweeping. An aircraft on a constant relative bearing (collision course) has NO relative movement — exactly what peripheral vision is worst at detecting." },
+      { t: "Empty field myopia & defects", b: "With nothing to focus on (haze, IMC, dark), the eye relaxes to ~1–2 m focus — empty field myopia — making distant traffic hard to detect: focus deliberately on a distant object or wingtip. Defects: myopia (short sight), hypermetropia (long sight), presbyopia (age-related near-focus loss), astigmatism (uneven cornea), glaucoma (raised eye pressure, peripheral field loss)." },
+      { t: "Runway illusions — width & slope", b: "A NARROWER-than-usual runway or an UPSLOPING runway makes you feel TOO HIGH → you fly a dangerously LOW approach. A wider runway or downslope does the reverse (feel low → fly high). Upslope terrain before the runway adds to the effect. The defence: fly the glideslope/PAPIs, not the picture.", dia: "runwayill" },
+      { t: "Black hole, rain & haze", b: "Black-hole approach: featureless dark terrain before bright runway lights at night → strong tendency to fly LOW. Rain on the windscreen: refraction makes lights appear lower/closer and dims them. Haze: objects appear FURTHER away than they are. Shallow fog on the runway can cause an illusion of pitching up just before touchdown. Trust the instruments and approach aids." },
+    ],
+    quiz: [
+      { q: "Fine detail and colour are detected by:", o: ["Cones, concentrated at the fovea", "Rods, concentrated at the fovea", "Rods in the periphery", "The optic disc"], a: 0, e: "Cones = colour/detail/day, packed into the fovea. Rods = night/motion/periphery." },
+      { q: "Full dark adaptation of the rods takes approximately:", o: ["30 minutes", "7 minutes", "2 minutes", "2 hours"], a: 0, e: "Rods need ~30 min (cones ~7 min) — and a flash of bright light undoes it in seconds." },
+      { q: "To see a dim object at night you should look:", o: ["10–15° off-centre", "Directly at it", "Through the corner of one eye only", "After breathing rapidly"], a: 0, e: "The fovea has no rods, so direct gaze at night sees nothing — offset viewing puts the image on rod-rich retina." },
+      { q: "An aircraft on a constant relative bearing is dangerous because it:", o: ["Has no apparent movement, making it hard to detect", "Moves too fast across the canopy", "Is always behind you", "Appears larger than it is"], a: 0, e: "No relative motion = collision course, and stationary objects are what peripheral vision detects worst — hence systematic sector scanning." },
+      { q: "Approaching a runway that is narrower than usual, the untrained tendency is to:", o: ["Feel too high and fly a low approach", "Feel too low and fly a high approach", "Land long", "Flare too high"], a: 0, e: "Narrow runway (or upslope) → illusion of being high → dangerously low approach. Wide/downslope is the reverse." },
+      { q: "A black-hole approach at night typically results in:", o: ["An approach flown too low", "An approach flown too high", "Perfect glidepath control", "Landing on the wrong runway"], a: 0, e: "With no ground features for reference, pilots consistently underestimate height and drag in low — use the glideslope/PAPIs." },
+    ],
+  },
+  {
+    id: "vestibular",
+    code: "040·02",
+    title: "Balance, Hearing & Disorientation",
+    blurb: "The vestibular system, the classic illusions, noise & hearing.",
+    cards: [
+      { t: "The vestibular system", b: "Three SEMICIRCULAR CANALS (one per plane) detect ANGULAR acceleration via fluid moving against sensory hairs. The OTOLITH organs detect LINEAR acceleration and gravity. Both only sense CHANGES — in a prolonged constant-rate turn the fluid catches up and the sensation of turning disappears.", dia: "vestibular" },
+      { t: "The leans", b: "The most common illusion. A slow roll below the detection threshold (~2°/sec) goes unnoticed; the correction back to level IS felt — so straight-and-level now feels like a bank, and the pilot leans or rolls back towards the original error. Cure: believe the attitude indicator." },
+      { t: "Somatogravic illusion", b: "The otoliths cannot distinguish linear acceleration from tilt. Rapid ACCELERATION (e.g. night/IMC takeoff or go-around) feels like PITCHING UP — the pilot pushes the nose down, potentially into the ground. Deceleration gives the reverse (pitch-down sensation). A killer illusion: trust the ADI on dark takeoffs.", dia: "somatogravic" },
+      { t: "Somatogyral & the graveyard spiral", b: "In a prolonged turn the canals stop signalling. Rolling out then feels like a turn in the OPPOSITE direction, so the pilot re-enters the original turn; with attention inside, the descending, tightening turn becomes a graveyard spiral — pulling back only tightens it. Recover with instruments: level the wings FIRST." },
+      { t: "Coriolis illusion & vertigo", b: "Moving the head sharply during a turn cross-couples the canals: an overwhelming tumbling sensation (Coriolis illusion). Keep head movements slow and minimal during manoeuvring in IMC. Pressure vertigo (alternobaric) can occur with unequal middle-ear venting during climb/descent. Flicker from rotor blades or strobes can also disorient." },
+      { t: "Hearing & noise", b: "Outer ear → eardrum → ossicles (middle ear) → cochlea (inner ear) converts pressure waves to nerve signals. Damage: CONDUCTIVE loss (mechanical — wax, eardrum, ossicles) vs SENSORINEURAL loss (cochlea/nerve — noise-induced and age-related presbycusis, permanent). Prolonged exposure above ~85–90 dB risks noise-induced hearing loss; use hearing protection." },
+    ],
+    quiz: [
+      { q: "The semicircular canals detect:", o: ["Angular accelerations", "Linear accelerations only", "Gravity only", "Sound"], a: 0, e: "Three orthogonal canals sense rotation; the otoliths handle linear acceleration and gravity." },
+      { q: "In a prolonged, constant-rate turn, the sensation of turning:", o: ["Disappears as the canal fluid catches up", "Increases steadily", "Reverses every few seconds", "Is replaced by a climbing sensation"], a: 0, e: "Canals detect only CHANGES in rotation — after ~20–30 seconds of constant rate, the turning sensation fades. Rolling out then feels like an opposite turn." },
+      { q: "Rapid forward acceleration in IMC or at night produces an illusion of:", o: ["Pitching up", "Pitching down", "Rolling left", "Yawing right"], a: 0, e: "The somatogravic illusion: otoliths read acceleration as backward tilt — pilots respond by pushing the nose down. Fly the ADI on dark takeoffs and go-arounds." },
+      { q: "The most common form of spatial disorientation is:", o: ["The leans", "The Coriolis illusion", "The graveyard spiral", "Red-out"], a: 0, e: "A sub-threshold roll followed by a detected correction leaves a false sensation of bank — the leans." },
+      { q: "A sudden head movement during a prolonged turn in IMC may cause:", o: ["The Coriolis illusion — a tumbling sensation", "Improved orientation", "The somatogravic illusion", "Empty field myopia"], a: 0, e: "Cross-coupling of the canals produces violent tumbling vertigo — keep head movements slow and small when manoeuvring in IMC." },
+      { q: "Noise-induced hearing loss is:", o: ["Sensorineural and permanent", "Conductive and reversible", "Only temporary", "Caused by the eustachian tube"], a: 0, e: "Hair cells in the cochlea are destroyed and do not regenerate — permanent sensorineural loss, hence hearing protection above ~85–90 dB." },
+    ],
+  },
+  {
+    id: "health",
+    code: "040·02",
+    title: "Fitness, Toxins & Incapacitation",
+    blurb: "Alcohol, drugs, CO, hypoglycaemia, and crew incapacitation.",
+    cards: [
+      { t: "Alcohol", b: "EASA blood alcohol limit for crew: 0.2 g/L (0.02%) — effectively zero. The body eliminates alcohol at a FIXED rate of roughly one unit per hour; nothing (coffee, food, exercise) speeds it up. 'Bottle to throttle' minimums (commonly 8–12 hours) do NOT guarantee zero blood alcohol after heavy drinking, and hangover effects impair performance even at zero BAC. Alcohol also disturbs the inner ear and sleep quality." },
+      { t: "Medication & drugs", b: "Self-medication is the hazard: antihistamines (drowsiness), sleeping tablets, strong painkillers and many cold remedies are incompatible with flying. Rule: if you need the medication, ask whether the underlying CONDITION is fit to fly — then check the drug with an AME. Caffeine in moderation is acceptable; nicotine raises CO levels." },
+      { t: "Carbon monoxide", b: "Colourless, odourless, tasteless — produced by incomplete combustion (exhaust/heater leaks, smoking). It binds to haemoglobin roughly 200–250 times more strongly than oxygen → anaemic hypoxia. Symptoms: headache, dizziness, deteriorating vision, confusion. Action: stop the source (cabin heat off), ventilate fully, 100% oxygen, land. Recovery is slow — hours, not minutes." },
+      { t: "Blood sugar & diet", b: "The brain runs on glucose. Missed meals on long duties cause HYPOGLYCAEMIA: weakness, shakiness, poor concentration, irritability, headache — a genuine performance hazard. Eat regular meals; avoid huge sugar hits that spike then crash. Dehydration similarly degrades concentration — drink water regularly at altitude (very dry cabin air)." },
+      { t: "Incapacitation", b: "The most COMMON cause in flight is gastrointestinal upset (food poisoning) — hence crews eating DIFFERENT meals. Subtle incapacitation (the pilot quietly stops functioning) is more dangerous than obvious collapse. Defence: the TWO-COMMUNICATION RULE — suspect incapacitation if a crew member fails to respond appropriately to two communications, or to any communication associated with a significant deviation." },
+      { t: "General fitness & medicals", b: "Exercise, weight control, not smoking, sensible alcohol and managing stress protect both health and licence. Crew must not fly when unfit: significant illness, injury, surgery, or when medication/condition is undeclared. When in doubt — consult the AME, and remember anaesthetics: typically 24–48 hours minimum before flying after a general or local anaesthetic, per medical advice." },
+    ],
+    quiz: [
+      { q: "The EASA blood alcohol limit for flight crew is:", o: ["0.2 g/L", "0.5 g/L", "0.8 g/L", "Zero is not specified"], a: 0, e: "0.2 g/L (0.02%) — effectively zero, far stricter than driving limits. Hangover impairment exists even below the limit." },
+      { q: "The elimination rate of alcohol from the blood:", o: ["Is fixed at roughly one unit per hour and cannot be accelerated", "Doubles with strong coffee", "Depends mainly on exercise", "Is instant after a meal"], a: 0, e: "Metabolism is constant; coffee, food, cold showers and exercise change nothing — only time works." },
+      { q: "Carbon monoxide is dangerous because it:", o: ["Binds to haemoglobin ~200–250 times more readily than oxygen", "Smells strongly, causing panic", "Expands in the gut", "Only affects passengers"], a: 0, e: "CO is undetectable by the senses and monopolises haemoglobin — anaemic hypoxia with headache and confusion. Heater leaks are the classic source." },
+      { q: "The most common cause of in-flight pilot incapacitation is:", o: ["Gastrointestinal upset", "Heart attack", "Stroke", "Hypoxia"], a: 0, e: "Acute gastro/food poisoning leads the statistics — the reason multi-crew members eat different meals." },
+      { q: "The two-communication rule states that incapacitation should be suspected when a pilot:", o: ["Fails to respond appropriately to two verbal communications", "Speaks twice on the wrong frequency", "Asks for coffee twice", "Misses two waypoints"], a: 0, e: "No appropriate response to two communications — or to one linked with a significant flight deviation — triggers the take-over drill." },
+      { q: "Symptoms of hypoglycaemia from missed meals include:", o: ["Weakness, shakiness and poor concentration", "Improved alertness", "Enhanced night vision", "Slow heart rate only"], a: 0, e: "The brain is glucose-dependent: low blood sugar means degraded thinking, irritability and weakness — eat regularly on duty." },
+    ],
+  },
+  {
+    id: "stress",
+    code: "040·03",
+    title: "Stress, Arousal & Fatigue",
+    blurb: "Stress models, performance curve, fatigue types & management.",
+    cards: [
+      { t: "Stress basics", b: "Stress is the body's response to perceived DEMANDS exceeding perceived ABILITY to cope. Stressors can be physical (heat, noise, vibration), physiological (fatigue, hunger), or psychological/emotional (workload, life events). The response is the same regardless of source — and stress is CUMULATIVE: domestic stress arrives at work with you." },
+      { t: "The general adaptation syndrome", b: "Selye's GAS describes the response to sustained stress in three phases: ALARM (fight-or-flight — adrenaline, raised heart rate), RESISTANCE (the body copes, drawing on reserves), EXHAUSTION (reserves depleted — performance collapse, illness). Chronic stress drives people into the exhaustion phase.", dia: "gas" },
+      { t: "Arousal & performance", b: "The Yerkes-Dodson inverted-U: performance is poor at LOW arousal (boredom, complacency), best at MODERATE arousal, and poor again at HIGH arousal (panic, tunnelling). Complex tasks are best performed at lower arousal than simple tasks. Overarousal narrows attention — the classic cause of fixating on one instrument in an emergency.", dia: "yerkes" },
+      { t: "Coping with stress", b: "Strategies: remove the stressor (action coping), reframe how you think about it (cognitive coping), and manage the symptoms (relaxation techniques, exercise, sleep, talking). Defence mechanisms like denial don't solve anything. Airline answer: identify, then manage — and don't fly during major life crises." },
+      { t: "Fatigue", b: "ACUTE fatigue: short-term, from a long duty or poor night — cured by one good sleep. CHRONIC fatigue: accumulated over weeks of inadequate rest — needs extended recovery and is linked to stress and ill health. Symptoms mimic alcohol: slowed reactions, poor judgement, irritability, micro-sleeps, accepting lower standards." },
+      { t: "Managing fatigue", b: "Only SLEEP repays sleep debt — not caffeine, willpower or experience. Flight time limitation schemes exist precisely because individuals are poor judges of their own fatigue. Helpful: good sleep hygiene, strategic naps (kept short, ~20–40 min, or a full cycle, avoiding sleep inertia), caffeine used tactically, and honest fatigue reporting." },
+    ],
+    quiz: [
+      { q: "The three phases of the general adaptation syndrome are:", o: ["Alarm, resistance, exhaustion", "Stimulus, response, recovery", "Arousal, overload, sleep", "Denial, anger, acceptance"], a: 0, e: "Selye's GAS: alarm (fight-or-flight), resistance (coping on reserves), exhaustion (reserves gone)." },
+      { q: "According to the Yerkes-Dodson relationship, performance is best at:", o: ["Moderate arousal", "Maximum arousal", "Minimum arousal", "Any arousal if trained"], a: 0, e: "The inverted-U: both boredom and panic degrade performance; complex tasks favour the lower end of moderate." },
+      { q: "A typical effect of overarousal in an emergency is:", o: ["Narrowing of attention onto one item", "Broader, calmer scanning", "Improved long-term memory", "Reduced heart rate"], a: 0, e: "High stress tunnels attention — fixation on a single instrument or problem while the bigger picture (like flying the aircraft) is lost." },
+      { q: "Chronic fatigue differs from acute fatigue in that it:", o: ["Builds over weeks and is not cured by one night's sleep", "Follows a single long duty", "Is cured by caffeine", "Only affects cabin crew"], a: 0, e: "Acute fatigue clears with a good sleep; chronic fatigue from sustained inadequate rest needs prolonged recovery." },
+      { q: "Stress from domestic problems:", o: ["Adds to occupational stress — stress is cumulative", "Is irrelevant to flying performance", "Improves concentration at work", "Only matters for single pilots"], a: 0, e: "The stress response is common to all stressors and they stack — a major life event degrades flight-deck performance." },
+      { q: "The only true remedy for sleep debt is:", o: ["Sleep", "Caffeine", "Oxygen", "Exercise"], a: 0, e: "Stimulants mask fatigue briefly; only sleep repays the debt — the basis of flight time limitations." },
+    ],
+  },
+  {
+    id: "sleep",
+    code: "040·03",
+    title: "Sleep & Circadian Rhythms",
+    blurb: "Sleep stages, body clock, jet lag and the WOCL.",
+    cards: [
+      { t: "Sleep architecture", b: "Sleep cycles last roughly 90 minutes, repeating 4–5 times a night. Stages 1–2: light sleep. Stages 3–4 (slow-wave/deep sleep): physical restoration, dominant EARLY in the night. REM ('paradoxical') sleep: dreaming, brain active, body paralysed — mental/memory restoration, dominant LATER in the night. Both types are needed.", dia: "sleepcycle" },
+      { t: "REM facts the exam loves", b: "In REM sleep the EEG resembles wakefulness (hence 'paradoxical'), eyes move rapidly, and muscle tone is suppressed. Alcohol before bed suppresses REM and fragments the second half of the night — you sleep, but badly. Sleeping tablets similarly distort sleep architecture." },
+      { t: "The body clock", b: "The internal circadian rhythm free-runs at about 25 hours when isolated from time cues, and is normally entrained to 24 hours by ZEITGEBERS — light (the strongest), social cues, meals. Body temperature follows the rhythm, reaching its minimum around 04:00–06:00, when performance is also at its worst.", dia: "circadian" },
+      { t: "The WOCL", b: "The Window of Circadian Low — roughly 02:00–06:00 body time — is when alertness, performance and temperature bottom out, and when most fatigue-related errors and accidents cluster. FTL schemes specifically restrict duties that infringe the WOCL." },
+      { t: "Jet lag", b: "Crossing time zones desynchronises the body clock from local time: sleep disturbance, fatigue, GI upset, degraded performance. Adjustment takes roughly ONE DAY PER TIME ZONE crossed. EASTWARD travel is harder than westward, because shortening the day fights the body's natural drift towards a longer (≈25 h) cycle." },
+      { t: "Sleep credit & naps", b: "A working model: one hour of sleep buys roughly two hours of quality wakefulness, with credit capping out — you cannot stockpile unlimited sleep. Strategic napping genuinely helps, but waking from deep sleep causes SLEEP INERTIA (grogginess for up to ~15–30 min) — so keep naps short or time them to a full cycle, and never nap right before critical duties." },
+    ],
+    quiz: [
+      { q: "A complete sleep cycle lasts approximately:", o: ["90 minutes", "8 hours", "20 minutes", "4 hours"], a: 0, e: "Cycles of ~90 min repeat through the night, with deep sleep early and REM-rich cycles later." },
+      { q: "REM sleep is associated mainly with:", o: ["Mental restoration and dreaming, with an awake-like EEG", "Physical restoration and slow brain waves", "Sleepwalking", "Maximum muscle tone"], a: 0, e: "Paradoxical sleep: brain active, eyes moving, body paralysed — vital for memory and mental recovery." },
+      { q: "Isolated from all time cues, the human circadian rhythm runs at about:", o: ["25 hours", "24 hours exactly", "12 hours", "28 hours"], a: 0, e: "The free-running rhythm is ~25 h, entrained daily to 24 h by zeitgebers — light being the most powerful." },
+      { q: "Body temperature and performance are lowest at around:", o: ["04:00–06:00 body time", "12:00–14:00", "18:00–20:00", "22:00–24:00"], a: 0, e: "The circadian trough — the heart of the WOCL (02:00–06:00), where fatigue errors cluster." },
+      { q: "Adapting to a new time zone takes roughly:", o: ["One day per time zone crossed", "One hour per time zone", "No time if you sleep on the plane", "One week regardless of zones"], a: 0, e: "About a day per zone, and eastward shifts are harder — compressing the day opposes the body's ~25 h drift." },
+      { q: "Sleep inertia is:", o: ["Grogginess and degraded performance just after waking, worst from deep sleep", "The inability to fall asleep", "Excessive REM", "A type of insomnia"], a: 0, e: "Performance can be markedly impaired for up to ~15–30 minutes after waking from slow-wave sleep — time naps accordingly." },
+    ],
+  },
+  {
+    id: "infoproc",
+    code: "040·03",
+    title: "Information Processing & Memory",
+    blurb: "How the brain handles data: attention, memory stores, workload.",
+    cards: [
+      { t: "The processing chain", b: "Stimulus → SENSORY MEMORY → perception (attention filters here) → DECISION (central processing) → response → feedback. The central decision channel is essentially a SINGLE CHANNEL: humans cannot truly make two decisions at once — apparent multitasking is rapid switching." },
+      { t: "Sensory & working memory", b: "Sensory stores hold raw input very briefly: iconic (visual) ~0.5–1 s, echoic (sound) ~2–8 s — echoic memory is why you can 'replay' an ATC call you weren't attending to. WORKING (short-term) memory holds about 7 ± 2 items for roughly 10–20 seconds without rehearsal — the reason long clearances get read back wrong.", dia: "memory" },
+      { t: "Helping working memory", b: "CHUNKING groups items into meaningful units (a frequency as two chunks, not six digits). Rehearsal keeps items alive; interruption destroys them. Write long clearances down. Similar-sounding items interfere with each other (acoustic confusion) — a known factor in callsign mix-ups." },
+      { t: "Long-term memory", b: "Effectively unlimited capacity. Three flavours: SEMANTIC (facts/knowledge), EPISODIC (events you experienced — unreliable, reconstructed each recall), PROCEDURAL (motor skills — very resistant to forgetting, 'like riding a bike'). Episodic memory's reconstructive nature is why eyewitness reports differ." },
+      { t: "Attention", b: "SELECTIVE attention: choosing one input among many (the cocktail-party effect — your callsign cuts through). DIVIDED attention: sharing between tasks — capacity is limited and degrades under stress. VIGILANCE: sustained attention to rare events decays significantly after ~30 minutes (a monitoring problem in cruise and for radar operators)." },
+      { t: "Perception & expectation", b: "Perception is interpretation, not photography: the brain builds a model from sensory data PLUS expectation (mental set/schema). You tend to perceive what you EXPECT — hearing the clearance you anticipated rather than the one transmitted. Defence: disciplined readback, and treating surprise as information." },
+    ],
+    quiz: [
+      { q: "Working (short-term) memory typically holds:", o: ["About 7 ± 2 items for 10–20 seconds", "Unlimited items for one minute", "3 items permanently", "100 items for an hour"], a: 0, e: "7 ± 2 chunks, fading within ~20 s without rehearsal — write long clearances down and chunk what you can." },
+      { q: "The ability to mentally replay a radio call you were not attending to is due to:", o: ["Echoic sensory memory", "Procedural memory", "Semantic memory", "Hypnosis"], a: 0, e: "Echoic (auditory sensory) memory holds a few seconds of raw sound — a brief replay buffer." },
+      { q: "Motor skills such as control handling are stored in:", o: ["Procedural memory", "Episodic memory", "Echoic memory", "Working memory"], a: 0, e: "Procedural memory — built by practice and very resistant to forgetting, though skills still degrade without recency." },
+      { q: "Hearing the clearance you expected rather than the one issued is an error of:", o: ["Perception driven by expectation", "Hearing damage", "Sensory memory", "Vigilance only"], a: 0, e: "Perception is constructive: mental set fills in what's anticipated. Disciplined readback/hearback is the defence." },
+      { q: "Human central decision-making is best described as:", o: ["A single channel — one decision at a time", "Fully parallel", "Unlimited under stress", "Two simultaneous channels"], a: 0, e: "We time-share by switching rapidly; true simultaneous decisions are impossible — workload management matters." },
+      { q: "Vigilance for rare events during monitoring tasks:", o: ["Declines markedly after about 30 minutes", "Improves steadily with time", "Is constant for 8 hours", "Only declines at night"], a: 0, e: "The vigilance decrement: sustained monitoring degrades within half an hour — a core argument for shared monitoring and automation alerts." },
+    ],
+  },
+  {
+    id: "error",
+    code: "040·03",
+    title: "Human Error & Decision Making",
+    blurb: "Error types, Reason's model, SHELL, and decision frameworks.",
+    cards: [
+      { t: "Classifying error", b: "Per James Reason: SLIPS — right plan, wrong execution (selected flaps instead of gear). LAPSES — memory failures (forgot a checklist item). MISTAKES — the PLAN itself was wrong (rule-based: wrong rule applied; knowledge-based: faulty reasoning in a novel situation). VIOLATIONS — intentional deviations from rules (routine, situational or exceptional)." },
+      { t: "Skill, rule, knowledge", b: "Rasmussen's levels: SKILL-based behaviour — automatic, practiced actions (prone to slips/lapses). RULE-based — applying stored if-then procedures (prone to picking the wrong rule). KNOWLEDGE-based — reasoning from first principles in novel situations (slow, effortful, most error-prone). Experts operate mostly at skill/rule level." },
+      { t: "The Swiss cheese model", b: "Accidents happen when holes in successive defensive layers line up. ACTIVE FAILURES: errors by front-line operators, effects felt immediately. LATENT FAILURES: decisions made far from the flight deck (design, management, rostering, maintenance culture) lying dormant until combined with active failures. Most accidents involve both.", dia: "swisscheese" },
+      { t: "The SHELL model", b: "Describes the interfaces between the human (central LIVEWARE) and: SOFTWARE (procedures, checklists, symbology), HARDWARE (controls, displays, seats), ENVIRONMENT (heat, noise, pressure, light), and other LIVEWARE (crew, ATC, ground staff). Mismatches at any interface breed error — the human is never resized; the interfaces must fit the human.", dia: "shell" },
+      { t: "Decision making — FORDEC", b: "A structured model for non-time-critical decisions: Facts — what is the situation? Options — what could we do? Risks & benefits of each. Decision — choose. Execution — do it, allocate tasks. Check — did it work, has the situation changed? The loop guards against jumping to the first idea." },
+      { t: "Decision traps", b: "CONFIRMATION BIAS: seeking only evidence that supports the existing belief. EXPECTANCY: perceiving what you anticipated. PLAN CONTINUATION ('press-on-itis'/get-home-itis): sticking to the original plan as evidence mounts against it — implicated in many CFIT and weather accidents. Antidotes: actively seek disconfirming evidence, set decision gates, invite challenge from the other pilot." },
+    ],
+    quiz: [
+      { q: "Setting the wrong altitude despite intending the right one — correct plan, faulty execution — is a:", o: ["Slip", "Mistake", "Violation", "Latent failure"], a: 0, e: "Slips are action errors with a good plan. Mistakes are flawed plans; lapses are memory failures; violations are intentional." },
+      { q: "Forgetting to complete a checklist item after an interruption is a:", o: ["Lapse", "Slip", "Knowledge-based mistake", "Violation"], a: 0, e: "A memory failure = lapse. Interruptions are the classic trigger — go back and re-enter the checklist properly." },
+      { q: "In Reason's model, a maintenance rostering decision that contributes to an accident months later is a:", o: ["Latent failure", "Active failure", "Slip", "Routine violation"], a: 0, e: "Latent conditions lie dormant in the system until they line up with active failures — the deeper holes in the Swiss cheese." },
+      { q: "In the SHELL model, the interface between the pilot and checklists or procedures is:", o: ["Liveware–Software", "Liveware–Hardware", "Liveware–Environment", "Liveware–Liveware"], a: 0, e: "Software = the non-physical system elements: procedures, checklists, manuals, symbology." },
+      { q: "In FORDEC, the final C stands for:", o: ["Check — review whether the decision is working", "Communicate", "Climb", "Confirm the weather"], a: 0, e: "Facts, Options, Risks & benefits, Decision, Execution, CHECK — closing the loop catches a wrong or outdated decision." },
+      { q: "Continuing an approach in deteriorating weather because 'we're nearly there' illustrates:", o: ["Plan continuation bias", "The leans", "A lapse", "Negative transfer"], a: 0, e: "Press-on-itis: commitment to the original plan overrides accumulating contrary evidence — set hard gates and respect them." },
+    ],
+  },
+  {
+    id: "crm",
+    code: "040·03",
+    title: "Personality, Communication & CRM",
+    blurb: "Hazardous attitudes, cockpit gradient, assertiveness, groups.",
+    cards: [
+      { t: "Personality & attitudes", b: "Personality is stable from early adulthood — training changes ATTITUDES and BEHAVIOUR, not personality. The ideal pilot profile is goal-oriented AND group-oriented (high task focus, high people focus). Extreme introversion/dominance combinations cause crew friction; selection screens for it, CRM manages it." },
+      { t: "The five hazardous attitudes", b: "ANTI-AUTHORITY ('don't tell me') — antidote: follow the rules, they're usually right. IMPULSIVITY ('do something quickly') — not so fast, think first. INVULNERABILITY ('it won't happen to me') — it could happen to me. MACHO ('I can do it') — taking chances is foolish. RESIGNATION ('what's the use?') — I'm not helpless, I can make a difference.", dia: "attitudes" },
+      { t: "Communication", b: "Communication = transmission AND confirmation of meaning. Barriers: ambiguity, jargon, expectation, status differences, language, noise. Aviation defences: standard phraseology, readback/hearback, closed-loop communication. Most communication meaning travels through tone and body language in person — which is exactly what radio strips away, so words must be precise." },
+      { t: "The trans-cockpit authority gradient", b: "The command relationship between captain and co-pilot. TOO STEEP: the co-pilot won't challenge errors (many classic accidents). TOO FLAT/SHALLOW: unclear leadership, decisions drift. The target is a moderate gradient: clear command, open challenge. Linked tools: assertiveness training and standard challenge phrases for the junior pilot.", dia: "gradient" },
+      { t: "Group decision making", b: "Groups can outperform individuals (more knowledge, error-checking) but suffer: GROUPTHINK — conformity pressure suppresses dissent; RISKY SHIFT — groups accept riskier decisions than individuals would (diffusion of responsibility); social loafing. Defences: the captain states views LAST, actively inviting dissent; structured decision models." },
+      { t: "Leadership & synergy", b: "Leadership is influencing the team towards the goal — distinct from mere authority (the position). Effective styles adapt to the situation: directive in emergencies, consultative when time allows. CRM's aim is SYNERGY: the crew performing better than the sum of its members — achieved through briefing, workload management, monitoring and open communication." },
+    ],
+    quiz: [
+      { q: "CRM training is designed to change:", o: ["Attitudes and behaviour, not personality", "Personality permanently", "Intelligence", "Reaction times"], a: 0, e: "Personality is fixed by adulthood; training targets attitudes, knowledge and skills — the things that can move." },
+      { q: "The antidote to the hazardous attitude 'it won't happen to me' is:", o: ["It could happen to me", "Not so fast — think first", "Follow the rules", "I'm not helpless"], a: 0, e: "Invulnerability → 'it could happen to me'. Each of the five attitudes has its matched antidote — learn the pairs." },
+      { q: "A trans-cockpit authority gradient that is too steep results in:", o: ["The co-pilot failing to challenge the captain's errors", "Constant arguments", "Shared decision paralysis", "Better monitoring"], a: 0, e: "Excessive dominance silences the junior pilot — a recurring factor in accident history. The fix: moderate gradient plus assertiveness." },
+      { q: "Groupthink is:", o: ["Conformity pressure suppressing dissenting views in a group", "Faster thinking in groups", "A type of memory", "Two pilots thinking identically by training"], a: 0, e: "The desire for harmony overrides realistic appraisal — countered by leaders inviting dissent and stating their own view last." },
+      { q: "The 'risky shift' phenomenon means groups tend to:", o: ["Accept riskier decisions than individuals would alone", "Always choose the safest option", "Avoid all decisions", "Defer to the youngest member"], a: 0, e: "Shared responsibility dilutes individual accountability, nudging groups towards riskier choices." },
+      { q: "Effective communication is confirmed by:", o: ["Closed-loop feedback such as readback/hearback", "Speaking louder", "Repetition three times", "Using more technical jargon"], a: 0, e: "Meaning is only transferred when confirmed — the closed loop of message, readback and hearback." },
+    ],
+  },
+  {
+    id: "automation",
+    code: "040·03",
+    title: "Automation & The Modern Flight Deck",
+    blurb: "Glass cockpit benefits, complacency, mode awareness, workload.",
+    cards: [
+      { t: "What automation changed", b: "Automation reduced physical workload and routine error, improved precision and economy — and created new error forms: mode confusion, automation complacency, skill degradation, and 'what's it doing now?' surprises. The pilot's role shifted from hands-on operator to systems MONITOR — a role humans are naturally poor at (vigilance decrement)." },
+      { t: "Automation complacency", b: "Trust in reliable automation breeds reduced monitoring: crews stop cross-checking what the autoflight system is actually doing. Defences: fly the aircraft mentally at all times (know what it should do next), call out FMA changes, and treat the automation as a crew member whose work must be checked." },
+      { t: "Mode awareness", b: "Mode confusion — believing the autoflight is in one mode when it is in another — has caused fatal accidents (e.g. descent-rate vs flight-path-angle mix-ups). The flight mode annunciator (FMA) is the single source of truth: announce and verify every mode change. Automation surprises peak during high-workload phases and reversions." },
+      { t: "Out of the loop & skill fade", b: "Long periods of passive monitoring degrade situational awareness AND manual flying skills — the pilot may be slow to detect failures and poorly placed to take over. Countermeasures: appropriate levels of automation for the phase, deliberate manual flying when conditions allow, and robust takeover criteria (if it's not doing what you want — disconnect and fly)." },
+      { t: "Levels of automation", b: "Use the level appropriate to workload and situation: full automation for high-workload precision tasks (CAT III), lower levels to stay engaged when conditions permit. Changing levels IS a crew action: announce it. The guiding rule examined: aviate, navigate, communicate — automation status must never displace flying the aeroplane." },
+      { t: "Designing for humans", b: "Good flight-deck design follows human factors principles: consistency, feedback for every action, error tolerance (guards, confirmations, undo), alerting hierarchy (warning/caution/advisory), and dark-cockpit philosophy (a quiet panel means all is well). The human is the constant — design must fit the operator (SHELL again)." },
+    ],
+    quiz: [
+      { q: "Automation complacency refers to:", o: ["Reduced monitoring caused by trust in reliable automation", "Fear of using the autopilot", "Automatic checklist completion", "The autopilot becoming complacent"], a: 0, e: "Reliable systems train crews out of checking them — until the day the automation does something unexpected." },
+      { q: "The authoritative indication of the current autoflight mode is:", o: ["The flight mode annunciator (FMA)", "The control column position", "The thrust lever angle", "The captain's memory"], a: 0, e: "The FMA is the single source of truth — announce and verify every change to maintain mode awareness." },
+      { q: "Long passive monitoring of automation tends to cause:", o: ["Degraded situational awareness and manual skill fade", "Improved hand-flying skills", "Higher arousal", "Faster failure detection"], a: 0, e: "Out-of-the-loop syndrome: the monitor is slow to notice failures and rusty when forced to take over — hence deliberate manual flying practice." },
+      { q: "If the autoflight system is not doing what you want during a critical phase, you should:", o: ["Disconnect and fly the aircraft manually", "Wait and observe for a few minutes", "Reprogram the FMS first", "Pull circuit breakers"], a: 0, e: "Aviate first: take over, fly the aeroplane, sort out the automation later — never let troubleshooting displace flying." },
+      { q: "Pilots are poorly suited to the pure monitoring role because:", o: ["Human vigilance for rare events decays quickly", "They lack intelligence", "They monitor too closely", "Monitoring needs no training"], a: 0, e: "The vigilance decrement (significant within ~30 min) makes humans weak passive monitors — design and procedures must compensate." },
+      { q: "A 'dark cockpit' philosophy means:", o: ["With all systems normal, panels show no lights", "Flying without instrument lighting", "Night operations only", "Hiding failures from the crew"], a: 0, e: "Quiet and dark = normal; anything illuminated demands attention — an alerting design that exploits human attention patterns." },
+    ],
+  },
+  {
+    id: "respcardio",
+    code: "040·02",
+    title: "Respiration & Circulation (In Depth)",
+    blurb: "Gas exchange, control of breathing, blood, blood pressure & disease.",
+    cards: [
+      { t: "The respiratory pathway", b: "Air travels trachea → bronchi → bronchioles → ALVEOLI, the tiny sacs where gas exchange occurs. Oxygen diffuses into the blood and CO2 diffuses out, across a huge, thin surface area. Anything reducing alveolar oxygen partial pressure (altitude) or the exchange surface (disease, smoking) impairs oxygenation." },
+      { t: "Control of breathing", b: "The respiratory centre in the brainstem sets breathing rate, driven mainly by blood CO2 (and acidity), NOT by oxygen. This is why hypoxia produces no breathlessness — and why hyperventilation, by washing out CO2, removes the urge to breathe and causes alkalosis (tingling, dizziness, tetany)." },
+      { t: "Blood & its job", b: "Blood carries oxygen (on haemoglobin in red cells), CO2, nutrients, heat and hormones, and fights infection (white cells) and clots (platelets). Anything reducing haemoglobin or its function — anaemia, blood loss, carbon monoxide — causes ANAEMIC hypoxia regardless of altitude." },
+      { t: "The heart & circulation", b: "A double pump: the RIGHT side drives blood to the lungs (pulmonary circuit), the LEFT side around the body (systemic circuit). Resting rate 60–80 bpm. The coronary arteries feed the heart muscle itself — their narrowing causes angina and heart attacks." },
+      { t: "Blood pressure", b: "Quoted as systolic/diastolic (contraction/relaxation), healthy norm ~120/80 mmHg. HYPERTENSION (sustained high BP) silently damages heart, vessels, kidneys and eyes and is a major medical-certificate concern. Controllable factors: weight, salt, smoking, alcohol, stress, inactivity." },
+      { t: "Coronary heart disease & fitness", b: "CHD is a leading cause of licence loss. Risk factors split into controllable (smoking — the biggest, diet/cholesterol, obesity, inactivity, hypertension, stress) and uncontrollable (age, sex, family history). Regular aerobic exercise, healthy weight and not smoking protect both health and licence." },
+    ],
+    quiz: [
+      { q: "Gas exchange between air and blood takes place in the:", o: ["Alveoli", "Trachea", "Bronchi", "Larynx"], a: 0, e: "The alveoli provide a vast thin surface for oxygen and CO2 to diffuse across." },
+      { q: "Breathing rate is controlled mainly by the level of:", o: ["Carbon dioxide in the blood", "Oxygen in the blood", "Nitrogen in the tissues", "Glucose"], a: 0, e: "The CO2-driven respiratory centre means low oxygen causes no breathlessness — the insidious danger of hypoxia." },
+      { q: "Carbon monoxide causes hypoxia by:", o: ["Binding to haemoglobin and reducing oxygen carriage", "Lowering cabin pressure", "Blocking the alveoli physically", "Cooling the blood"], a: 0, e: "CO binds haemoglobin ~200–250× more readily than oxygen — anaemic hypoxia, with headache and confusion." },
+      { q: "The left side of the heart pumps blood to the:", o: ["Body (systemic circulation)", "Lungs (pulmonary circulation)", "Liver only", "Brain only"], a: 0, e: "Left → body, right → lungs; the coronary arteries separately feed the heart muscle." },
+      { q: "A healthy resting blood pressure is approximately:", o: ["120/80 mmHg", "200/120 mmHg", "80/40 mmHg", "60/30 mmHg"], a: 0, e: "Systolic/diastolic ~120/80; sustained hypertension is a key medical flag." },
+      { q: "The single biggest CONTROLLABLE risk factor for coronary heart disease is:", o: ["Smoking", "Age", "Family history", "Sex"], a: 0, e: "Age, sex and family history can't be changed; of the controllable factors, smoking leads." },
+    ],
+  },
+  {
+    id: "lifestyle",
+    code: "040·02",
+    title: "Health, Lifestyle & Toxicology",
+    blurb: "Diet, exercise, alcohol, drugs, CO, diving, donation, tropical disease.",
+    cards: [
+      { t: "Diet, blood sugar & hydration", b: "The brain runs on glucose; missed meals on long duties cause HYPOGLYCAEMIA (weakness, poor concentration, irritability). Eat regular balanced meals, avoid big sugar spikes. Dehydration — easy in dry cabin air — also degrades concentration; drink water regularly. Obesity and poor diet raise cardiovascular risk." },
+      { t: "Alcohol", b: "EASA crew limit 0.2 g/L (≈ zero). Eliminated at a FIXED ~1 unit/hour — nothing speeds it up. 'Bottle to throttle' minimums (often 8–12 h) don't guarantee zero BAC after heavy drinking, and HANGOVER effects impair performance even at zero. Alcohol also disturbs the inner ear and degrades sleep quality (suppresses REM)." },
+      { t: "Medication & drugs", b: "Self-medication is the trap: antihistamines, sleeping tablets, strong painkillers and many cold remedies cause drowsiness or impairment. Rule: if you need the medication, consider whether the CONDITION itself is fit to fly, then clear the drug with an AME. After general or local anaesthetic, typically wait 24–48 h before flying." },
+      { t: "Carbon monoxide", b: "Colourless, odourless, tasteless — from exhaust/heater leaks and smoking. Binds haemoglobin ~200–250× more than oxygen → anaemic hypoxia: headache, dizziness, vision loss, confusion. Action: source off (cabin heat off), ventilate, 100% oxygen, land. Recovery takes hours, not minutes." },
+      { t: "Diving, donation & pressure", b: "After diving, dissolved nitrogen makes flying risky: wait ≥12 h after a no-stop dive, 24–48 h after decompression-stop dives, before flying (even in a pressurised cabin). After donating BLOOD, don't fly for ≥24 h (reduced oxygen carriage). Recent surgery, anaemia and pregnancy also reduce altitude tolerance." },
+      { t: "Tropical & travel health", b: "Long-haul crews face tropical disease risk: malaria (prophylaxis and bite avoidance), waterborne infections (food/water hygiene), and vaccination needs. Jet lag, fatigue and disturbed sleep compound these. Deep-vein thrombosis risk rises with immobility — hydrate and move on long sectors." },
+    ],
+    quiz: [
+      { q: "Alcohol is eliminated from the blood at:", o: ["A fixed rate of about one unit per hour", "A rate doubled by coffee", "A rate set by exercise", "Instantly after eating"], a: 0, e: "Metabolism is constant; only time reduces blood alcohol — coffee, food and showers don't." },
+      { q: "Symptoms of hypoglycaemia from missed meals include:", o: ["Weakness and poor concentration", "Improved alertness", "Better night vision", "A slow, steady pulse"], a: 0, e: "The brain is glucose-dependent; low blood sugar degrades thinking and mood — eat regularly on duty." },
+      { q: "After a dive requiring decompression stops, the minimum wait before flying is:", o: ["24–48 hours", "2 hours", "8 hours", "None if pressurised"], a: 0, e: "24–48 h after decompression dives, ≥12 h after no-stop dives — tissue nitrogen must wash out." },
+      { q: "Carbon monoxide is especially dangerous because it is:", o: ["Undetectable by the senses", "Strongly smelly", "Heavier than the airframe", "Only a risk to passengers"], a: 0, e: "Colourless and odourless, it silently monopolises haemoglobin — heater leaks are the classic source." },
+      { q: "After donating blood, crew should not fly for at least:", o: ["24 hours", "1 hour", "7 days", "30 days"], a: 0, e: "Oxygen-carrying capacity is temporarily reduced — at least 24 hours, and avoid donating during flying periods." },
+      { q: "Following a general anaesthetic, the typical minimum before flying is:", o: ["24–48 hours", "1 hour", "2 weeks", "No restriction"], a: 0, e: "Anaesthetic and the underlying procedure impair performance — 24–48 h minimum, per medical advice." },
+    ],
+  },
+  {
+    id: "sa",
+    code: "040·03",
+    title: "Situational Awareness & Workload",
+    blurb: "SA levels, attention, workload management, TEM and SOPs.",
+    cards: [
+      { t: "Situational awareness (SA)", b: "SA is knowing what is going on around you: Level 1 PERCEIVING the elements (traffic, weather, fuel, systems), Level 2 UNDERSTANDING what they mean, Level 3 PROJECTING what will happen next. Most SA failures are at Level 1 — not noticing — often from distraction, fatigue or fixation." },
+      { t: "Loss of SA — the warning signs", b: "Red flags: confusion or a 'gut' unease, fixation on one problem, unresolved discrepancies, nobody flying the aircraft, missed checklists/calls, undershooting/overshooting targets, and breaking SOPs. Recovery: aviate first, get the big picture, use the other crew member, and don't proceed while confused." },
+      { t: "Workload management", b: "Performance suffers at very LOW workload (boredom, complacency, poor monitoring) and very HIGH workload (overload, tunnelling, shedding tasks). Manage it by planning and briefing ahead, prioritising (aviate–navigate–communicate), delegating, and using quiet phases to prepare for busy ones. Automation can both reduce and (via mode confusion) increase workload." },
+      { t: "Attention & distraction", b: "Attention is limited and largely single-channel — true multitasking is rapid switching, which is error-prone under load. Distraction and interruption are leading causes of missed actions; the defence is to consciously return to and re-confirm the interrupted task, and to protect critical phases (sterile flight deck below 10,000 ft)." },
+      { t: "Threat & Error Management (TEM)", b: "A safety model: THREATS (weather, terrain, traffic, time pressure, fatigue) and ERRORS (slips, lapses, mistakes, violations) are expected. The goal is to ANTICIPATE, TRAP and MITIGATE them before they become an UNDESIRED AIRCRAFT STATE. Good briefings, monitoring and cross-checking are the everyday TEM tools." },
+      { t: "SOPs & monitoring", b: "Standard Operating Procedures make actions predictable so the other pilot can monitor and challenge effectively — the foundation of multi-crew safety. Active MONITORING and cross-checking catch errors early; effective challenge (assertiveness, standard call-outs) closes the loop. Deviating from SOPs removes the safety net." },
+    ],
+    quiz: [
+      { q: "Level 1 situational awareness is:", o: ["Perceiving the relevant elements", "Understanding their meaning", "Projecting the future state", "Making the decision"], a: 0, e: "L1 perceive, L2 comprehend, L3 project. Most SA failures are L1 — simply not noticing something." },
+      { q: "A classic sign of lost situational awareness is:", o: ["Fixation on one problem while no one flies the aircraft", "Calm, shared monitoring", "Completing checklists on time", "Following SOPs"], a: 0, e: "Fixation, unresolved discrepancies and an unflown aircraft are red flags — aviate first and rebuild the picture." },
+      { q: "Human performance is typically WORST at:", o: ["Very high and very low workload", "Moderate workload", "Only high workload", "Only low workload"], a: 0, e: "Overload causes tunnelling and task-shedding; underload causes complacency and poor monitoring." },
+      { q: "In Threat and Error Management, the aim is to:", o: ["Anticipate, trap and mitigate threats and errors", "Eliminate all human error", "Assign blame after events", "Avoid using checklists"], a: 0, e: "TEM accepts threats/errors as normal and manages them before they become an undesired aircraft state." },
+      { q: "Standard Operating Procedures primarily improve safety by:", o: ["Making actions predictable so the other pilot can monitor and challenge", "Removing the need to monitor", "Speeding up checklists only", "Allowing more improvisation"], a: 0, e: "Predictability is what makes effective cross-monitoring and challenge possible — the multi-crew safety net." },
+      { q: "The main defence against interruption-induced errors is to:", o: ["Consciously return to and re-confirm the interrupted task", "Work faster", "Ignore the interruption", "Skip the checklist"], a: 0, e: "Interruptions wipe working memory; deliberately resuming and re-checking the task prevents missed actions." },
+    ],
+  },
+  {
+    id: "nervous",
+    code: "040·02",
+    title: "Nervous System & Physiology Foundations",
+    blurb: "The cell, CNS/PNS, autonomic responses, proprioception, energy.",
+    cards: [
+      { t: "Cells & homeostasis", b: "The body is built of cells needing oxygen and glucose and a stable internal environment. HOMEOSTASIS is the maintenance of steady internal conditions (temperature, blood gases, pH, blood sugar). Stressors — altitude, acceleration, heat, fatigue — challenge homeostasis, and the body's compensations have limits." },
+      { t: "The nervous system layout", b: "The CENTRAL nervous system (brain and spinal cord) processes and decides; the PERIPHERAL nervous system carries signals to and from the body. Sensory nerves bring information in; motor nerves carry commands out. Reaction time is the delay through this loop — lengthened by fatigue, alcohol, hypoxia and age." },
+      { t: "The autonomic nervous system", b: "Runs automatic functions. The SYMPATHETIC branch is 'fight or flight' — adrenaline, raised heart rate and breathing, pupils dilate, ready for action (the stress/alarm response). The PARASYMPATHETIC branch is 'rest and digest', conserving energy. Stress tips the balance sympathetic." },
+      { t: "Proprioception — the 'seat of the pants'", b: "Position sense from receptors in muscles, joints and tendons, plus the vestibular system, tells you your body's orientation. In flight WITHOUT external visual reference these signals are UNRELIABLE and cause illusions — which is why instrument flight must override seat-of-the-pants sensations." },
+      { t: "Energy, digestion & hydration", b: "The digestive system converts food to glucose (brain fuel) and nutrients; the kidneys regulate water and waste. Missed meals cause hypoglycaemia (poor concentration); dehydration (easy in dry cabins) degrades performance. Steady blood sugar and good hydration sustain mental performance on long duties." },
+      { t: "Hormones & the stress response", b: "The endocrine system uses hormones for slower, sustained control. ADRENALINE drives the acute stress response; CORTISOL sustains it. Chronic stress keeps these elevated, contributing to fatigue, poor sleep, suppressed immunity and the exhaustion phase of the general adaptation syndrome." },
+    ],
+    quiz: [
+      { q: "Homeostasis is:", o: ["Maintenance of a stable internal environment", "The fight-or-flight response", "A type of illusion", "Loss of consciousness"], a: 0, e: "Steady temperature, blood gases, pH and sugar — challenged by altitude, heat, fatigue and acceleration." },
+      { q: "The 'fight or flight' response is driven by the:", o: ["Sympathetic nervous system", "Parasympathetic nervous system", "Central nervous system only", "Digestive system"], a: 0, e: "Sympathetic activation releases adrenaline, raising heart rate and breathing for action." },
+      { q: "Proprioception (position sense) in flight is:", o: ["Unreliable without external visual reference", "More accurate than instruments", "Unaffected by acceleration", "Located in the eyes"], a: 0, e: "Seat-of-the-pants cues mislead in IMC — instruments must override them." },
+      { q: "Reaction time through the nervous system is lengthened by:", o: ["Fatigue, alcohol, hypoxia and age", "Good hydration", "Moderate arousal", "Regular meals"], a: 0, e: "All degrade the sensory–processing–motor loop, slowing responses." },
+      { q: "Missed meals on a long duty cause hypoglycaemia, which:", o: ["Impairs concentration and judgement", "Improves alertness", "Raises night vision", "Has no effect on the brain"], a: 0, e: "The brain depends on glucose; low blood sugar degrades mental performance." },
+      { q: "The acute stress 'alarm' hormone is:", o: ["Adrenaline", "Insulin", "Melatonin", "Haemoglobin"], a: 0, e: "Adrenaline drives the immediate fight-or-flight response; cortisol sustains longer stress." },
+    ],
+  },
+  {
+    id: "learning",
+    code: "040·03",
+    title: "Learning & Skill Acquisition",
+    blurb: "Conditioning, the three skill stages, schemas, transfer, recency.",
+    cards: [
+      { t: "Types of learning", b: "CLASSICAL conditioning: association between a stimulus and a response. OPERANT conditioning: behaviour shaped by its consequences — reinforcement (reward) strengthens it, punishment weakens it. OBSERVATIONAL learning: copying others. Most training blends these, with reinforcement central to building good habits." },
+      { t: "Stages of skill acquisition", b: "COGNITIVE stage: understanding what to do, slow and error-prone, heavy mental effort. ASSOCIATIVE stage: practising, errors reducing, becoming smoother. AUTONOMOUS stage: the skill is automatic, freeing mental capacity for other tasks. Stress can cause regression to an earlier, more effortful stage." },
+      { t: "Mental models & schemas", b: "A SCHEMA is an organised mental model that lets you handle situations efficiently and anticipate what comes next. Experts hold rich, accurate schemas; they 'chunk' information and recognise patterns. A wrong or incomplete schema (expectation) is also how perception errors and surprises arise." },
+      { t: "Transfer of learning", b: "POSITIVE transfer: prior learning helps a new task (e.g. one aircraft type easing another). NEGATIVE transfer: an old habit interferes with the new one (a reversed switch, a different procedure) — a real risk when changing type or operator. Training design tries to maximise positive and minimise negative transfer." },
+      { t: "Retention, recency & overlearning", b: "Skills and knowledge DECAY without use; RECENCY requirements exist because of this. OVERLEARNING (practising beyond bare competence) makes a skill robust under stress and slows forgetting. Spaced practice beats cramming; meaningful, understood material is retained far better than rote." },
+      { t: "Motivation to learn & KSA", b: "Learning is far more effective when the learner is motivated and the material is relevant. Modern training assesses KNOWLEDGE, SKILLS and ATTITUDES (KSA) — not just technical ability but the behaviours and mindset of a safe professional. Active involvement beats passive listening." },
+    ],
+    quiz: [
+      { q: "Behaviour shaped by reward and punishment is:", o: ["Operant conditioning", "Classical conditioning", "Observational learning", "Negative transfer"], a: 0, e: "Consequences shape behaviour — reinforcement strengthens, punishment weakens." },
+      { q: "In which stage of skill acquisition is the skill automatic, freeing mental capacity?", o: ["Autonomous", "Cognitive", "Associative", "Reinforcement"], a: 0, e: "Cognitive → associative → autonomous; the autonomous skill needs little conscious effort." },
+      { q: "When an old habit interferes with learning a new procedure, this is:", o: ["Negative transfer", "Positive transfer", "Overlearning", "A schema"], a: 0, e: "Negative transfer — a real hazard on type or operator changes (e.g. reversed switches)." },
+      { q: "Overlearning a skill primarily:", o: ["Makes it robust under stress and slows forgetting", "Wastes time with no benefit", "Causes negative transfer", "Removes the need for recency"], a: 0, e: "Practice beyond bare competence keeps the skill reliable when workload and stress rise." },
+      { q: "A schema is best described as:", o: ["An organised mental model that aids anticipation", "A type of fatigue", "A reflex", "A breathing pattern"], a: 0, e: "Schemas let experts chunk information and predict — though a faulty schema also drives expectation errors." },
+      { q: "Skill retention is improved by:", o: ["Spaced practice and meaningful, understood material", "Cramming once", "Passive listening only", "Avoiding recency practice"], a: 0, e: "Spaced, active, meaningful practice is retained far better than rote cramming." },
+    ],
+  },
+  {
+    id: "communication",
+    code: "040·03",
+    title: "Communication",
+    blurb: "The communication model, verbal/non-verbal, barriers, closed loop.",
+    cards: [
+      { t: "The communication model", b: "A sender encodes a MESSAGE, transmits it through a medium, and a receiver decodes it — communication only succeeds when the received meaning matches the intended meaning, confirmed by FEEDBACK. Many flight-deck errors are really communication failures, not technical ones." },
+      { t: "Verbal and non-verbal", b: "Face to face, much of the meaning is carried by tone, emphasis and body language, not just words. RADIO strips all of that away, leaving only words and tone — so phraseology must be precise and unambiguous. Written communication loses tone entirely and is easily misread." },
+      { t: "Barriers to communication", b: "Noise, ambiguity, jargon, accent and language differences, status/authority gradient (reluctance to speak up), expectation (hearing what you expect), workload and fatigue. Each can distort or block the message — good communicators actively counter them." },
+      { t: "The closed loop", b: "Aviation confirms meaning with the CLOSED LOOP: message → readback → hearback. Standard PHRASEOLOGY removes ambiguity; readback lets the sender catch errors. Skipping the loop ('I'm sure they heard me') is where misunderstandings and level/runway busts creep in." },
+      { t: "Active listening & feedback", b: "Listening is active, not passive: attending fully, checking understanding, and giving feedback. Good feedback is timely, specific and behaviour-focused, not personal. Asking open questions and confirming back ('so we're cleared to…') turns a one-way transmission into shared understanding." },
+      { t: "Assertiveness & advocacy", b: "Effective crews state concerns clearly and persist if unresolved — advocacy. Models like the PACE escalation (Probe, Alert, Challenge, Emergency) or standard challenge phrases give a junior crew member a structured way to speak up against a steep authority gradient before a situation deteriorates." },
+    ],
+    quiz: [
+      { q: "Communication is only successful when:", o: ["The received meaning matches the intended meaning", "The message is transmitted", "The sender stops speaking", "It is written down"], a: 0, e: "Transmission isn't enough — meaning must be received and confirmed, which is what feedback checks." },
+      { q: "Radio communication is demanding because it:", o: ["Strips away body language, leaving only words and tone", "Adds non-verbal cues", "Removes the need for phraseology", "Guarantees understanding"], a: 0, e: "Without visual cues, precise standard phraseology and readback carry the whole message." },
+      { q: "The aviation 'closed loop' consists of:", o: ["Message, readback and hearback", "Sender and noise", "Two simultaneous messages", "Silence and assumption"], a: 0, e: "Readback/hearback confirms the message was received correctly — the core defence against mishearing." },
+      { q: "A communication barrier created by reluctance to question a senior is the:", o: ["Authority gradient", "Closed loop", "Schema", "Feedback channel"], a: 0, e: "A steep trans-cockpit authority gradient discourages the junior pilot from speaking up — a known accident factor." },
+      { q: "Good feedback is:", o: ["Timely, specific and behaviour-focused", "Vague and personal", "Delayed indefinitely", "Always written"], a: 0, e: "Specific, behaviour-focused, timely feedback improves performance without attacking the person." },
+      { q: "Structured escalation phrases (e.g. PACE) help a junior crew member to:", o: ["Advocate a concern against a steep authority gradient", "Avoid speaking at all", "Increase ambiguity", "Skip the readback"], a: 0, e: "They give a graded, assertive way to raise and escalate a concern before things deteriorate." },
+    ],
+  },
+  {
+    id: "culture",
+    code: "040·03",
+    title: "Motivation, Behaviour & Safety Culture",
+    blurb: "Motivation, attitudes, just culture, complacency, normalisation.",
+    cards: [
+      { t: "Motivation", b: "Motivation is the drive behind behaviour, INTRINSIC (satisfaction, mastery, professionalism) or EXTRINSIC (pay, status, avoiding sanction). Maslow's hierarchy suggests basic needs (safety, security) must be met before higher ones (esteem, self-actualisation). Motivated, valued people perform and report more safely." },
+      { t: "Attitudes vs behaviour", b: "An ATTITUDE is a settled way of thinking that predisposes behaviour; it's relatively stable but CAN be changed by training and experience (unlike personality). The five hazardous attitudes (anti-authority, impulsivity, invulnerability, macho, resignation) are the classic targets, each with an antidote." },
+      { t: "Safety culture", b: "The shared values and behaviours around safety in an organisation. A POSITIVE safety culture is informed, reporting, flexible and learning. Where safety is genuinely valued over short-term convenience, hazards get reported and fixed before they cause accidents — culture shapes individual behaviour." },
+      { t: "Just culture", b: "A JUST culture distinguishes honest errors and unavoidable mistakes (which are reported and learned from, without blame) from reckless or negligent behaviour (which remains accountable). It encourages OPEN REPORTING — you can't fix hazards you never hear about. Pure blame cultures drive errors underground." },
+      { t: "Complacency & normalisation of deviance", b: "COMPLACENCY: reduced vigilance from over-confidence or routine, especially with reliable automation. NORMALISATION OF DEVIANCE: small rule-bendings that 'work' become accepted, drifting standards until an accident reveals the gap. Both erode safety gradually and invisibly — guarded against by discipline, SOPs and reporting." },
+      { t: "Group & social influences", b: "Behaviour is shaped by the group: peer pressure, conformity, GROUPTHINK (suppressed dissent) and RISKY SHIFT (groups accepting more risk than individuals). Good leadership invites dissent, states its own view last, and keeps the team's focus on the safe course rather than social harmony." },
+    ],
+    quiz: [
+      { q: "A just culture:", o: ["Distinguishes honest error (no blame) from recklessness (accountable)", "Punishes all errors equally", "Never holds anyone accountable", "Discourages reporting"], a: 0, e: "It protects honest reporting while still addressing reckless behaviour — the basis of open safety reporting." },
+      { q: "Normalisation of deviance is:", o: ["Small rule-bendings becoming accepted until standards drift", "A sudden single large error", "A type of hypoxia", "A communication model"], a: 0, e: "Deviations that 'work' get normalised, eroding margins invisibly until an accident exposes them." },
+      { q: "Unlike personality, attitudes:", o: ["Can be changed by training and experience", "Are fixed for life", "Are purely physical", "Cannot affect behaviour"], a: 0, e: "Training targets attitudes and behaviour — personality is essentially stable from early adulthood." },
+      { q: "Intrinsic motivation comes from:", o: ["Satisfaction, mastery and professionalism", "Pay and status only", "Fear of punishment", "External rewards alone"], a: 0, e: "Intrinsic drive (internal) versus extrinsic (pay, status, sanction-avoidance)." },
+      { q: "Automation complacency is an example of:", o: ["Reduced vigilance from over-confidence/routine", "Strong motivation", "Just culture", "Positive transfer"], a: 0, e: "Trust in reliable systems lowers monitoring — a recognised behavioural hazard." },
+      { q: "A positive safety culture is characterised by:", o: ["Open reporting and learning", "Hiding mistakes", "Blaming individuals", "Ignoring hazards"], a: 0, e: "Informed, reporting, flexible and learning — hazards surface and get fixed before causing harm." },
+    ],
+  },
+];
+
+// ===================== THEME =====================
+const C = {
+  bg: "#E9EEF2",
+  panel: "#FFFFFF",
+  ink: "#16222C",
+  sub: "#5A6B78",
+  line: "#C8D3DB",
+  cold: "#2B5C8A",
+  warm: "#B5402F",
+  good: "#2E7D4F",
+  bad: "#B5402F",
+  coldSoft: "#E3ECF4",
+  warmSoft: "#F6E8E5",
+};
+
+const FONTS = `
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+* { box-sizing: border-box; }
+body { margin: 0; }
+button { font-family: inherit; }
+button:focus-visible { outline: 3px solid #2B5C8A; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+`;
+
+// Front-line divider: alternating warm-front semicircles & cold-front triangles
+function FrontLine({ width = "100%" }) {
+  const units = [];
+  for (let i = 0; i < 30; i++) {
+    const x = i * 28;
+    if (i % 2 === 0) units.push(React.createElement('path', { key: i, d: `M ${x + 4} 10 A 8 8 0 0 1 ${x + 20} 10 Z`, fill: C.warm,} ));
+    else units.push(React.createElement('path', { key: i, d: `M ${x + 4} 10 L ${x + 12} 0 L ${x + 20} 10 Z`, fill: C.cold,} ));
+  }
+  return (
+    React.createElement('div', { style: { width, overflow: "hidden", lineHeight: 0 }, 'aria-hidden': "true",}
+      , React.createElement('svg', { width: "840", height: "12", viewBox: "0 0 840 12"   , style: { display: "block" },}
+        , React.createElement('line', { x1: "0", y1: "10", x2: "840", y2: "10", stroke: C.ink, strokeWidth: "2",} )
+        , units
+      )
+    )
+  );
+}
+
+const mono = { fontFamily: "'IBM Plex Mono', monospace" };
+const disp = { fontFamily: "'Archivo', sans-serif" };
+
+
+// ===================== NUMBERS DRILL =====================
+const NUMBERS = [
+  { q: "TUC at FL250 (slow decompression):", o: ["3\u20135 min", "30 s", "20 min", "10 s"], a: 0, e: "FL180 \u2248 20\u201330 min \u00b7 FL250 \u2248 3\u20135 min \u00b7 FL300 \u2248 1\u20132 min \u00b7 FL350 \u2248 30\u201360 s \u00b7 FL400 \u2248 15\u201320 s." },
+  { q: "TUC at FL350 (slow decompression):", o: ["30\u201360 s", "5 min", "10 min", "5 s"], a: 0, e: "About 30\u201360 seconds \u2014 halved again by rapid decompression." },
+  { q: "TUC at FL400 (slow decompression):", o: ["15\u201320 s", "2 min", "60\u201390 s", "5 min"], a: 0, e: "15\u201320 seconds \u2014 masks must be donned immediately and instinctively." },
+  { q: "Rapid decompression changes TUC by roughly:", o: ["Halving it", "Doubling it", "No change", "Reducing it by 10%"], a: 0, e: "Lung oxygen is vented outwards \u2014 useful consciousness time is approximately halved." },
+  { q: "Rod (night) vision fully dark-adapts in about:", o: ["30 min", "7 min", "2 min", "90 min"], a: 0, e: "Rods ~30 minutes; cones ~7 minutes; bright light resets the clock in seconds." },
+  { q: "Offset viewing at night should be about:", o: ["10\u201315\u00b0 off-centre", "45\u00b0 off-centre", "Directly at the object", "90\u00b0 off-centre"], a: 0, e: "Puts the image on rod-rich retina, off the rod-free fovea." },
+  { q: "Night vision begins degrading from a cabin altitude of about:", o: ["5000 ft", "10,000 ft", "18,000 ft", "Sea level"], a: 0, e: "The rods' oxygen hunger makes night vision the first casualty of mild hypoxia." },
+  { q: "Working memory capacity is about:", o: ["7 \u00b1 2 items", "3 items", "20 items", "Unlimited"], a: 0, e: "Seven plus or minus two chunks, for roughly 10\u201320 seconds without rehearsal." },
+  { q: "A full sleep cycle lasts roughly:", o: ["90 min", "30 min", "4 h", "8 h"], a: 0, e: "About 90 minutes, repeating 4\u20135 times per night." },
+  { q: "The free-running human circadian rhythm is about:", o: ["25 h", "24 h", "23 h", "36 h"], a: 0, e: "~25 hours without time cues \u2014 entrained to 24 by zeitgebers, light strongest." },
+  { q: "The window of circadian low (WOCL) is approximately:", o: ["02:00\u201306:00", "12:00\u201316:00", "20:00\u201322:00", "08:00\u201310:00"], a: 0, e: "Alertness and body temperature bottom out \u2014 where fatigue accidents cluster." },
+  { q: "Time-zone adaptation takes roughly:", o: ["1 day per zone", "1 h per zone", "1 week per zone", "No time"], a: 0, e: "About one day per time zone, with eastward travel harder than westward." },
+  { q: "EASA blood alcohol limit for crew:", o: ["0.2 g/L", "0.5 g/L", "0.8 g/L", "0.0 g/L"], a: 0, e: "0.2 grams per litre \u2014 effectively zero; impairment persists even below it after heavy drinking." },
+  { q: "Alcohol is eliminated at roughly:", o: ["1 unit per hour", "3 units per hour", "1 unit per 15 min", "It varies with coffee"], a: 0, e: "A fixed ~1 unit/hour \u2014 nothing accelerates it." },
+  { q: "Minimum wait before flying after a no-stop dive:", o: ["12 h", "2 h", "48 h", "7 days"], a: 0, e: "12 h after no-decompression dives; 24\u201348 h after dives requiring stops." },
+  { q: "Grey-out typically begins around:", o: ["+3.5g", "+1.5g", "+8g", "\u22122g"], a: 0, e: "Grey-out ~3.5g, blackout ~4.5g (still conscious), G-LOC beyond that." },
+  { q: "Minimum no-fly period after donating blood:", o: ["24 h", "4 h", "7 days", "1 h"], a: 0, e: "At least 24 hours \u2014 oxygen-carrying capacity is temporarily reduced." },
+  { q: "Typical maximum cabin altitude in cruise:", o: ["8000 ft", "12,000 ft", "3000 ft", "Sea level"], a: 0, e: "Cabins run 6000\u20138000 ft \u2014 the structure/physiology compromise." },
+  { q: "DCS risk becomes significant above about:", o: ["18,000 ft", "8000 ft", "30,000 ft only", "4000 ft"], a: 0, e: "Risk from ~18,000 ft, rising sharply above 25,000 ft; diving multiplies it." },
+  { q: "Prolonged noise exposure risks hearing damage above about:", o: ["85\u201390 dB", "60 dB", "120 dB only", "40 dB"], a: 0, e: "Sustained exposure above ~85\u201390 dB causes permanent sensorineural loss." },
+  { q: "Vigilance for rare events declines significantly after about:", o: ["30 min", "5 min", "4 h", "8 h"], a: 0, e: "The vigilance decrement \u2014 a core human limitation in monitoring roles." },
+  { q: "Quick-donning oxygen masks must be wearable within:", o: ["5 s, with one hand", "30 s", "2 min", "10 s, two hands"], a: 0, e: "On and supplying oxygen within 5 seconds, using one hand." },
+  { q: "The semicircular canal detection threshold for rotation is about:", o: ["2\u00b0/s\u00b2", "20\u00b0/s\u00b2", "0.001\u00b0/s\u00b2", "45\u00b0/s\u00b2"], a: 0, e: "Sub-threshold rolls go unnoticed \u2014 the mechanism behind the leans." },
+  { q: "Sleep inertia after waking from deep sleep can impair performance for up to:", o: ["15\u201330 min", "5 s", "8 h", "2 days"], a: 0, e: "Worst when woken from slow-wave sleep \u2014 time naps to avoid it before critical tasks." },
+];
+function genDrill() {
+  const pool = [...NUMBERS].sort(() => Math.random() - 0.5)[0];
+  const idx = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
+  return { q: pool.q, options: idx.map((k) => pool.o[k]), answer: idx.indexOf(pool.a), e: pool.e };
+}
+
+// ===================== DIAGRAMS (inline SVG) =====================
+const dW = { width: "100%", height: "auto", display: "block" };
+function DiaWrap({ children, vb = "0 0 340 210", cap }) {
+  return (
+    React.createElement('figure', { style: { margin: "14px 0 0", border: `1px solid ${C.line}`, background: "#FBFCFD", borderRadius: 2, padding: "10px 10px 6px" },}
+      , React.createElement('svg', { viewBox: vb, style: dW, role: "img",}, children)
+      , cap && React.createElement('figcaption', { style: { ...mono, fontSize: 10.5, color: C.sub, marginTop: 6, lineHeight: 1.4 },}, cap)
+    )
+  );
+}
+const AX = { stroke: C.ink, strokeWidth: 1 };
+const txt = (x, y, s, extra = {}) => React.createElement('text', { x: x, y: y, fontSize: extra.fs || 11, fontFamily: "'IBM Plex Mono', monospace"   , fill: extra.fill || C.ink, textAnchor: extra.ta || "start", fontWeight: extra.fw || 400,}, s);
+function Arrow({ x1, y1, x2, y2, color = C.ink, w = 2, id }) {
+  return (
+    React.createElement('g', null
+      , React.createElement('defs', null, React.createElement('marker', { id: id, markerWidth: "8", markerHeight: "8", refX: "6", refY: "3", orient: "auto",}, React.createElement('path', { d: "M0,0 L6,3 L0,6 Z"   , fill: color,} )))
+      , React.createElement('line', { x1: x1, y1: y1, x2: x2, y2: y2, stroke: color, strokeWidth: w, markerEnd: `url(#${id})`,} )
+    )
+  );
+}
+
+const DIAGRAMS = {
+  dissociation: () => (
+    React.createElement(DiaWrap, { cap: "The S-shaped oxyhaemoglobin curve: saturation holds ~97% to 10,000 ft, then falls steeply — why hypoxia symptoms appear suddenly at altitude."                    ,}
+      , React.createElement('line', { x1: "48", y1: "20", x2: "48", y2: "178", ...AX,} )
+      , React.createElement('line', { x1: "48", y1: "178", x2: "322", y2: "178", ...AX,} )
+      , txt(8, 100, "SaO₂", { fs: 10, fill: C.sub })
+      , txt(150, 198, "ALTITUDE →", { fs: 10, fill: C.sub })
+      , txt(34, 40, "100", { fs: 9, fill: C.sub, ta: "end" })
+      , txt(34, 110, "75", { fs: 9, fill: C.sub, ta: "end" })
+      /* plateau then steep fall */
+      , React.createElement('path', { d: "M48,38 Q150,42 200,70 T300,165"   , fill: "none", stroke: C.cold, strokeWidth: "2.5",} )
+      , React.createElement('line', { x1: "155", y1: "20", x2: "155", y2: "178", stroke: C.warm, strokeWidth: "1", strokeDasharray: "4 3" ,} )
+      , txt(158, 32, "≈10,000 ft", { fs: 9, fill: C.warm })
+      , txt(60, 55, "comfortable plateau", { fs: 9, fill: C.sub })
+      , txt(210, 150, "steep fall", { fs: 9, fill: C.bad, fw: 600 })
+    )
+  ),
+  hypoxiatypes: () => (
+    React.createElement(DiaWrap, { vb: "0 0 340 170"   , cap: "Four routes to tissue oxygen shortage — same end result, different cause."           ,}
+      , [
+        ["HYPOXIC", "low O₂ pressure (altitude)", C.cold],
+        ["ANAEMIC", "less carrying capacity (CO, anaemia)", C.warm],
+        ["STAGNANT", "poor circulation (G, cold, shock)", C.good],
+        ["HISTOTOXIC", "cells can't use O₂ (alcohol, cyanide)", C.sub],
+      ].map((r, i) => (
+        React.createElement('g', { key: i, transform: `translate(20,${15 + i * 38})`,}
+          , React.createElement('rect', { x: "0", y: "0", width: "300", height: "30", fill: "#fff", stroke: r[2], strokeWidth: "1.5", rx: "2",} )
+          , React.createElement('rect', { x: "0", y: "0", width: "8", height: "30", fill: r[2],} )
+          , txt(18, 19, r[0], { fs: 11, fill: r[2], fw: 700 })
+          , txt(120, 19, r[1], { fs: 9.5, fill: C.ink })
+        )
+      ))
+    )
+  ),
+  tuc: () => (
+    React.createElement(DiaWrap, { cap: "Time of useful consciousness collapses with altitude. Rapid decompression roughly halves each value."            ,}
+      , React.createElement('line', { x1: "55", y1: "15", x2: "55", y2: "170", ...AX,} )
+      , React.createElement('line', { x1: "55", y1: "170", x2: "322", y2: "170", ...AX,} )
+      , txt(150, 192, "TUC (log) →", { fs: 10, fill: C.sub })
+      , [["FL180", "20–30 min", 250], ["FL250", "3–5 min", 175], ["FL300", "1–2 min", 120], ["FL350", "30–60 s", 75], ["FL400", "15–20 s", 45]].map((r, i) => {
+        const y = 28 + i * 30;
+        return (
+          React.createElement('g', { key: i,}
+            , txt(8, y + 4, r[0], { fs: 9, fill: C.cold, fw: 600 })
+            , React.createElement('rect', { x: "55", y: y - 8, width: r[2], height: "14", fill: C.cold, opacity: 0.35 + i * 0.13,} )
+            , txt(60 + r[2], y + 4, r[1], { fs: 9, fill: C.ink })
+          )
+        );
+      })
+    )
+  ),
+  gforce: () => (
+    React.createElement(DiaWrap, { cap: "Rising +Gz drives blood footward: grey-out (~3.5g) → blackout (~4.5g, still conscious) → G-LOC. Negative G drives blood headward: red-out."                   ,}
+      , React.createElement('line', { x1: "60", y1: "15", x2: "60", y2: "175", ...AX,} )
+      , txt(8, 95, "+Gz", { fs: 10, fill: C.warm })
+      , [["GREY-OUT", "~3.5g  peripheral vision", 130, C.sub], ["BLACKOUT", "~4.5g  vision gone, awake", 95, C.cold], ["G-LOC", "~5–6g  unconscious", 55, C.bad]].map((r, i) => (
+        React.createElement('g', { key: i,}
+          , React.createElement('line', { x1: "60", y1: r[2], x2: "200", y2: r[2], stroke: r[3], strokeWidth: "1", strokeDasharray: "3 2" ,} )
+          , txt(64, r[2] - 4, r[0], { fs: 10, fill: r[3], fw: 700 })
+          , txt(150, r[2] - 4, r[1], { fs: 8.5, fill: C.sub })
+        )
+      ))
+      , React.createElement(Arrow, { x1: "60", y1: "170", x2: "60", y2: "30", color: C.warm, id: "g-up",} )
+      /* neg G */
+      , txt(64, 165, "1g level", { fs: 8.5, fill: C.good })
+      , txt(220, 30, "RED-OUT", { fs: 10, fill: C.bad, fw: 700 })
+      , txt(220, 44, "negative G", { fs: 8.5, fill: C.sub })
+      , React.createElement(Arrow, { x1: "280", y1: "60", x2: "280", y2: "30", color: C.bad, id: "g-neg",} )
+    )
+  ),
+  eye: () => (
+    React.createElement(DiaWrap, { cap: "The eye in cross-section. The fovea (cones) gives sharp central/colour vision; rods in the periphery give night and motion vision. The optic disc is the blind spot."                          ,}
+      , React.createElement('circle', { cx: "160", cy: "105", r: "80", fill: "#fff", stroke: C.ink, strokeWidth: "2",} )
+      /* cornea/lens at front (left) */
+      , React.createElement('path', { d: "M80,105 m0,-26 a26,26 0 0 0 0,52"      , fill: C.coldSoft, stroke: C.cold, strokeWidth: "2",} )
+      , txt(40, 70, "cornea", { fs: 9, fill: C.cold })
+      , React.createElement('ellipse', { cx: "100", cy: "105", rx: "9", ry: "22", fill: "none", stroke: C.cold, strokeWidth: "2",} )
+      , txt(95, 150, "lens", { fs: 9, fill: C.cold, ta: "middle" })
+      , React.createElement(Arrow, { x1: "20", y1: "105", x2: "74", y2: "105", color: C.warm, id: "eye-l",} )
+      , txt(20, 98, "light", { fs: 9, fill: C.warm })
+      /* retina at back */
+      , React.createElement('path', { d: "M240,105 m0,-55 a55,55 0 0 1 0,110"      , fill: "none", stroke: C.good, strokeWidth: "3",} )
+      , txt(250, 70, "retina", { fs: 9, fill: C.good })
+      /* fovea */
+      , React.createElement('circle', { cx: "240", cy: "105", r: "4", fill: C.warm,} )
+      , txt(250, 109, "fovea (cones)", { fs: 9, fill: C.warm })
+      /* optic disc / blind spot */
+      , React.createElement('circle', { cx: "238", cy: "138", r: "4", fill: C.ink,} )
+      , txt(250, 142, "blind spot", { fs: 9, fill: C.ink })
+      , txt(195, 60, "rods", { fs: 9, fill: C.sub })
+    )
+  ),
+  runwayill: () => (
+    React.createElement(DiaWrap, { cap: "A narrow or upsloping runway looks like you are too high, so you fly a dangerously LOW approach. Wide/downslope is the reverse. Fly the PAPIs, not the picture."                           ,}
+      /* correct glidepath */
+      , React.createElement('line', { x1: "30", y1: "40", x2: "300", y2: "150", stroke: C.good, strokeWidth: "2", strokeDasharray: "5 3" ,} )
+      , txt(34, 36, "correct glidepath", { fs: 9, fill: C.good })
+      /* low (false) path */
+      , React.createElement('line', { x1: "30", y1: "75", x2: "300", y2: "150", stroke: C.bad, strokeWidth: "2.5",} )
+      , txt(34, 95, "what the pilot flies (too low)", { fs: 9, fill: C.bad, fw: 600 })
+      /* narrow runway */
+      , React.createElement('path', { d: "M250,150 L300,150 L292,140 L262,140 Z"    , fill: C.line, stroke: C.ink,} )
+      , txt(255, 168, "narrow / upslope rwy", { fs: 9, fill: C.sub })
+      , React.createElement('g', { transform: "translate(70,82)",}, React.createElement('path', { d: "M0,0 L18,5 M9,-5 L9,9 M2,-1 L2,5"     , stroke: C.ink, strokeWidth: "1.8",} ))
+    )
+  ),
+  vestibular: () => (
+    React.createElement(DiaWrap, { vb: "0 0 340 180"   , cap: "The inner ear: three semicircular canals sense angular acceleration (rotation); the otolith organs sense linear acceleration and gravity. Both detect only CHANGE."                     ,}
+      /* three canals */
+      , React.createElement('ellipse', { cx: "110", cy: "70", rx: "38", ry: "20", fill: "none", stroke: C.cold, strokeWidth: "2.5", transform: "rotate(-20 110 70)"  ,} )
+      , React.createElement('ellipse', { cx: "110", cy: "80", rx: "20", ry: "38", fill: "none", stroke: C.cold, strokeWidth: "2.5",} )
+      , React.createElement('ellipse', { cx: "125", cy: "80", rx: "36", ry: "22", fill: "none", stroke: C.cold, strokeWidth: "2.5", transform: "rotate(30 125 80)"  ,} )
+      , txt(60, 30, "semicircular canals", { fs: 10, fill: C.cold, fw: 600 })
+      , txt(70, 44, "→ angular accel (rotation)", { fs: 8.5, fill: C.sub })
+      /* cochlea */
+      , React.createElement('path', { d: "M150,120 q25,-10 25,12 q0,18 -16,14 q-12,-3 -6,-14"      , fill: "none", stroke: C.warm, strokeWidth: "2.5",} )
+      , txt(185, 130, "cochlea (hearing)", { fs: 9, fill: C.warm })
+      /* otoliths */
+      , React.createElement('rect', { x: "95", y: "120", width: "34", height: "20", rx: "3", fill: C.good, opacity: "0.25", stroke: C.good, strokeWidth: "1.5",} )
+      , txt(60, 160, "otoliths → linear accel & gravity", { fs: 9, fill: C.good })
+    )
+  ),
+  somatogravic: () => (
+    React.createElement(DiaWrap, { cap: "Somatogravic illusion: rapid acceleration on a dark takeoff feels like a nose-up pitch. The pilot pushes down — towards the ground. Trust the attitude indicator."                        ,}
+      , React.createElement('line', { x1: "20", y1: "150", x2: "320", y2: "150", stroke: C.good, strokeWidth: "2",} )
+      , React.createElement(Arrow, { x1: "40", y1: "135", x2: "180", y2: "135", color: C.cold, w: "2.5", id: "sg-acc",} )
+      , txt(60, 128, "rapid acceleration", { fs: 9, fill: C.cold })
+      /* felt attitude (pitched up) */
+      , React.createElement('g', { transform: "translate(150,90) rotate(-18)" ,}, React.createElement('path', { d: "M0,0 L40,0 M40,0 L32,-5 M40,0 L32,5 M12,-8 L12,8"       , stroke: C.bad, strokeWidth: "2",} ))
+      , txt(150, 60, "FELT: pitching up", { fs: 9, fill: C.bad, fw: 600 })
+      /* actual response: nose down */
+      , React.createElement(Arrow, { x1: "250", y1: "95", x2: "285", y2: "125", color: C.warm, id: "sg-resp",} )
+      , txt(230, 120, "pilot pushes nose down", { fs: 9, fill: C.warm })
+    )
+  ),
+  gas: () => (
+    React.createElement(DiaWrap, { vb: "0 0 340 175"   , cap: "Selye's general adaptation syndrome: the body mobilises (alarm), copes on reserves (resistance), then collapses when reserves run out (exhaustion)."                  ,}
+      , React.createElement('line', { x1: "40", y1: "20", x2: "40", y2: "150", ...AX,} )
+      , React.createElement('line', { x1: "40", y1: "150", x2: "320", y2: "150", ...AX,} )
+      , txt(6, 90, "perf", { fs: 9, fill: C.sub })
+      , React.createElement('path', { d: "M40,110 L90,60 L110,95 L210,80 L210,80 Q250,82 320,145"      , fill: "none", stroke: C.cold, strokeWidth: "2.5",} )
+      , React.createElement('line', { x1: "110", y1: "20", x2: "110", y2: "150", stroke: C.line, strokeWidth: "1",} )
+      , React.createElement('line', { x1: "225", y1: "20", x2: "225", y2: "150", stroke: C.line, strokeWidth: "1",} )
+      , txt(58, 168, "ALARM", { fs: 9, fill: C.warm, fw: 600 })
+      , txt(140, 168, "RESISTANCE", { fs: 9, fill: C.good, fw: 600 })
+      , txt(255, 168, "EXHAUSTION", { fs: 9, fill: C.bad, fw: 600 })
+    )
+  ),
+  yerkes: () => (
+    React.createElement(DiaWrap, { cap: "Yerkes-Dodson: performance peaks at moderate arousal. Too little = boredom/complacency; too much = panic and attention tunnelling."                ,}
+      , React.createElement('line', { x1: "45", y1: "20", x2: "45", y2: "155", ...AX,} )
+      , React.createElement('line', { x1: "45", y1: "155", x2: "320", y2: "155", ...AX,} )
+      , txt(6, 90, "PERF", { fs: 9, fill: C.sub })
+      , txt(150, 174, "AROUSAL →", { fs: 10, fill: C.sub })
+      , React.createElement('path', { d: "M55,150 Q183,5 315,150"  , fill: "none", stroke: C.cold, strokeWidth: "2.5",} )
+      , React.createElement('line', { x1: "183", y1: "35", x2: "183", y2: "155", stroke: C.warm, strokeWidth: "1", strokeDasharray: "4 3" ,} )
+      , txt(140, 30, "optimum", { fs: 9, fill: C.warm, fw: 600 })
+      , txt(55, 140, "bored", { fs: 8.5, fill: C.sub })
+      , txt(270, 140, "panic", { fs: 8.5, fill: C.bad })
+    )
+  ),
+  sleepcycle: () => (
+    React.createElement(DiaWrap, { cap: "One night of sleep: ~90-minute cycles. Deep slow-wave sleep dominates early (physical restoration); REM lengthens later (mental restoration)."                 ,}
+      , React.createElement('line', { x1: "45", y1: "20", x2: "45", y2: "150", ...AX,} )
+      , React.createElement('line', { x1: "45", y1: "150", x2: "325", y2: "150", ...AX,} )
+      , ["AWAKE", "REM", "N1", "N2", "N3 deep"].map((l, i) => txt(8, 35 + i * 25, l, { fs: 8, fill: C.sub }))
+      /* hypnogram */
+      , React.createElement('polyline', { points: "45,35 70,35 80,110 130,130 150,60 175,110 200,130 220,85 245,60 270,110 285,60 320,60"           ,
+        fill: "none", stroke: C.cold, strokeWidth: "2",} )
+      /* REM highlights later */
+      , React.createElement('rect', { x: "140", y: "55", width: "20", height: "10", fill: C.warm, opacity: "0.3",} )
+      , React.createElement('rect', { x: "278", y: "55", width: "42", height: "10", fill: C.warm, opacity: "0.4",} )
+      , txt(250, 45, "REM grows", { fs: 8.5, fill: C.warm })
+      , txt(90, 145, "deep sleep early", { fs: 8.5, fill: C.cold })
+    )
+  ),
+  circadian: () => (
+    React.createElement(DiaWrap, { cap: "Body temperature and alertness follow the circadian rhythm, bottoming out in the WOCL (~02:00–06:00) — where fatigue errors cluster."                  ,}
+      , React.createElement('line', { x1: "40", y1: "20", x2: "40", y2: "150", ...AX,} )
+      , React.createElement('line', { x1: "40", y1: "150", x2: "325", y2: "150", ...AX,} )
+      , txt(6, 88, "temp/", { fs: 8, fill: C.sub })
+      , txt(6, 100, "alert", { fs: 8, fill: C.sub })
+      , ["00", "06", "12", "18", "24"].map((h, i) => txt(36 + i * 70, 165, h, { fs: 8.5, fill: C.sub }))
+      /* WOCL band 02-06 */
+      , React.createElement('rect', { x: "52", y: "20", width: "47", height: "130", fill: C.cold, opacity: "0.12",} )
+      , txt(55, 33, "WOCL", { fs: 9, fill: C.cold, fw: 700 })
+      , React.createElement('path', { d: "M40,95 Q70,140 99,138 Q160,120 200,55 Q240,40 290,70 Q310,82 325,95"        , fill: "none", stroke: C.warm, strokeWidth: "2.5",} )
+      , React.createElement('circle', { cx: "92", cy: "138", r: "3.5", fill: C.bad,} )
+      , txt(105, 132, "circadian low", { fs: 8.5, fill: C.bad })
+    )
+  ),
+  memory: () => (
+    React.createElement(DiaWrap, { vb: "0 0 340 150"   , cap: "The memory chain: brief sensory store → working memory (7±2 items, ~20 s) held by rehearsal → long-term memory. Interruptions wipe working memory."                      ,}
+      , [["SENSORY", "iconic ~1s / echoic ~8s", C.sub, 10], ["WORKING", "7±2 items, ~20 s", C.cold, 120], ["LONG-TERM", "unlimited", C.good, 230]].map((b, i) => (
+        React.createElement('g', { key: i, transform: `translate(${b[3]},45)`,}
+          , React.createElement('rect', { x: "0", y: "0", width: "100", height: "55", rx: "3", fill: "#fff", stroke: b[2], strokeWidth: "1.8",} )
+          , txt(50, 25, b[0], { fs: 10, fill: b[2], fw: 700, ta: "middle" })
+          , txt(50, 42, b[1], { fs: 7.5, fill: C.sub, ta: "middle" })
+        )
+      ))
+      , React.createElement(Arrow, { x1: "112", y1: "72", x2: "128", y2: "72", color: C.ink, id: "m-1",} )
+      , React.createElement(Arrow, { x1: "222", y1: "72", x2: "238", y2: "72", color: C.ink, id: "m-2",} )
+      , txt(120, 120, "rehearsal", { fs: 8, fill: C.sub })
+      , React.createElement('path', { d: "M170,100 q0,18 -20,18 q-20,0 -20,-18"    , fill: "none", stroke: C.warm, strokeWidth: "1.3", markerEnd: "url(#m-r)",} )
+      , React.createElement('defs', null, React.createElement('marker', { id: "m-r", markerWidth: "7", markerHeight: "7", refX: "5", refY: "3", orient: "auto",}, React.createElement('path', { d: "M0,0 L5,3 L0,6 Z"   , fill: C.warm,} )))
+      , txt(180, 30, "encoding ↓", { fs: 8, fill: C.sub })
+    )
+  ),
+  swisscheese: () => (
+    React.createElement(DiaWrap, { cap: "Reason's Swiss cheese model: defensive layers each have holes (latent + active failures). An accident occurs only when the holes momentarily line up."                      ,}
+      , [60, 120, 180, 240].map((x, i) => (
+        React.createElement('g', { key: i,}
+          , React.createElement('rect', { x: x, y: "30", width: "34", height: "130", rx: "3", fill: C.coldSoft, stroke: C.cold, strokeWidth: "1.5", opacity: "0.8",} )
+          , React.createElement('circle', { cx: x + 17, cy: 50 + (i % 2) * 70, r: "9", fill: "#FBFCFD",} )
+          , React.createElement('circle', { cx: x + 17, cy: 95 + (i % 3) * 18, r: "8", fill: "#FBFCFD",} )
+        )
+      ))
+      /* trajectory through aligned holes */
+      , React.createElement(Arrow, { x1: "30", y1: "105", x2: "300", y2: "105", color: C.bad, w: "2.5", id: "sc-traj",} )
+      , txt(20, 24, "hazard", { fs: 9, fill: C.bad })
+      , txt(255, 24, "loss", { fs: 9, fill: C.bad })
+      , txt(80, 178, "successive defences", { fs: 9, fill: C.cold })
+    )
+  ),
+  shell: () => (
+    React.createElement(DiaWrap, { vb: "0 0 340 200"   , cap: "SHELL: the central human (Liveware) meets Software, Hardware, Environment and other Liveware. The jagged edges show interfaces must be matched to the human."                      ,}
+      , React.createElement('rect', { x: "138", y: "85", width: "64", height: "40", fill: C.warm, opacity: "0.85", rx: "3",} )
+      , txt(170, 109, "L", { fs: 16, fill: "#fff", fw: 700, ta: "middle" })
+      , [["S", 138, 40, "Software"], ["H", 232, 85, "Hardware"], ["E", 138, 145, "Environ."], ["L", 44, 85, "Liveware"]].map((b, i) => (
+        React.createElement('g', { key: i,}
+          , React.createElement('rect', { x: b[1], y: b[2], width: "64", height: "40", fill: C.coldSoft, stroke: C.cold, strokeWidth: "1.5", rx: "3",} )
+          , txt(b[1] + 32, b[2] + 19, b[0], { fs: 14, fill: C.cold, fw: 700, ta: "middle" })
+          , txt(b[1] + 32, b[2] + 33, b[3], { fs: 7.5, fill: C.sub, ta: "middle" })
+        )
+      ))
+      , txt(108, 190, "central human ↔ every interface", { fs: 9, fill: C.ink, ta: "middle" })
+    )
+  ),
+  attitudes: () => (
+    React.createElement(DiaWrap, { vb: "0 0 340 215"   , cap: "The five hazardous attitudes and their antidotes — learn them as pairs."           ,}
+      , [
+        ["ANTI-AUTHORITY", "Follow the rules."],
+        ["IMPULSIVITY", "Not so fast — think first."],
+        ["INVULNERABILITY", "It could happen to me."],
+        ["MACHO", "Taking chances is foolish."],
+        ["RESIGNATION", "I'm not helpless."],
+      ].map((r, i) => (
+        React.createElement('g', { key: i, transform: `translate(15,${8 + i * 40})`,}
+          , React.createElement('rect', { x: "0", y: "0", width: "145", height: "32", fill: C.warmSoft, stroke: C.warm, strokeWidth: "1.3", rx: "2",} )
+          , txt(8, 20, r[0], { fs: 9.5, fill: C.warm, fw: 700 })
+          , React.createElement(Arrow, { x1: "150", y1: "16", x2: "172", y2: "16", color: C.ink, id: `at-${i}`,} )
+          , React.createElement('rect', { x: "178", y: "0", width: "148", height: "32", fill: "#E7F2EA", stroke: C.good, strokeWidth: "1.3", rx: "2",} )
+          , txt(186, 20, r[1], { fs: 8.5, fill: C.good, fw: 600 })
+        )
+      ))
+    )
+  ),
+  gradient: () => (
+    React.createElement(DiaWrap, { vb: "0 0 340 175"   , cap: "The authority gradient. Too steep: the FO won't speak up. Too flat: no clear command. Aim for the moderate middle — clear command, open challenge."                        ,}
+      , [["TOO STEEP", 20, [150, 30], C.bad, "FO silent"], ["MODERATE", 130, [55, 80], C.good, "open challenge"], ["TOO FLAT", 245, [20, 25], C.warm, "command unclear"]].map((b, i) => (
+        React.createElement('g', { key: i,}
+          , React.createElement('line', { x1: b[1], y1: "130", x2: b[1] + 70, y2: "130", stroke: C.line, strokeWidth: "1",} )
+          , React.createElement('line', { x1: b[1], y1: "130", x2: b[1], y2: 130 - b[2][0], stroke: b[3], strokeWidth: "2.5",} )
+          , React.createElement('line', { x1: b[1] + 70, y1: "130", x2: b[1] + 70, y2: 130 - b[2][1], stroke: b[3], strokeWidth: "2.5",} )
+          , React.createElement('line', { x1: b[1], y1: 130 - b[2][0], x2: b[1] + 70, y2: 130 - b[2][1], stroke: b[3], strokeWidth: "2",} )
+          , txt(b[1] + 35, 148, b[0], { fs: 9, fill: b[3], fw: 700, ta: "middle" })
+          , txt(b[1] + 35, 162, b[4], { fs: 7.5, fill: C.sub, ta: "middle" })
+          , txt(b[1] - 2, 128, "CA", { fs: 7, fill: C.sub, ta: "end" })
+          , txt(b[1] + 78, 128, "FO", { fs: 7, fill: C.sub })
+        )
+      ))
+    )
+  ),
+};
+
+// ===================== APP =====================
+function App() {
+  const [view, setView] = useState({ type: "home" });
+  const [progress, setProgress] = useState({ read: {}, best: {} });
+
+  useEffect(() => {
+    (async () => {
+      try {
+        if (typeof window !== "undefined" && window.storage) {
+          const r = await window.storage.get("atpl-hpl-v1");
+          if (r && r.value) setProgress(JSON.parse(r.value));
+        }
+      } catch (e) { /* first visit — nothing saved yet */ }
+    })();
+  }, []);
+
+  const save = (p) => {
+    setProgress(p);
+    (async () => {
+      try {
+        if (typeof window !== "undefined" && window.storage) {
+          await window.storage.set("atpl-hpl-v1", JSON.stringify(p));
+        }
+      } catch (e) { console.error("save failed", e); }
+    })();
+  };
+
+  const overall = Math.round(
+    TOPICS.reduce((s, t) => s + (progress.best[t.id] || 0), 0) / TOPICS.length
+  );
+
+  return (
+    React.createElement('div', { style: { minHeight: "100vh", background: C.bg, color: C.ink, ...disp },}
+      , React.createElement('style', null, FONTS)
+      , React.createElement(Header, { overall: overall, onHome: () => setView({ type: "home" }),} )
+      , React.createElement('main', { style: { maxWidth: 880, margin: "0 auto", padding: "20px 16px 60px" },}
+        , view.type === "home" && (
+          React.createElement(Home, { progress: progress, save: save, onOpen: (id) => setView({ type: "topic", id, tab: "learn" }), onDrill: () => setView({ type: "drill" }), onSaved: () => setView({ type: "saved" }),} )
+        )
+        , view.type === "saved" && (
+          React.createElement(Saved, { progress: progress, save: save, onOpen: (id) => setView({ type: "topic", id, tab: "learn" }), onBack: () => setView({ type: "home" }),} )
+        )
+        , view.type === "drill" && (
+          React.createElement(Drill, { progress: progress, save: save, onBack: () => setView({ type: "home" }),} )
+        )
+        , view.type === "topic" && (
+          React.createElement(Topic, {
+            topic: TOPICS.find((t) => t.id === view.id),
+            tab: view.tab,
+            setTab: (tab) => setView({ ...view, tab }),
+            progress: progress,
+            save: save,
+            onBack: () => setView({ type: "home" }),}
+          )
+        )
+      )
+    )
+  );
+}
+
+function Header({ overall, onHome }) {
+  return (
+    React.createElement('header', { style: { background: C.ink, color: "#F2F5F7" },}
+      , React.createElement('div', { style: { maxWidth: 880, margin: "0 auto", padding: "18px 16px 14px", display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 },}
+        , React.createElement('button', { onClick: onHome, style: { background: "none", border: "none", color: "inherit", cursor: "pointer", padding: 0, textAlign: "left" },}
+          , React.createElement('div', { style: { ...mono, fontSize: 11, letterSpacing: 3, color: "#9FB3C2" },}, "EASA ATPL · SUBJECT 040"    )
+          , React.createElement('div', { style: { ...disp, fontWeight: 800, fontSize: 26, letterSpacing: 1 },}, "HUMAN PERFORMANCE" )
+        )
+        , React.createElement('div', { style: { ...mono, fontSize: 13, color: "#9FB3C2" },}, "MASTERY "
+           , React.createElement('span', { style: { color: "#fff", fontWeight: 600 },}, String(overall).padStart(3, "0"), "%"), " · QNH1013"
+        )
+      )
+      , React.createElement(FrontLine, null )
+    )
+  );
+}
+
+function Home({ progress, save, onOpen, onDrill, onSaved }) {
+  const firstUndone = TOPICS.find((t) => !((progress.best[t.id] != null && progress.best[t.id] >= 75) || (progress.done && progress.done[t.id])));
+  const bmCount = progress.bookmarks ? Object.keys(progress.bookmarks).filter((k) => progress.bookmarks[k]).length : 0;
+  return (
+    React.createElement('div', null
+      , React.createElement(ExamBanner, { progress: progress,} )
+      , React.createElement('div', { style: { display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" },}
+        , firstUndone && React.createElement('button', { onClick: () => onOpen(firstUndone.id), style: { ...mono, fontSize: 13.5, padding: "11px 16px", border: "none", borderRadius: 3, background: C.cold, color: "#fff", fontWeight: 600, cursor: "pointer" },}, "▶ Continue: "  , firstUndone.title)
+        , React.createElement('button', { onClick: onSaved, style: { ...mono, fontSize: 13.5, padding: "11px 16px", border: `1px solid ${C.line}`, borderRadius: 3, background: C.panel, color: C.ink, cursor: "pointer" },}, "★ Saved ("  , bmCount, ")")
+      )
+      , React.createElement('p', { style: { color: C.sub, fontSize: 15, lineHeight: 1.5, margin: "6px 0 20px" },}, "Twenty modules covering the 040 syllabus. Work through "
+                , React.createElement('b', null, "Learn"), " first, then sit the "     , React.createElement('b', null, "Quiz"), " — your best scores are saved here between sessions."
+      )
+      , React.createElement('div', { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: 12 },}
+        , TOPICS.map((t) => {
+          const read = progress.read[t.id] || 0;
+          const best = progress.best[t.id];
+          const done = (best != null && best >= 75) || (progress.done && progress.done[t.id]);
+          return (
+            React.createElement('button', {
+              key: t.id,
+              onClick: () => onOpen(t.id),
+              style: {
+                position: "relative", textAlign: "left",
+                background: done ? "#F1F5F2" : C.panel, border: `1px solid ${C.line}`,
+                borderTop: `4px solid ${done ? C.good : (best != null ? C.warm : C.cold)}`,
+                padding: "14px 16px 12px", cursor: "pointer", borderRadius: 2,
+                opacity: done ? 0.6 : 1,
+              },}
+
+              , done && React.createElement('span', { 'aria-label': "completed", style: { position: "absolute", top: 8, right: 10, width: 20, height: 20, borderRadius: 10, background: C.good, color: "#fff", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" },}, "✓")
+              , React.createElement('div', { style: { ...mono, fontSize: 11, color: C.sub, letterSpacing: 2 },}, t.code)
+              , React.createElement('div', { style: { fontWeight: 700, fontSize: 17, margin: "4px 0 6px" },}, t.title)
+              , React.createElement('div', { style: { fontSize: 13, color: C.sub, lineHeight: 1.45, minHeight: 38 },}, t.blurb)
+              , React.createElement('div', { style: { ...mono, fontSize: 12, marginTop: 10, display: "flex", justifyContent: "space-between" },}
+                , React.createElement('span', { style: { color: read >= t.cards.length ? C.good : C.sub },}, "LEARN " , read, "/", t.cards.length)
+                , React.createElement('span', { style: { color: best == null ? C.sub : best >= 75 ? C.good : C.warm },}
+                  , best == null ? "QUIZ —" : `BEST ${best}%`
+                )
+              )
+            )
+          );
+        })
+      )
+      , React.createElement('button', {
+        onClick: onDrill,
+        style: {
+          width: "100%", textAlign: "left", marginTop: 12, cursor: "pointer", borderRadius: 2,
+          background: C.ink, color: "#F2F5F7", border: "none", padding: "16px 18px",
+          display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8,
+        },}
+
+        , React.createElement('span', null
+          , React.createElement('span', { style: { ...mono, fontSize: 11, letterSpacing: 2, color: "#9FB3C2", display: "block" },}, "QUICK-FIRE RECALL" )
+          , React.createElement('span', { style: { fontWeight: 700, fontSize: 18 },}, "Numbers Drill" )
+          , React.createElement('span', { style: { display: "block", fontSize: 13, color: "#9FB3C2", marginTop: 2 },}, "TUC times, sleep figures, alcohol & diving limits, G thresholds — the exact numbers the exam asks for."
+
+          )
+        )
+        , React.createElement('span', { style: { ...mono, fontSize: 13 },}, "BEST STREAK "  , (progress.drill && progress.drill.best) || 0, " →" )
+      )
+    )
+  );
+}
+
+function Topic({ topic, tab, setTab, progress, save, onBack }) {
+  return (
+    React.createElement('div', null
+      , React.createElement('button', { onClick: onBack, style: { ...mono, background: "none", border: "none", color: C.cold, cursor: "pointer", fontSize: 13, padding: "4px 0", marginBottom: 8 },}, "← ALL MODULES"
+
+      )
+      , React.createElement('div', { style: { ...mono, fontSize: 11, color: C.sub, letterSpacing: 2 },}, topic.code)
+      , React.createElement('h1', { style: { fontSize: 26, fontWeight: 800, margin: "2px 0 14px" },}, topic.title)
+      , React.createElement('div', { style: { display: "flex", gap: 8, marginBottom: 18 },}
+        , ["learn", "quiz"].map((m) => (
+          React.createElement('button', {
+            key: m,
+            onClick: () => setTab(m),
+            style: {
+              ...mono, fontSize: 13, letterSpacing: 1, padding: "8px 18px", cursor: "pointer", borderRadius: 2,
+              border: `1px solid ${tab === m ? C.ink : C.line}`,
+              background: tab === m ? C.ink : C.panel,
+              color: tab === m ? "#fff" : C.ink,
+            },}
+
+            , m.toUpperCase()
+          )
+        ))
+      )
+      , React.createElement(DoneToggle, { topic: topic, progress: progress, save: save,} )
+      , tab === "learn" ? (
+        React.createElement(Learn, { topic: topic, progress: progress, save: save, goQuiz: () => setTab("quiz"),} )
+      ) : (
+        React.createElement(Quiz, { topic: topic, progress: progress, save: save,} )
+      )
+    )
+  );
+}
+
+function Learn({ topic, progress, save, goQuiz }) {
+  const [i, setI] = useState(0);
+  const card = topic.cards[i];
+
+  useEffect(() => {
+    const seen = progress.read[topic.id] || 0;
+    if (i + 1 > seen) save({ ...progress, read: { ...progress.read, [topic.id]: i + 1 } });
+  }, [i]); // eslint-disable-line
+
+  return (
+    React.createElement('div', null
+      , React.createElement('div', { style: { background: C.panel, border: `1px solid ${C.line}`, borderRadius: 2, padding: "20px 22px" },}
+        , React.createElement('div', { style: { ...mono, fontSize: 12, color: C.sub },}, "CARD " , i + 1, " / "  , topic.cards.length)
+        , React.createElement('h2', { style: { fontSize: 20, fontWeight: 700, margin: "8px 0 10px" },}, card.t)
+        , React.createElement('p', { style: { fontSize: 15.5, lineHeight: 1.65, margin: 0 },}, card.b)
+        , card.dia && DIAGRAMS[card.dia] && DIAGRAMS[card.dia]()
+      )
+      , React.createElement(LearnControls, { topic: topic, i: i, card: card, progress: progress, save: save,} )
+      , React.createElement('div', { style: { display: "flex", gap: 6, margin: "12px 0" },}
+        , topic.cards.map((_, k) => (
+          React.createElement('div', { key: k, style: { flex: 1, height: 4, background: k <= i ? C.cold : C.line, borderRadius: 2 },} )
+        ))
+      )
+      , React.createElement('div', { style: { display: "flex", justifyContent: "space-between", gap: 10 },}
+        , React.createElement(Btn, { ghost: true, disabled: i === 0, onClick: () => setI(i - 1),}, "← Back" )
+        , i < topic.cards.length - 1 ? (
+          React.createElement(Btn, { onClick: () => setI(i + 1),}, "Next card →"  )
+        ) : (
+          React.createElement(Btn, { onClick: goQuiz, color: C.good,}, "Take the quiz →"   )
+        )
+      )
+    )
+  );
+}
+
+function Quiz({ topic, progress, save }) {
+  const [i, setI] = useState(0);
+  const [picked, setPicked] = useState(null);
+  const [score, setScore] = useState(0);
+  const [done, setDone] = useState(false);
+  const [order] = useState(() =>
+    topic.quiz.map((q) => {
+      const idx = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
+      return { ...q, o: idx.map((k) => q.o[k]), a: idx.indexOf(q.a) };
+    })
+  );
+
+  const q = order[i];
+
+  const finish = (finalScore) => {
+    const pct = Math.round((finalScore / order.length) * 100);
+    const prev = progress.best[topic.id] || 0;
+    if (pct > prev) save({ ...progress, best: { ...progress.best, [topic.id]: pct } });
+    setDone(true);
+  };
+
+  if (done) {
+    const pct = Math.round((score / order.length) * 100);
+    const pass = pct >= 75;
+    return (
+      React.createElement('div', { style: { background: C.panel, border: `1px solid ${C.line}`, borderTop: `4px solid ${pass ? C.good : C.warm}`, borderRadius: 2, padding: "26px 22px", textAlign: "center" },}
+        , React.createElement('div', { style: { ...mono, fontSize: 12, color: C.sub, letterSpacing: 2 },}, "RESULT")
+        , React.createElement('div', { style: { fontSize: 44, fontWeight: 800, color: pass ? C.good : C.warm, margin: "6px 0" },}, pct, "%")
+        , React.createElement('p', { style: { color: C.sub, fontSize: 14, margin: "0 0 4px" },}, score, " of "  , order.length, " correct · EASA pass mark is 75%"       )
+        , React.createElement('p', { style: { fontSize: 15, margin: "10px 0 18px" },}
+          , pass ? "Pass — keep it warm with a re-run in a few days." : "Below the pass mark — revisit the Learn cards, then try again."
+        )
+        , React.createElement(Btn, { onClick: () => { setI(0); setPicked(null); setScore(0); setDone(false); },}, "Retake quiz" )
+      )
+    );
+  }
+
+  return (
+    React.createElement('div', null
+      , React.createElement('div', { style: { ...mono, fontSize: 12, color: C.sub, marginBottom: 8 },}, "QUESTION "
+         , i + 1, " / "  , order.length, " · SCORE "   , score
+      )
+      , React.createElement('div', { style: { background: C.panel, border: `1px solid ${C.line}`, borderRadius: 2, padding: "18px 20px" },}
+        , React.createElement('p', { style: { fontSize: 16.5, fontWeight: 700, lineHeight: 1.5, margin: "0 0 14px" },}, q.q)
+        , React.createElement('div', { style: { display: "grid", gap: 8 },}
+          , q.o.map((opt, k) => {
+            let bg = C.panel, border = C.line;
+            if (picked != null) {
+              if (k === q.a) { bg = "#E7F2EA"; border = C.good; }
+              else if (k === picked) { bg = C.warmSoft; border = C.warm; }
+            }
+            return (
+              React.createElement('button', {
+                key: k,
+                disabled: picked != null,
+                onClick: () => { setPicked(k); if (k === q.a) setScore(score + 1); },
+                style: {
+                  textAlign: "left", padding: "11px 14px", fontSize: 15, lineHeight: 1.4,
+                  background: bg, border: `1.5px solid ${border}`, borderRadius: 2,
+                  cursor: picked == null ? "pointer" : "default", color: C.ink,
+                },}
+
+                , React.createElement('span', { style: { ...mono, color: C.sub, marginRight: 8 },}, "ABCD"[k]), opt
+              )
+            );
+          })
+        )
+        , picked != null && (
+          React.createElement('div', { style: { marginTop: 14, padding: "12px 14px", background: picked === q.a ? "#E7F2EA" : C.coldSoft, borderLeft: `4px solid ${picked === q.a ? C.good : C.cold}`, fontSize: 14.5, lineHeight: 1.55 },}
+            , React.createElement('b', null, picked === q.a ? "Correct. " : "Not quite. "), q.e
+          )
+        )
+      )
+      , picked != null && (
+        React.createElement('div', { style: { display: "flex", justifyContent: "flex-end", marginTop: 14 },}
+          , i < order.length - 1 ? (
+            React.createElement(Btn, { onClick: () => { setI(i + 1); setPicked(null); },}, "Next question →"  )
+          ) : (
+            React.createElement(Btn, { color: C.good, onClick: () => finish(score),}, "Finish →" )
+          )
+        )
+      )
+    )
+  );
+}
+
+function Btn({ children, onClick, disabled, ghost, color }) {
+  return (
+    React.createElement('button', {
+      onClick: onClick,
+      disabled: disabled,
+      style: {
+        ...mono, fontSize: 14, padding: "10px 20px", cursor: disabled ? "default" : "pointer",
+        borderRadius: 2, letterSpacing: 0.5,
+        background: ghost ? "transparent" : color || C.ink,
+        color: ghost ? (disabled ? C.line : C.ink) : "#fff",
+        border: ghost ? `1px solid ${disabled ? C.line : C.ink}` : "none",
+        opacity: disabled ? 0.6 : 1,
+      },}
+
+      , children
+    )
+  );
+}
+
+function Drill({ progress, save, onBack }) {
+  const [q, setQ] = useState(() => genDrill());
+  const [picked, setPicked] = useState(null);
+  const [streak, setStreak] = useState(0);
+  const [count, setCount] = useState(0);
+  const [right, setRight] = useState(0);
+
+  const pick = (k) => {
+    if (picked != null) return;
+    setPicked(k);
+    setCount(count + 1);
+    if (k === q.answer) {
+      setRight(right + 1);
+      const ns = streak + 1;
+      setStreak(ns);
+      const best = (progress.drill && progress.drill.best) || 0;
+      if (ns > best) save({ ...progress, drill: { best: ns } });
+    } else {
+      setStreak(0);
+    }
+  };
+
+  return (
+    React.createElement('div', null
+      , React.createElement('button', { onClick: onBack, style: { ...mono, background: "none", border: "none", color: C.cold, cursor: "pointer", fontSize: 13, padding: "4px 0", marginBottom: 8 },}, "← ALL MODULES"
+
+      )
+      , React.createElement('h1', { style: { fontSize: 26, fontWeight: 800, margin: "2px 0 4px" },}, "Numbers Drill" )
+      , React.createElement('div', { style: { ...mono, fontSize: 12, color: C.sub, marginBottom: 14 },}, "STREAK "
+         , streak, " · SESSION "   , right, "/", count, " · BEST "   , (progress.drill && progress.drill.best) || 0
+      )
+      , React.createElement('div', { style: { background: C.panel, border: `1px solid ${C.line}`, borderRadius: 2, padding: "18px 20px" },}
+        , React.createElement('p', { style: { fontSize: 16.5, fontWeight: 700, lineHeight: 1.5, margin: "0 0 14px" },}, q.q)
+        , React.createElement('div', { style: { display: "grid", gap: 8 },}
+          , q.options.map((opt, k) => {
+            let bg = C.panel, border = C.line;
+            if (picked != null) {
+              if (k === q.answer) { bg = "#E7F2EA"; border = C.good; }
+              else if (k === picked) { bg = C.warmSoft; border = C.warm; }
+            }
+            return (
+              React.createElement('button', { key: k, disabled: picked != null, onClick: () => pick(k),
+                style: { textAlign: "left", padding: "11px 14px", fontSize: 15, background: bg, border: `1.5px solid ${border}`, borderRadius: 2, cursor: picked == null ? "pointer" : "default", color: C.ink },}
+                , React.createElement('span', { style: { ...mono, color: C.sub, marginRight: 8 },}, "ABCD"[k]), opt
+              )
+            );
+          })
+        )
+        , picked != null && (
+          React.createElement('div', { style: { marginTop: 14, padding: "12px 14px", background: picked === q.answer ? "#E7F2EA" : C.coldSoft, borderLeft: `4px solid ${picked === q.answer ? C.good : C.cold}`, fontSize: 14.5, lineHeight: 1.55 },}
+            , React.createElement('b', null, picked === q.answer ? "Correct. " : "Not quite. "), q.e
+          )
+        )
+      )
+      , picked != null && (
+        React.createElement('div', { style: { display: "flex", justifyContent: "flex-end", marginTop: 14 },}
+          , React.createElement(Btn, { onClick: () => { setQ(genDrill()); setPicked(null); },}, "Next question →"  )
+        )
+      )
+    )
+  );
+}
+
+
+// ===================== ADDED FEATURES =====================
+function speak(text, onEnd) {
+  try {
+    const s = window.speechSynthesis; if (!s) return false;
+    s.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 1; u.onend = onEnd; s.speak(u); return true;
+  } catch (e) { return false; }
+}
+function stopSpeak() { try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {} }
+
+function ExamBanner({ progress }) {
+  const [date, setDate] = useState("");
+  const [editing, setEditing] = useState(false);
+  useEffect(() => { try { setDate(localStorage.getItem("atpl-exam-date") || ""); } catch (e) {} }, []);
+  const setExam = (v) => { setDate(v); try { v ? localStorage.setItem("atpl-exam-date", v) : localStorage.removeItem("atpl-exam-date"); } catch (e) {} setEditing(false); };
+  const undone = TOPICS.filter((t) => !((progress.best[t.id] != null && progress.best[t.id] >= 75) || (progress.done && progress.done[t.id]))).length;
+  let days = null;
+  if (date) { const d = new Date(date + "T00:00:00"); days = Math.ceil((d - new Date()) / 86400000); }
+  if (!date || editing) {
+    return (
+      React.createElement('div', { style: { background: C.panel, border: `1px solid ${C.line}`, borderRadius: 3, padding: "12px 14px", marginBottom: 14, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },}
+        , React.createElement('span', { style: { ...mono, fontSize: 12, color: C.sub },}, "Exam date:" )
+        , React.createElement('input', { type: "date", defaultValue: date, onChange: (e) => setExam(e.target.value), style: { ...mono, fontSize: 13, padding: "6px 8px", border: `1px solid ${C.line}`, borderRadius: 2 },} )
+        , date && React.createElement('button', { onClick: () => setExam(""), style: { ...mono, fontSize: 12, background: "none", border: "none", color: C.warm, cursor: "pointer" },}, "clear")
+      )
+    );
+  }
+  const overdue = days < 0;
+  const pace = days > 0 ? Math.ceil(undone / days) : undone;
+  return (
+    React.createElement('div', { onClick: () => setEditing(true), style: { cursor: "pointer", background: overdue ? C.warmSoft : C.ink, color: overdue ? C.warm : "#fff", borderRadius: 3, padding: "12px 16px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" },}
+      , React.createElement('span', null
+        , React.createElement('span', { style: { ...mono, fontSize: 11, letterSpacing: 2, color: overdue ? C.warm : "#9FB3C2", display: "block" },}, "EXAM COUNTDOWN" )
+        , React.createElement('span', { style: { fontWeight: 800, fontSize: 20 },}, overdue ? `${Math.abs(days)} days ago` : days === 0 ? "Exam today" : `${days} days to go`)
+      )
+      , !overdue && days > 0 && undone > 0 && React.createElement('span', { style: { ...mono, fontSize: 12, color: "#9FB3C2", textAlign: "right" },}, undone, " chapters left · ~"    , pace, "/day")
+    )
+  );
+}
+
+function DoneToggle({ topic, progress, save }) {
+  const passed = progress.best[topic.id] != null && progress.best[topic.id] >= 75;
+  const marked = !!(progress.done && progress.done[topic.id]);
+  const done = passed || marked;
+  const toggle = () => { const d = { ...(progress.done || {}) }; d[topic.id] = !marked; save({ ...progress, done: d }); };
+  return (
+    React.createElement('button', { onClick: toggle, style: { ...mono, fontSize: 12.5, padding: "8px 14px", borderRadius: 2, marginBottom: 16, cursor: "pointer", border: `1px solid ${done ? C.good : C.line}`, background: done ? "#E7F2EA" : C.panel, color: done ? C.good : C.sub },}
+      , done ? "✓ Completed — tap to unmark" : "○ Mark chapter complete"
+    )
+  );
+}
+
+function LearnControls({ topic, i, card, progress, save }) {
+  const [speaking, setSpeaking] = useState(false);
+  useEffect(() => { stopSpeak(); setSpeaking(false); }, [i]); // eslint-disable-line
+  const bmKey = topic.id + ":" + i;
+  const marked = !!(progress.bookmarks && progress.bookmarks[bmKey]);
+  const toggleBm = () => { const bm = { ...(progress.bookmarks || {}) }; bm[bmKey] = !marked; save({ ...progress, bookmarks: bm }); };
+  const toggleSpeak = () => {
+    if (speaking) { stopSpeak(); setSpeaking(false); }
+    else { const ok = speak(card.t + ". " + card.b, () => setSpeaking(false)); setSpeaking(ok); }
+  };
+  return (
+    React.createElement('div', { style: { display: "flex", gap: 8, marginTop: 12 },}
+      , React.createElement('button', { onClick: toggleSpeak, style: { ...mono, fontSize: 13, padding: "9px 14px", borderRadius: 2, border: `1px solid ${C.line}`, background: speaking ? C.coldSoft : C.panel, color: C.ink, cursor: "pointer" },}, speaking ? "■ Stop" : "▶ Listen")
+      , React.createElement('button', { onClick: toggleBm, style: { ...mono, fontSize: 13, padding: "9px 14px", borderRadius: 2, border: `1px solid ${marked ? C.warm : C.line}`, background: marked ? C.warmSoft : C.panel, color: marked ? C.warm : C.ink, cursor: "pointer" },}, marked ? "★ Saved" : "☆ Save card")
+    )
+  );
+}
+
+function Saved({ progress, save, onOpen, onBack }) {
+  const bm = progress.bookmarks || {};
+  const items = [];
+  TOPICS.forEach((t) => t.cards.forEach((c, idx) => { if (bm[t.id + ":" + idx]) items.push({ t, c, idx }); }));
+  const unsave = (key) => { const b = { ...bm }; delete b[key]; save({ ...progress, bookmarks: b }); };
+  return (
+    React.createElement('div', null
+      , React.createElement('button', { onClick: onBack, style: { ...mono, background: "none", border: "none", color: C.cold, cursor: "pointer", fontSize: 13, padding: "4px 0", marginBottom: 8 },}, "← ALL MODULES"  )
+      , React.createElement('h1', { style: { fontSize: 26, fontWeight: 800, margin: "2px 0 14px" },}, "★ Saved cards"  )
+      , items.length === 0 ? (
+        React.createElement('p', { style: { color: C.sub, fontSize: 15 },}, "No saved cards yet. Tap “☆ Save card” on any Learn card to keep it here for quick revision."                  )
+      ) : (
+        React.createElement('div', { style: { display: "grid", gap: 10 },}
+          , items.map(({ t, c, idx }) => (
+            React.createElement('div', { key: t.id + idx, style: { background: C.panel, border: `1px solid ${C.line}`, borderLeft: `4px solid ${C.warm}`, borderRadius: 2, padding: "12px 14px" },}
+              , React.createElement('div', { style: { ...mono, fontSize: 10.5, color: C.cold },}, t.code, " · "  , t.title)
+              , React.createElement('div', { style: { fontWeight: 700, fontSize: 15, margin: "3px 0 5px" },}, c.t)
+              , React.createElement('p', { style: { fontSize: 13.5, color: C.sub, lineHeight: 1.5, margin: "0 0 8px" },}, c.b)
+              , React.createElement('div', { style: { display: "flex", gap: 8 },}
+                , React.createElement('button', { onClick: () => onOpen(t.id), style: { ...mono, fontSize: 12, padding: "7px 12px", border: "none", borderRadius: 2, background: C.ink, color: "#fff", cursor: "pointer" },}, "Open chapter →"  )
+                , React.createElement('button', { onClick: () => unsave(t.id + ":" + idx), style: { ...mono, fontSize: 12, padding: "7px 12px", border: `1px solid ${C.line}`, borderRadius: 2, background: C.panel, color: C.warm, cursor: "pointer" },}, "Remove")
+              )
+            )
+          ))
+        )
+      )
+    )
+  );
+}
+
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));</script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}</script>
+</body></html>

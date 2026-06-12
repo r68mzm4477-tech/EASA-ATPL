@@ -1,0 +1,1499 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" /><meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black" /><meta name="theme-color" content="#16222C" />
+<link rel="manifest" href="manifest.webmanifest" /><link rel="apple-touch-icon" href="icon-180.png" /><title>Enhanced ATPL Meteorology</title>
+<script src="vendor-react.js"></script>
+<style>html,body{margin:0;padding:0;background:#E9EEF2;-webkit-text-size-adjust:100%;}#root{min-height:100vh;}
+.homebar{position:sticky;top:0;z-index:50;background:#0f1820;display:flex;align-items:center;gap:8px;padding:8px 14px;font:600 13px 'IBM Plex Mono',monospace;color:#9FB3C2;}.homebar a{color:#9FB3C2;text-decoration:none;}</style>
+</head><body><div class="homebar"><a href="index.html">‹ SUBJECTS</a></div><div id="root"></div>
+<script>const storageShim={async get(k){try{const v=localStorage.getItem(k);return v==null?null:{key:k,value:v}}catch(e){return null}},async set(k,v){try{localStorage.setItem(k,v);return{key:k,value:v}}catch(e){return null}},async delete(k){try{localStorage.removeItem(k);return{key:k,deleted:true}}catch(e){return null}},async list(p){try{return{keys:Object.keys(localStorage).filter(k=>!p||k.startsWith(p))}}catch(e){return null}}};if(!window.storage)window.storage=storageShim;</script>
+<script>const {useState,useEffect}=React;
+
+// ===================== SYLLABUS DATA =====================
+const TOPICS = [
+  {
+    id: "atmosphere",
+    code: "050·01",
+    title: "The Atmosphere & ISA",
+    blurb: "Composition, structure, ISA values, pressure & density with height.",
+    cards: [
+      { t: "Composition of dry air", b: "By volume: 78% nitrogen, 21% oxygen, ~1% argon and ~0.04% CO2. These proportions stay constant up to about 60 km. Water vapour varies from 0–4% and is the single most important variable gas — nearly all weather happens because of it." },
+      { t: "Layers & the tropopause", b: "Almost all weather is in the troposphere, where temperature falls with height. The tropopause is HIGHER and COLDER over the equator (~16–18 km, about −75°C) and LOWER and WARMER over the poles (~8 km, about −45 to −50°C). Above it lies the stratosphere, containing the ozone layer." },
+      { t: "ISA sea-level values", b: "Temperature +15°C, pressure 1013.25 hPa, density 1.225 kg/m³. Memorise all three — they appear constantly in exam questions and performance calculations." },
+      { t: "ISA temperature profile", b: "Temperature falls at 1.98°C per 1000 ft (0.65°C/100 m) up to 36,090 ft (11 km), where it reaches −56.5°C. From 11 km to 20 km it is ISOTHERMAL (constant −56.5°C), then it increases slowly in the upper stratosphere.", dia: "isa" },
+      { t: "Pressure with height", b: "Near MSL, pressure falls about 1 hPa per 27 ft. The rate of fall DECREASES with altitude (air gets less dense). Pressure roughly halves every 18,000 ft: ~500 hPa at FL180, ~300 hPa at FL300, ~200 hPa near FL390." },
+      { t: "Density", b: "Density is proportional to pressure ÷ temperature. It always decreases with altitude. Moist (humid) air is LESS dense than dry air, because water vapour molecules are lighter than N2/O2. High temperature + high humidity + low pressure = high density altitude = poor aircraft performance." },
+      { t: "ISA deviation", b: "ISA temperature at altitude = 15 − (2 × altitude in 1000s of ft). Example: ISA at FL350 = 15 − 70 = −55°C. ISA deviation = actual OAT minus ISA temperature. OAT −45°C at FL350 → ISA +10." },
+    ],
+    quiz: [
+      { q: "The ISA sea-level values are:", o: ["15°C, 1013.25 hPa, 1.225 kg/m³", "15°C, 1023 hPa, 1.013 kg/m³", "10°C, 1013.25 hPa, 1.225 kg/m³", "15°C, 1013.25 hPa, 1.013 kg/m³"], a: 0, e: "The three figures to memorise: +15°C, 1013.25 hPa, 1.225 kg/m³." },
+      { q: "Compared with the poles, the tropopause over the equator is:", o: ["Higher and colder", "Higher and warmer", "Lower and colder", "Lower and warmer"], a: 0, e: "Strong tropical convection pushes the tropopause to ~16–18 km, where it is about −75°C — higher AND colder than over the poles." },
+      { q: "Near mean sea level, a pressure change of 1 hPa corresponds to approximately:", o: ["27 ft", "8 ft", "50 ft", "100 ft"], a: 0, e: "1 hPa ≈ 27 ft near MSL. The ft-per-hPa figure grows with altitude as air thins (≈50 ft/hPa at 18,000 ft)." },
+      { q: "The ISA temperature at FL350 is:", o: ["−55°C", "−50°C", "−56.5°C", "−70°C"], a: 0, e: "15 − (2 × 35) = 15 − 70 = −55°C. (−56.5°C is only reached at 36,090 ft.)" },
+      { q: "Compared with dry air at the same temperature and pressure, moist air is:", o: ["Less dense", "More dense", "The same density", "Denser only above the freezing level"], a: 0, e: "H2O molecules (mass 18) are lighter than N2 (28) and O2 (32), so humid air is less dense — performance suffers on humid days." },
+      { q: "In the ISA, the layer between 11 km and 20 km is:", o: ["Isothermal at −56.5°C", "Cooling at 2°C/1000 ft", "Warming at 1°C/1000 ft", "Isothermal at −45°C"], a: 0, e: "Above the ISA tropopause (11 km / 36,090 ft) temperature stays constant at −56.5°C up to 20 km." },
+    ],
+  },
+  {
+    id: "altimetry",
+    code: "050·01",
+    title: "Altimetry",
+    blurb: "QNH, QFE, QFF, true vs indicated altitude, density altitude.",
+    cards: [
+      { t: "The pressure datums", b: "QFE set: altimeter reads HEIGHT above the aerodrome (zero on the runway). QNH set: altimeter reads ALTITUDE above mean sea level (QFE reduced to MSL using ISA). QFF: actual MSL pressure used on synoptic charts. 1013.25 hPa set: altimeter reads PRESSURE ALTITUDE — the basis of flight levels." },
+      { t: "High to low, look out below", b: "Altimeters are calibrated to ISA. Flying towards LOWER pressure without resetting QNH, or flying in air COLDER than ISA, makes your TRUE altitude LOWER than indicated. Both errors put you closer to terrain than the needle suggests.", dia: "altimeter" },
+      { t: "Temperature error — the 4% rule", b: "True altitude changes about 4% per 10°C of ISA deviation. Colder than ISA → true altitude lower than indicated; warmer → higher. This is why cold-temperature corrections are applied to minimum altitudes in winter." },
+      { t: "Density altitude", b: "Density altitude = pressure altitude corrected for non-standard temperature: DA ≈ PA + 120 × (OAT − ISA temp). Example: PA 3000 ft, OAT +21°C. ISA at 3000 ft = +9°C, deviation +12 → DA ≈ 3000 + 1440 = 4440 ft." },
+      { t: "QNH vs QFF", b: "For an aerodrome ABOVE sea level: when colder than ISA, QFF is HIGHER than QNH; when warmer than ISA, QFF is LOWER than QNH. At ISA conditions, or at a sea-level aerodrome, they are equal. (Reverse the rule for aerodromes below sea level.)" },
+      { t: "Transition altitude & level", b: "Climbing through the TRANSITION ALTITUDE you set 1013 and fly flight levels; descending through the TRANSITION LEVEL you set QNH and fly altitudes. The layer between them is the transition layer — not used for level flight." },
+    ],
+    quiz: [
+      { q: "You fly from an area of high pressure to low pressure without resetting the altimeter. Your true altitude is:", o: ["Lower than indicated", "Higher than indicated", "Equal to indicated", "Unpredictable"], a: 0, e: "High to low, look out below — the altimeter over-reads, so you are actually lower than indicated." },
+      { q: "With QFE set, an altimeter on the aerodrome reads:", o: ["Zero", "Aerodrome elevation", "Pressure altitude", "Density altitude"], a: 0, e: "QFE is aerodrome-level pressure, so on the ground the altimeter shows ~0 ft; in flight it shows height above the aerodrome." },
+      { q: "Flying at an indicated altitude of 2000 ft on a correct QNH in air much colder than ISA, your true altitude is:", o: ["Lower than 2000 ft", "Higher than 2000 ft", "Exactly 2000 ft", "Only affected if QNH is wrong"], a: 0, e: "Cold air is denser and pressure levels are squeezed together — true altitude is lower than indicated even with the correct QNH." },
+      { q: "Pressure altitude 3000 ft, OAT +21°C. Density altitude is approximately:", o: ["4440 ft", "3000 ft", "3360 ft", "5500 ft"], a: 0, e: "ISA at 3000 ft = +9°C → deviation +12°C. DA = 3000 + (120 × 12) ≈ 4440 ft." },
+      { q: "An aerodrome is well above sea level and the air is colder than ISA. Compared with QNH, QFF is:", o: ["Higher", "Lower", "Equal", "Cannot be determined"], a: 0, e: "QNH reduces to MSL assuming ISA; reducing through real, colder (denser) air adds more pressure, so QFF > QNH. Remember: above MSL + cold → QFF higher." },
+      { q: "By approximately how much does true altitude differ from indicated per 10°C of ISA deviation?", o: ["4%", "1%", "10%", "0.4%"], a: 0, e: "The 4% rule: roughly 4% of indicated altitude per 10°C deviation from ISA." },
+    ],
+  },
+  {
+    id: "wind",
+    code: "050·02",
+    title: "Wind",
+    blurb: "Geostrophic & gradient wind, friction, local winds, jet streams.",
+    cards: [
+      { t: "Forces on the air", b: "The pressure gradient force (PGF) acts from HIGH to LOW pressure, perpendicular to the isobars. The Coriolis force deflects moving air to the RIGHT in the northern hemisphere, LEFT in the southern — zero at the equator, maximum at the poles." },
+      { t: "Geostrophic wind", b: "Above the friction layer (~2000–3000 ft) PGF and Coriolis balance, giving a wind that blows PARALLEL to the isobars. It is stronger where isobars are closer together, and — for the same pressure gradient — stronger at LOWER latitudes (inversely proportional to sin latitude).", dia: "geostrophic" },
+      { t: "Gradient wind", b: "Around curved isobars, centripetal force modifies the balance: around a LOW the wind is SLOWER than geostrophic; around a HIGH it is FASTER. So for the same isobar spacing, expect stronger wind around an anticyclone." },
+      { t: "Surface friction (NH)", b: "Friction slows the wind and reduces Coriolis, so the surface wind BACKS relative to the 2000 ft wind and slows: over land roughly 30° backed and ~50% of the speed; over the sea about 10° backed and ~70%. (Southern hemisphere: it veers instead.) Climbing out, expect the wind to VEER and INCREASE in the NH.", dia: "friction" },
+      { t: "Buys Ballot's law", b: "Stand with your BACK to the wind in the northern hemisphere and the LOW pressure is on your LEFT (right in the southern hemisphere). A classic, frequently examined rule of thumb.", dia: "buysballot" },
+      { t: "Local winds", b: "Sea breeze: day, blows from sea to land (onshore). Land breeze: night, offshore, weaker. Anabatic: daytime upslope, weak. Katabatic: night downslope drainage, can be strong. Föhn: air forced over mountains arrives warm and dry on the lee side, with excellent visibility but turbulence." },
+      { t: "Jet streams", b: "Narrow bands of strong wind (by convention ≥60 kt at the core) just BELOW the tropopause, at breaks between tropopause levels. The polar front jet (40–60° lat) lies on the COLD/polar side above the polar front; the subtropical jet sits near 30°. In the NH, looking downwind, the cold air is on your LEFT." },
+      { t: "Clear air turbulence", b: "CAT is strongest near jet cores, especially on the COLD (polar) side of the jet, and in curving flow around sharp upper troughs. It is invisible, gives no radar return, and is best escaped by changing level or moving towards the warm side." },
+    ],
+    quiz: [
+      { q: "Buys Ballot's law (NH): with your back to the wind, low pressure is:", o: ["On your left", "On your right", "Behind you", "Ahead of you"], a: 0, e: "Back to wind in the NH → low on the LEFT. In the SH it is on the right." },
+      { q: "In the NH, compared with the 2000 ft wind, the surface wind over land is typically:", o: ["Backed ~30° and slower", "Veered ~30° and slower", "Backed ~30° and faster", "Veered ~10° and faster"], a: 0, e: "Friction slows the wind, weakening Coriolis, so it backs ~30° over land (only ~10° over the smoother sea)." },
+      { q: "Geostrophic wind blows:", o: ["Parallel to the isobars", "Perpendicular to the isobars towards low pressure", "Perpendicular to the isobars towards high pressure", "At 45° to the isobars"], a: 0, e: "PGF and Coriolis balance, leaving a wind parallel to straight isobars — low pressure on the left in the NH." },
+      { q: "For the same isobar spacing, the gradient wind around a high is:", o: ["Faster than geostrophic", "Slower than geostrophic", "Equal to geostrophic", "Always calm"], a: 0, e: "Around a high, Coriolis must exceed PGF to curve the flow, which requires a faster wind. Around a low it is slower." },
+      { q: "The polar front jet stream core is found:", o: ["Just below the tropopause on the cold air side of the front", "At the surface position of the polar front", "Well above the tropopause in warm air", "In the centre of the warm sector at FL100"], a: 0, e: "Jets form at tropopause breaks; the PFJ core sits just below the tropopause, in or above the cold air on the polar side." },
+      { q: "A sea breeze blows:", o: ["From sea to land by day", "From land to sea by day", "From sea to land by night", "Only when a front passes"], a: 0, e: "Land heats faster by day, air rises over it, and cooler maritime air flows in — an onshore wind, strongest mid-afternoon." },
+    ],
+  },
+  {
+    id: "thermo",
+    code: "050·03",
+    title: "Thermodynamics & Stability",
+    blurb: "Lapse rates, stability, inversions, humidity & dew point.",
+    cards: [
+      { t: "The three lapse rates", b: "DALR (dry adiabatic): 3°C per 1000 ft — unsaturated rising air. SALR (saturated adiabatic): ~1.8°C per 1000 ft on average, because condensation releases latent heat. ELR (environmental): what the real atmosphere is actually doing; ISA average is 2°C per 1000 ft." },
+      { t: "Stability rules", b: "Compare the ELR with the adiabatic rates. ELR < SALR (e.g. 1°C/1000 ft): ABSOLUTELY STABLE. ELR > DALR (e.g. 3.5°C/1000 ft): ABSOLUTELY UNSTABLE. ELR between SALR and DALR: CONDITIONALLY UNSTABLE — stable while dry, unstable once saturated.", dia: "stability" },
+      { t: "What stability means for flight", b: "Stable air: stratiform cloud, steady precipitation, smooth flight, but poor visibility trapped near the surface. Unstable air: cumuliform cloud, showers, turbulence, but good visibility outside the showers." },
+      { t: "Inversions", b: "Temperature INCREASING with height — extremely stable. Radiation inversion: clear calm nights near the surface. Subsidence inversion: sinking, warming air in anticyclones, traps haze. Frontal inversion: warm air overrunning cold at a front. Expect wind shear and trapped poor visibility beneath any inversion." },
+      { t: "Humidity & dew point", b: "Warm air can hold more water vapour. Relative humidity = actual vapour ÷ maximum possible at that temperature. Cool the air and RH rises with no added moisture. The DEW POINT is the temperature to which air must cool (at constant pressure) to become saturated." },
+      { t: "Temperature/dew point spread", b: "A small spread means the air is close to saturation: expect low cloud bases, mist or fog. Cumulus cloud base can be estimated: base (ft) ≈ 400 × (temperature − dew point) — a 5°C spread suggests a base near 2000 ft." },
+    ],
+    quiz: [
+      { q: "The dry adiabatic lapse rate is:", o: ["3°C per 1000 ft", "1.8°C per 1000 ft", "2°C per 1000 ft", "1°C per 1000 ft"], a: 0, e: "DALR = 3°C/1000 ft. SALR averages ~1.8, and the ISA ELR is 2." },
+      { q: "An ELR of 1.5°C per 1000 ft means the atmosphere is:", o: ["Absolutely stable", "Absolutely unstable", "Conditionally unstable", "Neutral"], a: 0, e: "1.5 is less than the SALR (~1.8), so a rising parcel is always colder than its surroundings — absolutely stable." },
+      { q: "Conditional instability exists when the ELR is:", o: ["Between the SALR and the DALR", "Greater than the DALR", "Less than the SALR", "Exactly equal to the DALR"], a: 0, e: "The parcel is stable while unsaturated but becomes unstable once condensation begins." },
+      { q: "An inversion is a layer in which temperature:", o: ["Increases with height", "Decreases at more than 3°C/1000 ft", "Remains exactly constant", "Equals the dew point"], a: 0, e: "Temperature rising with height = inversion: very stable, with wind shear and trapped haze/fog beneath it." },
+      { q: "Air cools overnight with no change in moisture content. Relative humidity:", o: ["Increases", "Decreases", "Stays constant", "Falls to zero"], a: 0, e: "Cooler air can hold less vapour, so the same moisture is a larger fraction of the maximum — RH rises, which is why fog forms near dawn." },
+      { q: "Surface temperature +20°C, dew point +12°C. The approximate cumulus cloud base is:", o: ["3200 ft", "1200 ft", "8000 ft", "400 ft"], a: 0, e: "Base ≈ 400 × spread = 400 × 8 = 3200 ft." },
+    ],
+  },
+  {
+    id: "clouds",
+    code: "050·04",
+    title: "Clouds & Fog",
+    blurb: "Cloud genera & levels, formation, fog types and conditions.",
+    cards: [
+      { t: "How cloud forms", b: "Air cools to its dew point and condenses onto condensation nuclei. Cooling is usually by lifting: convection (heated surface), orographic (forced over hills), frontal (warm air over cold), convergence (air flowing together), or turbulent mixing under an inversion." },
+      { t: "The ten genera by level (mid-latitudes)", b: "LOW (surface–6500 ft): stratus ST, stratocumulus SC, cumulus CU, cumulonimbus CB. MEDIUM (6500–23,000 ft): altostratus AS, altocumulus AC, nimbostratus NS (base low, great depth). HIGH (16,500–45,000 ft): cirrus CI, cirrostratus CS, cirrocumulus CC.", dia: "cloudlevels" },
+      { t: "Cumuliform vs stratiform", b: "Cumuliform = unstable air: showery precipitation, turbulence, good visibility between cells. Stratiform = stable air: continuous precipitation, smooth flight, poor visibility. This single distinction answers a surprising number of exam questions.", dia: "cumulus", img: "https://commons.wikimedia.org/wiki/Special:FilePath/Cumulus_clouds_panorama.jpg?width=640", imgpage: "https://commons.wikimedia.org/wiki/File:Cumulus_clouds_panorama.jpg" },
+      { t: "CB and TCU", b: "Towering cumulus and cumulonimbus contain strong up/downdraughts, severe icing and turbulence, hail and lightning (CB). They are the only two cloud types specifically reported by type in METARs.", dia: "cumulonimbus", img: "https://commons.wikimedia.org/wiki/Special:FilePath/Cumulonimbus_incus_cloud.jpg?width=640", imgpage: "https://commons.wikimedia.org/wiki/File:Cumulonimbus_incus_cloud.jpg" },
+      { t: "Lenticular cloud", b: "Smooth lens-shaped altocumulus (ACSL) marks standing MOUNTAIN WAVES. The cloud itself may be smooth, but rotor zones beneath the wave crests, marked by ragged rotor cloud, hold the most violent turbulence.", dia: "lenticular", img: "https://commons.wikimedia.org/wiki/Special:FilePath/Lenticular_Cloud_over_Cagliari%2C_Italy_-_17_Sept._2013.jpg?width=640", imgpage: "https://commons.wikimedia.org/wiki/File:Lenticular_Cloud_over_Cagliari,_Italy_-_17_Sept._2013.jpg" },
+      { t: "Radiation fog", b: "Forms over LAND on clear nights with light winds (about 2–8 kt) and moist air: the ground radiates heat away, the air above cools to its dew point, and the light wind mixes the fog into a layer. Cleared by the sun heating the ground or the wind strengthening.", dia: "stratusfam" },
+      { t: "Advection fog", b: "Warm moist air flows over a COLDER surface (sea or snow-covered land) and is cooled to saturation. Unlike radiation fog it can form day or night, over sea or land, and can PERSIST with winds up to ~15 kt. Cause of sea fog." },
+      { t: "Other fogs, mist & haze", b: "Steaming fog (arctic smoke): very cold air over warm water. Frontal fog: ahead of a warm front as rain saturates the cold air. Definitions: FOG = visibility below 1000 m; MIST = 1000–5000 m with high humidity; HAZE = dry particles." },
+    ],
+    quiz: [
+      { q: "Conditions favouring radiation fog are:", o: ["Clear night, light wind 2–8 kt, moist air over land", "Overcast night, strong wind, dry air", "Warm air flowing over a cold sea", "Daytime heating with strong convection"], a: 0, e: "Clear skies allow radiative cooling, light wind mixes the cooled layer, and moist air saturates quickly — classic radiation fog recipe." },
+      { q: "Advection fog differs from radiation fog in that it:", o: ["Can persist with moderate winds and form over the sea", "Only forms at night", "Requires clear skies", "Never reduces visibility below 1000 m"], a: 0, e: "Advection fog needs warm moist air moving over a cold surface — it survives winds up to ~15 kt and is the usual sea fog." },
+      { q: "By definition, fog is present when visibility is below:", o: ["1000 m", "5000 m", "1500 m", "3000 m"], a: 0, e: "Vis < 1000 m = fog. 1000–5000 m with high humidity = mist (BR)." },
+      { q: "Continuous, prolonged moderate rain most likely falls from:", o: ["Nimbostratus", "Cumulus", "Cirrostratus", "Stratocumulus"], a: 0, e: "NS is the deep, dark, layered rain cloud of warm fronts — continuous precipitation, not showers." },
+      { q: "Lenticular clouds indicate:", o: ["Standing mountain waves", "An approaching warm front", "Strong surface convection", "Imminent thunderstorms"], a: 0, e: "ACSL forms at the crests of standing waves downwind of ridges — expect wave activity and rotor turbulence below." },
+      { q: "Which group contains only LOW-level cloud types?", o: ["ST, SC, CU, CB", "AS, AC, NS", "CI, CS, CC", "ST, AS, CI"], a: 0, e: "Low étage (surface–6500 ft): stratus, stratocumulus, cumulus, cumulonimbus. CI/CS/CC are high; AS/AC are medium." },
+    ],
+  },
+  {
+    id: "precip",
+    code: "050·05",
+    title: "Precipitation",
+    blurb: "How precipitation forms and what each type tells you.",
+    cards: [
+      { t: "Bergeron (ice-crystal) process", b: "In mid-latitude clouds, supercooled water droplets and ice crystals coexist below 0°C. Because saturation vapour pressure is lower over ice, crystals grow at the droplets' expense, then fall and grow further. The dominant rain process outside the tropics." },
+      { t: "Coalescence process", b: "In warm tropical clouds with no ice, larger droplets fall faster, collide with and absorb smaller ones until heavy drops fall out. Explains heavy rain from clouds entirely warmer than 0°C." },
+      { t: "Match the precipitation to the cloud", b: "Drizzle (DZ): stratus. Continuous rain/snow: nimbostratus or thick altostratus (frontal). Showers (SH): cumulus or cumulonimbus — showers ALWAYS mean convective cloud. Hail (GR): cumulonimbus only.", dia: "nimbostratus" },
+      { t: "Freezing rain", b: "Rain falls from warm air aloft (typically ahead of a warm front in winter) into sub-zero air below, becoming supercooled. It freezes on impact as CLEAR ICE — the most dangerous airframe icing. The give-away: rain with surface temperatures at or below 0°C." },
+      { t: "Hail & virga", b: "Hail needs the violent updraughts of a CB to carry stones through repeated freezing cycles — large hail means a severe storm. Virga is precipitation evaporating before reaching the ground; the evaporative cooling beneath can produce strong downdraughts." },
+      { t: "Snow facts", b: "Snow is most likely with surface temperatures around +1°C or below. Wet snow near 0°C sticks to airframes; dry snow at lower temperatures generally does not adhere." },
+    ],
+    quiz: [
+      { q: "Showery precipitation always indicates:", o: ["Convective (cumuliform) cloud", "Stratiform cloud", "An inversion", "Cirrus layers"], a: 0, e: "Showers come from CU/CB. Continuous precipitation comes from stratiform cloud — a core exam distinction." },
+      { q: "Freezing rain encountered in flight produces:", o: ["Rapid clear ice accretion", "Light rime icing", "Hoar frost", "No icing if airspeed is high"], a: 0, e: "Large supercooled drops spread before freezing — fast-building clear ice, the most hazardous form. Escape it promptly." },
+      { q: "The Bergeron process requires:", o: ["Ice crystals and supercooled droplets coexisting", "Cloud entirely warmer than 0°C", "Strong surface winds", "Dry air aloft"], a: 0, e: "Vapour deposits preferentially onto ice (lower saturation vapour pressure over ice), so crystals grow at the droplets' expense." },
+      { q: "Drizzle typically falls from:", o: ["Stratus", "Cumulonimbus", "Altocumulus", "Cirrostratus"], a: 0, e: "Tiny droplets can only survive the short fall from low stratus; deeper cloud produces proper rain." },
+      { q: "Large hail is direct evidence of:", o: ["Very strong updraughts in a CB", "A stable atmosphere", "Warm-front nimbostratus", "High-level cirrus"], a: 0, e: "Only powerful CB updraughts can recirculate stones long enough to grow large hail — treat it as a severe-storm marker." },
+      { q: "Freezing rain ahead of a winter warm front tells you that:", o: ["Warmer air (above 0°C) lies above the cold surface layer", "The whole atmosphere is below 0°C", "The front has already passed", "Only rime ice is possible"], a: 0, e: "The rain must have formed as liquid in warm air aloft and fallen into the sub-zero layer below — a classic warm-front-in-winter signature." },
+    ],
+  },
+  {
+    id: "fronts",
+    code: "050·06",
+    title: "Air Masses & Fronts",
+    blurb: "Air mass types, warm/cold fronts, occlusions, polar lows.",
+    cards: [
+      { t: "Air masses", b: "Classified by moisture (maritime m / continental c) and source latitude (arctic A, polar P, tropical T). mP air warming from below over sea becomes unstable: cumulus and showers, good visibility. mT air cooling from below becomes stable: stratus, drizzle, poor visibility, advection fog." },
+      { t: "The warm front", b: "Warm air overruns cold at a shallow slope of about 1:150. Cloud lowers in sequence: CI → CS → AS → NS, with cirrus appearing up to ~600 NM ahead and continuous rain in the last ~200 NM. Pressure falls steadily ahead; wind veers (NH) and the rain eases as it passes.", dia: "warmfront" },
+      { t: "The cold front", b: "Cold air undercuts warm at a steep ~1:50 slope and moves faster than the warm front. Expect a narrow band of CB, heavy showers and possibly thunderstorms. On passage: wind VEERS sharply (NH), pressure RISES quickly, temperature drops, visibility improves dramatically behind.", dia: "coldfront" },
+      { t: "The warm sector & occlusion", b: "Between the fronts lies the warm sector: mild, humid, stratiform cloud, drizzle. Because the cold front travels faster it eventually catches the warm front, lifting the warm sector off the ground — an OCCLUSION (cold occlusion if the air behind is colder than the air ahead; warm occlusion if less cold)." },
+      { t: "Polar front depressions", b: "Mid-latitude lows form as waves on the polar front, deepen, occlude and fill — typically travelling east/northeast, steered roughly parallel to the warm-sector isobars. They arrive in families, each low slightly further south than the last." },
+      { t: "Recognising frontal passage from the cockpit", b: "Warm front: long cloud lowering sequence, steady rain, gradual veer. Cold front: short sharp event — CB line, squalls, marked veer, rapid pressure rise, colder clearer air. In the SH winds BACK on frontal passage instead.", dia: "cirrus", img: "https://commons.wikimedia.org/wiki/Special:FilePath/Cirrus_pattern_panorama.jpg?width=640", imgpage: "https://commons.wikimedia.org/wiki/File:Cirrus_pattern_panorama.jpg" },
+    ],
+    quiz: [
+      { q: "The cloud sequence observed as a warm front approaches is:", o: ["CI, CS, AS, NS", "CB, NS, AS, CI", "CU, SC, ST, CB", "NS, AS, CS, CI"], a: 0, e: "High cirrus first (~600 NM ahead), thickening and lowering through cirrostratus and altostratus to rain-bearing nimbostratus." },
+      { q: "As a cold front passes in the northern hemisphere:", o: ["Wind veers and pressure rises rapidly", "Wind backs and pressure falls", "Wind veers and pressure falls", "Wind is unchanged"], a: 0, e: "The sharp veer plus a rapid pressure rise (and a temperature drop) is the textbook NH cold-front passage." },
+      { q: "The typical slope of a warm front is about:", o: ["1:150", "1:50", "1:10", "1:500"], a: 0, e: "Warm fronts are shallow (~1:150) giving the long cloud sequence; cold fronts are steeper (~1:50) giving a narrow violent band." },
+      { q: "An occlusion forms when:", o: ["The cold front catches up with the warm front", "The warm front accelerates away", "Two highs merge", "The polar front jet descends to the surface"], a: 0, e: "The faster cold front overtakes the warm front, lifting the warm sector air clear of the surface." },
+      { q: "Maritime polar air moving south over a warm sea becomes:", o: ["Unstable, with cumulus, showers and good visibility", "Stable, with stratus and drizzle", "Saturated, with widespread fog", "Cloudless and calm"], a: 0, e: "Heating from below steepens the lapse rate: convection, CU/CB, showers — but excellent visibility between them." },
+      { q: "A family of polar front depressions generally moves:", o: ["East to northeast, parallel to the warm sector isobars", "West, against the upper winds", "Directly north along the front", "It remains stationary"], a: 0, e: "Mid-latitude lows are steered by the upper westerlies, tracking roughly with the warm-sector isobars." },
+    ],
+  },
+  {
+    id: "pressure",
+    code: "050·07",
+    title: "Pressure Systems",
+    blurb: "Lows, highs, ridges, troughs and the weather they bring.",
+    cards: [
+      { t: "Depressions (lows)", b: "Air converges at the surface and RISES, cooling adiabatically: cloud, precipitation, generally poor flying weather. Winds circulate anticlockwise around a low in the NH (clockwise SH), strengthening towards the centre where isobars tighten.", dia: "lowcirc" },
+      { t: "Anticyclones (highs)", b: "Air SUBSIDES and diverges at the surface: warming, drying, cloud suppressed — usually fine, settled weather with light winds, circulating clockwise in the NH. But subsidence creates an inversion that traps moisture and pollutants below it." },
+      { t: "Anticyclonic gloom", b: "In winter highs, the subsidence inversion traps haze, stratus and fog for days: poor surface visibility despite the 'good weather' system. Summer highs give hot clear days, possibly with haze. A favourite exam trap: highs do NOT guarantee good visibility." },
+      { t: "Ridges, troughs and cols", b: "Ridge: elongated extension of high pressure — brief fine weather between systems. Trough: elongated extension of low pressure — lifting, cloud and showers, often marking a front or a line of CB. Col: the quiet, slack region between two highs and two lows — light winds, fog in winter, thunderstorms possible in summer." },
+      { t: "Secondary lows & thermal lows", b: "Secondary depressions form within the circulation of a parent low, often on a trailing cold front, and can deepen rapidly. Thermal lows form by summer surface heating (e.g. over Iberia) — afternoon thunderstorms; monsoon lows are the large-scale version." },
+      { t: "Blocking highs", b: "A large, slow-moving warm anticyclone can 'block' the westerlies, deflecting depressions around it and locking the same weather in place for a week or more — persistent heat in summer, persistent freezing fog in winter." },
+    ],
+    quiz: [
+      { q: "Around a low in the northern hemisphere, the surface wind circulates:", o: ["Anticlockwise, slightly across the isobars towards the centre", "Clockwise, parallel to the isobars", "Anticlockwise, away from the centre", "Clockwise, towards the centre"], a: 0, e: "NH lows: anticlockwise flow, with friction angling the surface wind slightly inwards (convergence — hence the rising air)." },
+      { q: "Visibility in a winter anticyclone is often poor because:", o: ["A subsidence inversion traps haze and fog near the surface", "Strong winds raise dust", "Continuous frontal rain falls", "Convection lifts moisture to high levels"], a: 0, e: "Sinking air warms aloft and forms an inversion lid — anticyclonic gloom: fog, haze and stratus trapped below." },
+      { q: "A trough of low pressure is typically associated with:", o: ["Lifting air, cloud and showers", "Subsidence and clear skies", "Calm winds and fog only", "No weather significance"], a: 0, e: "Troughs concentrate convergence and lifting, often marking fronts or organised lines of showers/CB." },
+      { q: "A col is:", o: ["The slack area between two highs and two lows", "The centre of an occluding depression", "An upper-level jet core", "A rapidly deepening secondary low"], a: 0, e: "Light, variable winds: fog-prone in winter, thunder-prone in summer heat." },
+      { q: "In an anticyclone, the air at altitude is generally:", o: ["Subsiding and warming adiabatically", "Rising and cooling adiabatically", "Saturated and unstable", "Stationary"], a: 0, e: "Subsidence is the defining process of a high — it dries the air, suppresses cloud, and builds the inversion." },
+      { q: "A blocking high typically results in:", o: ["The same weather persisting for many days", "A rapid succession of fronts", "Daily thunderstorms in winter", "Strong steady westerlies"], a: 0, e: "It diverts the depression track, so whatever weather it brings — summer heat or winter fog — persists." },
+    ],
+  },
+  {
+    id: "climo",
+    code: "050·08",
+    title: "Climatology",
+    blurb: "Global circulation, ITCZ, monsoons, tropical revolving storms.",
+    cards: [
+      { t: "Global circulation", b: "Hadley cells: air rises at the equator, descends near 30° (subtropical highs/desert belts). Between them blow the TRADE WINDS: northeasterly in the NH, southeasterly in the SH. Poleward of the subtropical highs lie the mid-latitude westerlies and the polar front.", dia: "cells" },
+      { t: "The ITCZ", b: "The Inter-Tropical Convergence Zone is where the trade winds meet: a belt of massive CB clusters, heavy showers and thunderstorms reaching above FL500. It migrates seasonally, following the overhead sun with a lag — further north in July, further south in January, moving more over land than sea." },
+      { t: "Monsoons", b: "Seasonal wind reversal driven by differential heating of land and ocean. India: the SW monsoon (roughly June–September) brings humid oceanic air and torrential rain; the winter NE monsoon brings dry continental air. Similar regimes affect SE Asia and West Africa." },
+      { t: "Tropical revolving storms — formation", b: "Require sea surface temperature of about 26–27°C or more through a deep layer, a latitude beyond ~5° (enough Coriolis to spin), high humidity and weak vertical wind shear. They form in late summer/autumn over the western sides of oceans and weaken rapidly over land." },
+      { t: "TRS names & regions", b: "Same phenomenon, regional names: HURRICANE (North Atlantic & NE Pacific), TYPHOON (NW Pacific), CYCLONE (Indian Ocean & Australia). Structure: a calm, warm, often clear EYE surrounded by the eye wall — the most violent winds and weather." },
+      { t: "Local winds worth knowing", b: "Harmattan: dry, dusty NE wind over West Africa (haze, poor vis). Mistral: strong, cold N wind funnelling down the Rhône valley. Bora: cold, violent NE wind on the Adriatic coast. Sirocco: hot southerly from the Sahara towards the Mediterranean." },
+    ],
+    quiz: [
+      { q: "The trade winds in the northern hemisphere blow from the:", o: ["Northeast", "Southwest", "Southeast", "Northwest"], a: 0, e: "Air flowing from the subtropical highs towards the equatorial low is deflected right in the NH → NE trades (SE in the SH)." },
+      { q: "The ITCZ:", o: ["Migrates seasonally, following the overhead sun", "Is fixed on the geographic equator", "Only exists over the Atlantic", "Is a zone of subsiding dry air"], a: 0, e: "It follows the thermal equator with a lag, shifting much further over land — bringing the wet seasons with it." },
+      { q: "The Indian SW monsoon (June–September) brings:", o: ["Humid oceanic air and heavy rain", "Dry continental air and clear skies", "Cold polar outbreaks", "Light easterly winds and drought"], a: 0, e: "Intense heating over Asia draws moist Indian Ocean air across the subcontinent — the wet monsoon." },
+      { q: "Tropical revolving storms require:", o: ["SST ≥ ~27°C and latitude beyond about 5°", "Cold ocean currents and strong shear", "A position exactly on the equator", "Continental desert surfaces"], a: 0, e: "Warm deep ocean water for energy, plus enough Coriolis (>~5° latitude) to organise rotation; strong shear tears them apart." },
+      { q: "A severe TRS in the northwest Pacific is called a:", o: ["Typhoon", "Hurricane", "Willy-willy", "Mistral"], a: 0, e: "NW Pacific = typhoon; N Atlantic/NE Pacific = hurricane; Indian Ocean/Australia = cyclone." },
+      { q: "The Harmattan affects West Africa with:", o: ["Dry, dusty NE winds and poor visibility", "Heavy monsoon rain", "Freezing katabatic flow", "Coastal sea fog"], a: 0, e: "A dry, dust-laden wind off the Sahara — visibility can fall dramatically in haze, a real operational factor in the region." },
+    ],
+  },
+  {
+    id: "hazards",
+    code: "050·09",
+    title: "Flight Hazards",
+    blurb: "Icing, turbulence, thunderstorms, wind shear, microbursts.",
+    cards: [
+      { t: "Airframe icing — types", b: "CLEAR ICE: large supercooled drops, 0 to −10°C, in CB/CU or freezing rain — heavy, strong, spreads back, hardest to remove, MOST dangerous. RIME ICE: small droplets, roughly −10 to −40°C, in stratiform cloud — brittle, opaque, forms on leading edges. MIXED ice combines both. HOAR FROST: deposition on a cold-soaked airframe in clear humid air (or on the ground)." },
+      { t: "Where icing is worst", b: "The greatest supercooled water content is found between 0 and about −15°C, especially in cumuliform cloud with strong updraughts. Freezing rain beneath a winter warm front gives the most rapid accretion of all. Below about −40°C nearly everything is already ice crystals — little airframe icing." },
+      { t: "Carburettor icing", b: "Can occur with OAT as high as +25 to +30°C, whenever humidity is high — fuel evaporation and venturi expansion can drop the carb temperature by over 20°C. Greatest risk: high humidity, low power settings (descent)." },
+      { t: "Thunderstorm requirements & stages", b: "Three ingredients: instability through a deep layer, sufficient moisture, and a lifting trigger (heating, front, orography, convergence). Life cycle — CUMULUS stage: updraughts only. MATURE stage: updraughts AND downdraughts, precipitation begins, ALL hazards at maximum. DISSIPATING stage: downdraughts only, anvil spreads.", dia: "tstages" },
+      { t: "Thunderstorm hazards & avoidance", b: "Severe turbulence and icing, hail (can be thrown out under the anvil), lightning, heavy rain, wind shear, microbursts, tornadoes. Avoid severe CB by at least 10 NM (more if the radar picture is severe), never fly beneath the cell or under the anvil, and don't rely on overflying unless clearance is generous." },
+      { t: "Microbursts", b: "An intense, concentrated downdraught (less than ~4 km across, lasting ~5–15 minutes) beneath convective cloud — sometimes from virga with no rain at the surface. On approach the sequence is: HEADWIND gain → strong DOWNDRAUGHT → TAILWIND and sink. Performance-increasing shear first, then a severe performance loss. Go around early.", dia: "microburst" },
+      { t: "Turbulence types", b: "Convective/thermal: sunny days, low level. Mechanical: friction and obstacles in strong wind. CAT: near jet streams and sharp upper troughs — invisible, no radar echo. Mountain waves: lee of ridges with strong perpendicular wind and a stable layer; worst turbulence in ROTORS below the wave crests. Wake turbulence: behind heavy, slow, clean aircraft." },
+      { t: "Wind shear", b: "A sudden change of wind speed/direction over a short distance — most dangerous on approach and departure. Sources: thunderstorms and microbursts, frontal passages, low-level inversions (including nocturnal jets above radiation inversions), terrain, and sea-breeze fronts. Report and respond immediately: full thrust, follow the escape manoeuvre." },
+    ],
+    quiz: [
+      { q: "Clear ice forms most readily:", o: ["In large supercooled drops between 0 and −10°C", "In tiny droplets at −30°C", "In ice-crystal cloud at −45°C", "Only on the ground"], a: 0, e: "Large drops spread before freezing into a heavy transparent sheet — typical of CB, CU and freezing rain. Rime forms at colder temperatures from small droplets." },
+      { q: "All thunderstorm hazards reach maximum intensity during the:", o: ["Mature stage", "Cumulus stage", "Dissipating stage", "Anvil stage"], a: 0, e: "The mature stage has coexisting up- and downdraughts, the onset of precipitation, the worst turbulence, icing, hail and shear." },
+      { q: "Flying through a microburst on approach, the sequence experienced is:", o: ["Headwind gain, downdraught, tailwind and sink", "Tailwind, updraught, headwind", "Steady crosswind throughout", "Updraught only"], a: 0, e: "The outflow gives an initial performance GAIN (headwind), then the core downdraught, then a tailwind with serious performance loss — the classic accident trap." },
+      { q: "Clear air turbulence is most likely:", o: ["Near a jet stream core, on its cold side", "Inside a CB", "Under a sea-breeze front", "In the centre of a winter high"], a: 0, e: "CAT concentrates around jet cores and sharp upper troughs — invisible and not detectable by weather radar." },
+      { q: "Carburettor icing is possible:", o: ["At OATs up to about +30°C in humid air", "Only below 0°C", "Only in cloud", "Only with water in the fuel"], a: 0, e: "Evaporation plus venturi expansion can cool the carburettor by 20°C or more — descent power in humid air is the classic scenario." },
+      { q: "A severe cumulonimbus should be avoided laterally by at least:", o: ["10 NM", "1 NM", "3 NM", "100 NM"], a: 0, e: "10 NM minimum for severe cells — hail can be ejected well beyond the visible cloud, especially downwind under the anvil." },
+      { q: "The most violent turbulence in a mountain wave system is found:", o: ["In rotor zones beneath the wave crests", "In the smooth lenticular cloud", "At the tropopause", "On the windward slope only"], a: 0, e: "Rotors — sometimes marked by ragged cloud below the lenticulars — can exceed aircraft structural limits at low level." },
+    ],
+  },
+  {
+    id: "codes",
+    code: "050·10",
+    title: "METAR, TAF & Met Information",
+    blurb: "Decoding reports & forecasts, CAVOK, SIGMET and friends.",
+    cards: [
+      { t: "The documents", b: "METAR: routine actual report, every 30 or 60 minutes. SPECI: special report on significant change. TAF: aerodrome forecast (9, 24 or 30 hr validity). TREND: 2-hour landing forecast appended to a METAR (BECMG/TEMPO/NOSIG). SIGMET: en-route hazardous weather warning. VOLMET/ATIS: broadcast met information." },
+      { t: "METAR walk-through", b: "EIDW 111330Z 24015G27KT 200V280 9999 -SHRA SCT018 BKN030CB 14/09 Q1008 — Dublin, 11th 1330 UTC, wind 240°/15 kt gusting 27, varying 200–280°, visibility 10 km+, light rain showers, scattered cloud 1800 ft, broken CB at 3000 ft, temperature 14, dew point 9, QNH 1008." },
+      { t: "Weather codes", b: "Intensity: '-' light, none = moderate, '+' heavy. Descriptors: SH showers, TS thunderstorm, FZ freezing, MI shallow, BC patches. Phenomena: RA rain, DZ drizzle, SN snow, GR hail, GS small hail, BR mist, FG fog, HZ haze, FU smoke, VA volcanic ash, SQ squall, FC funnel cloud. So −FZDZ = light freezing drizzle." },
+      { t: "Cloud & CAVOK", b: "Cloud amount in oktas: FEW 1–2, SCT 3–4, BKN 5–7, OVC 8, heights in hundreds of feet, with CB or TCU appended. CAVOK replaces visibility, weather and cloud when ALL of: visibility ≥10 km, no cloud below 5000 ft or below the highest minimum sector altitude (whichever is greater), no CB or TCU at any height, and no significant weather." },
+      { t: "TAF change groups", b: "FM (from): rapid, lasting change — everything after it applies. BECMG: gradual change to new conditions within the period given, then persisting. TEMPO: temporary fluctuations lasting less than one hour at a time (and in total less than half the period). PROB30/PROB40: 30% or 40% probability — never PROB50 or higher." },
+      { t: "Warnings", b: "SIGMET: thunderstorm areas, severe turbulence or icing, mountain waves, dust/sandstorms, volcanic ash, TRS — valid usually up to 4 hours (6 for ash/TRS). AIRMET: lower-intensity en-route weather for low-level flights. Aerodrome warnings cover hazards to parked aircraft; wind shear warnings cover the climb-out/approach paths." },
+    ],
+    quiz: [
+      { q: "CAVOK requires, among other things:", o: ["Visibility ≥10 km and no cloud below 5000 ft or MSA, whichever is higher", "Visibility ≥5 km and no cloud below 2000 ft", "Sky clear at all levels and any visibility", "No wind above 10 kt"], a: 0, e: "Vis ≥10 km, no cloud below 5000 ft/highest MSA, no CB or TCU anywhere, no significant weather — all four must hold." },
+      { q: "In a TAF, TEMPO indicates fluctuations that:", o: ["Last less than one hour at a time and under half the period in total", "Persist for the rest of the validity", "Are certain to occur exactly once", "Apply only to wind"], a: 0, e: "TEMPO = temporary fluctuations, each spell under an hour, totalling less than half the quoted period; lasting changes use BECMG or FM." },
+      { q: "BKN030CB in a METAR means:", o: ["5–7 oktas of cumulonimbus with base 3000 ft", "1–2 oktas of cloud at 30,000 ft", "8 oktas at 3000 ft", "Broken cloud at 300 ft"], a: 0, e: "BKN = 5–7 oktas; 030 = 3000 ft above aerodrome level; CB identifies the cloud type." },
+      { q: "The code −FZDZ decodes as:", o: ["Light freezing drizzle", "Heavy frozen drizzle", "Light fog and drizzle", "Freezing dust"], a: 0, e: "'−' light, FZ freezing, DZ drizzle — expect clear icing at the surface and on approach." },
+      { q: "A SIGMET is issued for:", o: ["En-route hazards such as severe turbulence, severe icing or thunderstorm areas", "Routine hourly observations", "Any rain at an aerodrome", "Runway surface conditions"], a: 0, e: "SIGMETs warn of significant en-route weather: TS areas, severe turbulence/icing, mountain waves, ash, TRS." },
+      { q: "Q1008 in a METAR gives:", o: ["QNH 1008 hPa", "QFE 1008 hPa", "QFF 1008 hPa", "Pressure altitude 1008 ft"], a: 0, e: "The Q group is always QNH in whole hectopascals — set it and the altimeter reads altitude AMSL." },
+      { q: "Probability groups in a TAF may only be:", o: ["PROB30 or PROB40", "PROB10 to PROB90", "PROB50 only", "PROB25 or PROB75"], a: 0, e: "Below 30% it is omitted; at 50% or more the forecaster must commit with BECMG/TEMPO/FM instead." },
+    ],
+  },
+  {
+    id: "charts",
+    code: "050·10",
+    title: "SigWx & Upper Wind Charts",
+    blurb: "Reading SWC symbols, jets, tropopause boxes & wind/temp charts.",
+    cards: [
+      { t: "The significant weather chart (SWC)", b: "High-level SIGWX charts (typically FL250\u2013FL630) show forecast en-route hazards: CB areas, jet streams, tropopause heights, CAT areas, fronts, volcanic ash and tropical cyclones. Scalloped lines enclose areas of significant cloud or weather, with vertical extent given as top-over-base flight levels (XXX over the base means the top is above the chart's upper limit)." },
+      { t: "CB coverage terms", b: "ISOL (isolated): individual cells, coverage less than 50% of the area. OCNL (occasional): well-separated cells, 50\u201375%. FRQ (frequent): little or no separation, more than 75%. EMBD: CB embedded in other cloud layers \u2014 you cannot see or visually avoid them. On high-level charts only CB is shown by type." },
+      { t: "CB implies the rest", b: "A forecast of CB on a SIGWX chart automatically implies moderate or severe icing, turbulence and hail \u2014 so these are NOT marked separately inside CB areas. Separate icing or turbulence symbols on the chart therefore always refer to areas OUTSIDE the CBs." },
+      { t: "Jet streams on the chart", b: "A heavy solid line with an arrowhead shows the jet axis. Wind speed at the core is shown with pennants (50 kt), full feathers (10 kt) and half feathers (5 kt), plus the core flight level. A double bar across the axis marks a significant change (\u226520 kt) in speed along the jet. Vertical extent may be given, e.g. FL340 with limits showing the depth of strong winds." },
+      { t: "Tropopause & CAT boxes", b: "Tropopause heights appear as flight levels inside small rectangles at spot points; H in a polygon marks a local high point, L a local low point of the tropopause. CAT areas are enclosed by heavy dashed lines and numbered, with a legend giving the affected flight levels and intensity." },
+      { t: "Upper wind & temperature charts", b: "Wind arrows fly WITH the wind: pennant = 50 kt, full feather = 10 kt, half = 5 kt. Temperatures at grid points are in whole degrees Celsius and are NEGATIVE unless prefixed PS (plus). Charts are issued for standard levels, e.g. FL050, 100, 180, 240, 300, 340, 390.", dia: "windbarb" },
+      { t: "Using wind charts for planning", b: "Read the spot wind nearest your route, interpolate between levels and points as needed. Remember the strongest westerly jets sit near FL300\u2013FL340 in mid-latitudes \u2014 eastbound flights ride them, westbound flights route to avoid the core, and the strongest shear (CAT) lies on the cold/polar side." },
+    ],
+    quiz: [
+      { q: "On a high-level SIGWX chart, OCNL CB means coverage of:", o: ["50\u201375% with well-separated cells", "Less than 25%", "More than 75% with no separation", "Exactly one cell"], a: 0, e: "ISOL <50%, OCNL 50\u201375%, FRQ >75%. EMBD means hidden in other cloud layers." },
+      { q: "A CB area forecast on a SIGWX chart implies:", o: ["Moderate/severe icing, turbulence and hail without separate symbols", "Light icing only", "No turbulence outside the cloud", "Good visibility at all levels"], a: 0, e: "CB automatically includes its hazards, so separate icing/turbulence symbols always refer to areas outside the CBs." },
+      { q: "On a wind arrow, a pennant, a full feather and a half feather represent:", o: ["50, 10 and 5 kt", "100, 50 and 10 kt", "25, 10 and 5 kt", "50, 25 and 5 kt"], a: 0, e: "Pennant 50 kt, feather 10 kt, half-feather 5 kt \u2014 add them up for the spot wind speed." },
+      { q: "A temperature of 45 printed without prefix on an upper-level chart means:", o: ["\u221245\u00b0C", "+45\u00b0C", "45\u00b0F", "ISA +45"], a: 0, e: "Upper-air temperatures are negative unless prefixed PS (plus) \u2014 at cruising levels they almost always are." },
+      { q: "A rectangle containing 380 on a SIGWX chart indicates:", o: ["Tropopause height FL380 at that point", "A CB top at FL380", "Minimum safe altitude 38,000 ft", "QNH 380 hPa"], a: 0, e: "Spot tropopause heights are boxed; H and L mark local high and low points of the tropopause." },
+      { q: "EMBD CB is particularly hazardous because:", o: ["The cells are hidden in other cloud and cannot be visually avoided", "It never contains hail", "It only occurs at night", "It indicates dissipating storms"], a: 0, e: "Embedded CBs hide inside layered cloud \u2014 weather radar becomes essential for avoidance." },
+    ],
+  },
+  {
+    id: "snowtam",
+    code: "050·10",
+    title: "SNOWTAM & Runway Reports",
+    blurb: "GRF, runway condition codes, braking action, contamination.",
+    cards: [
+      { t: "The Global Reporting Format (GRF)", b: "Since November 2021, runway surface conditions are reported using the GRF: a Runway Condition Report (RCR) produced by the aerodrome, giving a Runway Condition Code (RWYCC) for EACH THIRD of the runway, plus contaminant type, depth and coverage. Distributed via SNOWTAM, ATIS and ATC." },
+      { t: "Runway condition codes", b: "RWYCC scale 6 to 0: 6 = dry. 5 = frost, or wet/slush/dry snow/wet snow up to 3 mm deep. 4 = compacted snow at OAT \u221215\u00b0C or below. 3 = wet ('slippery wet') runway, dry/wet snow over 3 mm, or compacted snow above \u221215\u00b0C. 2 = standing water or slush deeper than 3 mm. 1 = ice. 0 = wet ice, water on compacted snow \u2014 braking minimal to non-existent." },
+      { t: "Braking action terms", b: "Pilot reports (AIREPs) use: GOOD (5), GOOD TO MEDIUM (4), MEDIUM (3), MEDIUM TO POOR (2), POOR (1), LESS THAN POOR (0). A pilot report of braking poorer than the published RWYCC can trigger a downgrade of the code." },
+      { t: "Contamination figures", b: "A runway is considered CONTAMINATED when more than 25% of the surface area (within the reported length and width) is covered. Coverage is reported in steps: 25, 50, 75 and 100%. Depth is reported in millimetres for water, slush and snow." },
+      { t: "SNOWTAM essentials", b: "A SNOWTAM is a special series NOTAM giving the surface condition report. Maximum validity: 8 hours, and a new one is issued whenever conditions change significantly. The aircraft performance section (for each third) is what your performance calculations use." },
+      { t: "Operational use", b: "Match the reported RWYCC to your aircraft's landing performance tables (TALPA-based). Remember the runway thirds are reported in the direction of the lower runway designator \u2014 check which third is your touchdown zone for the runway in use." },
+    ],
+    quiz: [
+      { q: "A runway is officially contaminated when coverage exceeds:", o: ["25%", "10%", "50%", "75%"], a: 0, e: "More than 25% coverage (within reported length/width) = contaminated; coverage is then reported as 25, 50, 75 or 100%." },
+      { q: "RWYCC 6 corresponds to:", o: ["A dry runway", "Wet ice", "Standing water", "Compacted snow"], a: 0, e: "The scale runs 6 (dry) down to 0 (wet ice / minimal braking)." },
+      { q: "RWYCC 1 corresponds to:", o: ["Ice", "Frost", "A damp runway", "Dry snow up to 3 mm"], a: 0, e: "1 = ice; 0 is even worse \u2014 wet ice or water on compacted snow." },
+      { q: "Runway condition codes are reported:", o: ["For each third of the runway", "As a single average value", "Only for the touchdown zone", "Only when snow is falling"], a: 0, e: "The RCR gives a RWYCC per third, plus contaminant type, depth and coverage." },
+      { q: "The maximum validity of a SNOWTAM is:", o: ["8 hours", "24 hours", "1 hour", "Until the next METAR"], a: 0, e: "8 hours maximum, with a replacement issued whenever the surface condition changes significantly." },
+      { q: "A pilot braking action report of MEDIUM equates to RWYCC:", o: ["3", "5", "1", "6"], a: 0, e: "GOOD=5, GOOD TO MEDIUM=4, MEDIUM=3, MEDIUM TO POOR=2, POOR=1, LESS THAN POOR=0." },
+    ],
+  },
+  {
+    id: "space",
+    code: "050·09",
+    title: "Space Weather",
+    blurb: "Solar flares, radiation storms, geomagnetic storms & advisories.",
+    cards: [
+      { t: "What space weather is", b: "Disturbances from the Sun \u2014 solar flares, solar energetic particle events and coronal mass ejections (CMEs) \u2014 that affect aviation through HF communications, GNSS accuracy and radiation dose. A required topic in the current EASA syllabus." },
+      { t: "Solar flares \u2192 HF blackout", b: "A flare's X-ray burst reaches Earth in about 8 minutes and ionises the dayside ionosphere: sudden absorption of HF radio on the SUNLIT side of the Earth, lasting minutes to a couple of hours. No warning time \u2014 effects are essentially immediate." },
+      { t: "Radiation (proton) storms", b: "Energetic particles arrive from tens of minutes to hours after a major event. Effects: increased radiation dose for crew and passengers (worst at HIGH latitudes and HIGH altitudes, where the geomagnetic field gives least protection), possible single-event upsets in avionics, and degraded HF at the poles (polar cap absorption)." },
+      { t: "Geomagnetic storms \u2192 GNSS trouble", b: "A CME takes roughly 1\u20133 days to arrive. The disturbed ionosphere degrades GNSS accuracy and availability (scintillation), disrupts HF \u2014 especially at high latitudes \u2014 and produces aurora. RAIM and SBAS performance can suffer." },
+      { t: "Advisories & who issues them", b: "ICAO designated global Space Weather Centres (consortiums such as PECASUS, the US SWPC-led group and ACFJ) issue SPACE WEATHER ADVISORIES for three effect areas: HF COM, GNSS, and RADIATION, with intensities MOD (moderate) or SEV (severe), similar in format to volcanic ash advisories." },
+      { t: "Mitigation on polar routes", b: "Operators flying polar or high-latitude routes respond by descending to lower flight levels (less radiation), re-routing to lower latitudes, ensuring SATCOM/CPDLC alternatives to HF, and applying GNSS-degradation procedures. Pregnant crew dose limits make radiation events a real rostering issue." },
+    ],
+    quiz: [
+      { q: "The X-ray burst from a solar flare causes:", o: ["HF blackout on the sunlit side, almost immediately", "GNSS failure three days later", "Engine icing", "Increased VHF range"], a: 0, e: "X-rays travel at light speed (~8 min) and ionise the dayside D-layer \u2014 sudden HF absorption with no usable warning." },
+      { q: "Radiation dose from a solar particle event is greatest:", o: ["At high latitudes and high altitudes", "At the equator at low level", "Over the oceans only", "At night"], a: 0, e: "The geomagnetic field funnels particles towards the poles, and less atmosphere overhead means less shielding at altitude." },
+      { q: "A coronal mass ejection typically reaches Earth in:", o: ["About 1\u20133 days", "8 minutes", "Less than an hour", "Two weeks"], a: 0, e: "Flares: ~8 min (X-rays). Particles: tens of minutes to hours. CME plasma cloud: ~1\u20133 days \u2014 driving geomagnetic storms." },
+      { q: "ICAO space weather advisories cover the effect areas:", o: ["HF COM, GNSS and radiation", "Icing, turbulence and ash", "Only satellite TV", "Runway condition and braking"], a: 0, e: "Advisories address HF communications, GNSS-based navigation/surveillance, and radiation at flight levels, graded MOD or SEV." },
+      { q: "A common mitigation during a severe radiation event on a polar route is:", o: ["Descend and/or re-route to lower latitudes", "Climb to be above the radiation", "Switch off weather radar", "Accelerate to minimise exposure time"], a: 0, e: "Lower altitude adds atmospheric shielding; lower latitude adds geomagnetic shielding. You cannot out-climb cosmic radiation." },
+      { q: "During a geomagnetic storm, GNSS performance:", o: ["Can degrade due to ionospheric scintillation", "Always improves", "Is unaffected", "Fails only below FL100"], a: 0, e: "Ionospheric disturbance causes ranging errors and signal scintillation \u2014 RAIM/SBAS integrity can be affected, especially at high latitudes." },
+    ],
+  },
+  {
+    id: "routes",
+    code: "050·08",
+    title: "Route Climatology",
+    blurb: "North Atlantic, Europe, Mediterranean, polar & tropical routes.",
+    cards: [
+      { t: "North Atlantic \u2014 winter", b: "The season of vigorous polar front depressions tracking towards Iceland (the Icelandic low), with a strong westerly jet often exceeding 150 kt. Eastbound flights are much faster; expect CAT near the jet, en-route icing and turbulence, and Atlantic lows sweeping fronts across Ireland and the UK every couple of days." },
+      { t: "North Atlantic \u2014 summer", b: "The Azores high strengthens and ridges north: weaker, less frequent depressions, a weaker jet displaced poleward, and a higher chance of advection sea fog off Newfoundland (warm Gulf Stream air over the cold Labrador current). Hurricanes recurving northeast can disturb the western Atlantic in late summer/autumn." },
+      { t: "Europe & Ireland/UK specifics", b: "Dominated by maritime air masses off the Atlantic. mP air: showery, good visibility. mT air: stratus, drizzle, hill fog and advection fog \u2014 the classic 'warm sector' weather. Winter anticyclones bring radiation fog and freezing fog inland; summer continental highs bring heat and afternoon thunderstorms." },
+      { t: "The Mediterranean", b: "Winter: an active secondary depression area \u2014 the Genoa low forms in the lee of the Alps, bringing heavy rain and thunderstorms; local winds matter: Mistral (cold N wind, Rh\u00f4ne valley), Bora (violent NE wind, Adriatic), Sirocco (hot, dusty southerly off the Sahara). Summer: subsidence under the subtropical high \u2014 hot, dry and settled." },
+      { t: "Polar routes", b: "Extreme cold (fuel freeze point management), sparse alternates, magnetic compass unreliability, HF/satcom dependence and space-weather exposure. Weather itself is often clear and stable in the cold high-pressure interior, but coastal zones produce blowing snow, whiteout, and steep frontal contrasts." },
+      { t: "Tropical routes", b: "Plan around the ITCZ \u2014 a band of EMBD CB to above FL500 that must be crossed using radar at its weakest sector. Know the TRS seasons: North Atlantic hurricanes Jun\u2013Nov (peak Sep); NW Pacific typhoons all year (peak late summer); Indian Ocean cyclones around the monsoon transitions (Apr\u2013Jun and Oct\u2013Dec)." },
+    ],
+    quiz: [
+      { q: "Compared with summer, the North Atlantic westerly jet in winter is:", o: ["Stronger and further south", "Weaker and further north", "Unchanged", "Easterly"], a: 0, e: "The winter temperature contrast is greatest, so the polar front and its jet strengthen and shift equatorward \u2014 great for eastbound flights." },
+      { q: "Summer fog off Newfoundland is mainly:", o: ["Advection fog from warm air over the cold Labrador current", "Radiation fog from clear nights", "Steam fog from warm water", "Frontal fog from cold fronts"], a: 0, e: "Warm, moist Gulf Stream air flowing over the cold Labrador current is the textbook advection (sea) fog factory." },
+      { q: "The Genoa low forms:", o: ["In the lee of the Alps, mainly in winter", "Over the Sahara in summer", "Over the Azores", "Only during the monsoon"], a: 0, e: "Lee cyclogenesis south of the Alps creates active winter depressions \u2014 heavy rain and thunderstorms in the Gulf of Genoa region." },
+      { q: "The Mistral is:", o: ["A strong, cold northerly wind funnelling down the Rh\u00f4ne valley", "A hot, dusty southerly over Egypt", "A katabatic wind in Norway", "A sea breeze in Greece"], a: 0, e: "Cold air funnels between the Alps and Massif Central down the Rh\u00f4ne \u2014 severe low-level turbulence in the western Mediterranean." },
+      { q: "A key operational concern unique to polar routes is:", o: ["Fuel freeze point and space-weather radiation exposure", "Daily thunderstorms", "Tropical cyclones", "Monsoon rain"], a: 0, e: "Extreme cold soak (fuel freeze), sparse alternates, HF/GNSS vulnerability and radiation during solar events define polar operations." },
+      { q: "The North Atlantic hurricane season peaks in:", o: ["September", "January", "May", "December"], a: 0, e: "The season runs roughly June\u2013November with a sharp peak in early September, when sea temperatures are highest." },
+    ],
+  },
+  {
+    id: "temperature",
+    code: "050·01",
+    title: "Temperature & Heat Transfer",
+    blurb: "Insolation, the heat-transfer modes, diurnal variation, advection.",
+    cards: [
+      { t: "How the atmosphere is heated", b: "The air is warmed mainly FROM BELOW, not directly by the sun. Incoming solar radiation (insolation) heats the SURFACE, which then warms the air in contact with it. This is why the lowest layers are usually warmest and why surface type matters so much." },
+      { t: "The four transfer modes", b: "RADIATION: energy as electromagnetic waves (sun to ground, ground to space at night). CONDUCTION: molecule-to-molecule, only the thin layer touching the surface. CONVECTION: warm air rises, carrying heat upward (the main vertical transport). ADVECTION: horizontal transport of heat by wind." },
+      { t: "Diurnal (daily) variation", b: "Land heats and cools quickly; sea barely changes. So diurnal temperature range is LARGE over land (especially dry, clear, calm interiors) and SMALL over the sea. Cloud reduces the range (blanket effect): cloudy nights stay mild, cloudy days stay cooler. Minimum temperature occurs just after dawn." },
+      { t: "Factors affecting surface temperature", b: "Latitude/sun angle, time of day and year, surface type (water vs land, vegetation, snow), cloud cover, and wind. ALBEDO — the reflectivity of a surface — matters: snow reflects most insolation (high albedo, stays cold); dark ground and water absorb more." },
+      { t: "Advection effects", b: "Wind importing air of a different temperature changes conditions without any local heating. WARM advection over a cold surface stabilises the air (stratus, advection fog). COLD advection over a warm surface destabilises it (convection, showers). Recognising the advection type predicts the weather." },
+      { t: "Lapse rates & inversions recap", b: "Temperature normally falls with height (ELR ~2°C/1000 ft). An INVERSION reverses this. Radiation inversions form on clear, calm nights as the ground cools; subsidence inversions form aloft in highs; both trap moisture and pollutants, giving poor visibility and stable, smooth but murky air." },
+    ],
+    quiz: [
+      { q: "The atmosphere is heated mainly by:", o: ["The warmed surface heating the air above it", "Direct absorption of sunlight by the air", "Compression at altitude", "Friction of the wind"], a: 0, e: "Insolation heats the surface, which then warms the air from below — hence the warmest air is usually near the ground." },
+      { q: "The diurnal temperature range is greatest over:", o: ["Dry land under clear, calm skies", "The open ocean", "A cloudy coastline", "A windy sea area"], a: 0, e: "Land heats and cools fast; clear calm skies maximise both daytime heating and nighttime radiative cooling." },
+      { q: "Horizontal transport of heat by the wind is called:", o: ["Advection", "Conduction", "Radiation", "Convection"], a: 0, e: "Advection moves heat sideways; convection moves it vertically; conduction and radiation are the surface exchanges." },
+      { q: "Warm air advected over a colder surface tends to become:", o: ["Stable, with stratus or fog", "Unstable, with showers", "Turbulent with CB", "Drier and clearer"], a: 0, e: "Cooling from below stabilises the air — stratus, drizzle and advection fog are typical." },
+      { q: "A surface with high albedo, such as fresh snow:", o: ["Reflects most insolation and stays cold", "Absorbs most insolation and warms", "Has no effect on temperature", "Increases the diurnal range over the sea"], a: 0, e: "High reflectivity means little absorbed heat, so snow surfaces remain cold and chill the air above." },
+      { q: "The minimum daily temperature usually occurs:", o: ["Shortly after dawn", "At midnight", "In mid-afternoon", "At sunset"], a: 0, e: "The ground keeps radiating heat all night, so the air is coldest just after sunrise, before insolation takes over." },
+    ],
+  },
+  {
+    id: "humidity",
+    code: "050·01",
+    title: "Atmospheric Humidity & Water",
+    blurb: "Saturation, relative humidity, dew point, change of state, latent heat.",
+    cards: [
+      { t: "Water in the air", b: "Water vapour is invisible gas; cloud and fog are visible liquid droplets or ice crystals. The amount of vapour air can hold rises sharply with TEMPERATURE — warm air holds far more than cold. Humidity is the single most important variable in weather." },
+      { t: "Relative humidity & dew point", b: "Relative humidity (RH) = actual vapour ÷ maximum the air could hold at that temperature, as a percentage. Cooling air raises RH with no extra moisture. The DEW POINT is the temperature to which air must be cooled (at constant pressure) to reach saturation (RH 100%)." },
+      { t: "The temperature/dew point spread", b: "A small spread means the air is near saturation — expect low cloud, mist or fog. Cloud base can be estimated: base (ft) ≈ 400 × (temp − dew point). As air rises and cools to its dew point, condensation begins — this is the lifting condensation level, the cloud base." },
+      { t: "Changes of state & latent heat", b: "Evaporation and melting ABSORB heat (cooling the surroundings); condensation and freezing RELEASE latent heat (warming the surroundings). The latent heat released when vapour condenses inside a cloud is what powers thunderstorms and keeps rising saturated air warmer (the SALR)." },
+      { t: "Sublimation & deposition", b: "Water can change directly between solid and vapour: SUBLIMATION (ice → vapour) and DEPOSITION (vapour → ice, e.g. hoar frost, cirrus crystals). At sub-zero temperatures, deposition onto nuclei forms ice clouds; supercooled droplets can also exist as liquid well below 0°C." },
+      { t: "Condensation nuclei", b: "Vapour needs tiny particles (dust, salt, smoke) — condensation nuclei — to condense onto. Without them, air can become supersaturated. Abundant nuclei (industrial/maritime air) promote haze and cloud formation at lower humidity; hygroscopic nuclei like salt attract water especially readily." },
+    ],
+    quiz: [
+      { q: "As air is cooled with no change in moisture content, its relative humidity:", o: ["Increases", "Decreases", "Stays the same", "Falls to zero"], a: 0, e: "Cooler air holds less vapour, so the same moisture becomes a larger fraction of the maximum — RH rises toward saturation." },
+      { q: "The dew point is the temperature at which air becomes:", o: ["Saturated (RH 100%)", "Unstable", "Frozen", "Isothermal"], a: 0, e: "Cool air to its dew point and condensation begins — the basis of cloud, mist and fog formation." },
+      { q: "When water vapour condenses inside a cloud, it:", o: ["Releases latent heat, warming the air", "Absorbs heat, cooling the air", "Has no thermal effect", "Freezes instantly"], a: 0, e: "Released latent heat keeps rising saturated air warmer than dry air (the SALR) and fuels thunderstorm convection." },
+      { q: "Surface temperature +18°C, dew point +10°C. The estimated cloud base is about:", o: ["3200 ft", "1000 ft", "8000 ft", "400 ft"], a: 0, e: "Base ≈ 400 × spread = 400 × 8 = 3200 ft above the surface." },
+      { q: "The direct change from vapour to ice (e.g. hoar frost) is called:", o: ["Deposition", "Sublimation", "Condensation", "Evaporation"], a: 0, e: "Deposition is vapour → solid; sublimation is the reverse (ice → vapour)." },
+      { q: "Water vapour generally requires what in order to condense?", o: ["Condensation nuclei", "Strong wind", "An inversion", "High pressure"], a: 0, e: "Tiny particles (dust, salt, smoke) give vapour a surface to condense onto; salt nuclei are especially hygroscopic." },
+    ],
+  },
+  {
+    id: "icing",
+    code: "050·09",
+    title: "Aircraft Icing (In Depth)",
+    blurb: "Airframe icing types & severity, conditions, induction & engine icing.",
+    cards: [
+      { t: "What causes airframe icing", b: "SUPERCOOLED water droplets (liquid below 0°C) strike the airframe and freeze. Two ingredients are needed: visible moisture (cloud, rain) AND a surface/air temperature at or below 0°C. The worst liquid-water content is between 0 and about −15°C, especially in cumuliform cloud." },
+      { t: "Clear (glaze) ice", b: "From LARGE supercooled drops (CB, CU, freezing rain): the drop spreads before freezing, forming a clear, hard, heavy sheet that follows the contour and spreads back over the wing. The most dangerous type — strong, hard to remove, and it ruins the aerofoil shape. Freezing rain gives the fastest accretion of all." },
+      { t: "Rime ice", b: "From SMALL supercooled droplets that freeze on impact, trapping air: opaque, white, brittle, building forward on leading edges as a rough deposit. Common in stratiform cloud at roughly −10 to −20°C. Lighter than clear ice and more easily shed, but it spoils aerofoil performance and blocks sensors." },
+      { t: "Mixed ice, frost & severity", b: "MIXED ice combines clear and rime. HOAR FROST forms by deposition on a cold airframe in clear air (e.g. descending into warmer moist air, or overnight on the ground) — must be removed before flight as it disrupts airflow. Severity is reported trace/light/moderate/severe by accretion rate and effect." },
+      { t: "Effects of icing", b: "Ice increases WEIGHT and DRAG, reduces LIFT and thrust, raises the STALL SPEED (and lowers the stall angle), can jam controls, block pitot/static and engine intakes, and unbalance propellers/rotors. Even small amounts of leading-edge or upper-surface contamination sharply degrade performance — the clean aircraft concept is mandatory." },
+      { t: "Engine & induction icing", b: "IMPACT ice blocks intakes/filters. CARBURETTOR ice (piston engines) forms from fuel-vaporisation and venturi cooling — possible at OATs up to +25 to +30°C in HIGH HUMIDITY, worst at low power/descent. Turbine engines suffer intake and fan icing. Use carb heat/anti-ice promptly; expect icing whenever moisture and near-freezing temperatures coincide." },
+    ],
+    quiz: [
+      { q: "Airframe icing requires:", o: ["Visible moisture and temperature at or below 0°C", "Clear air below 0°C", "High humidity above +10°C", "Only sub-zero temperatures"], a: 0, e: "Supercooled droplets must be present (visible moisture) AND the surface at/below freezing." },
+      { q: "The most dangerous airframe icing, from large supercooled drops, is:", o: ["Clear (glaze) ice", "Rime ice", "Hoar frost", "Mixed ice"], a: 0, e: "Large drops spread before freezing into a hard, heavy, clear sheet — typical of CB, CU and freezing rain." },
+      { q: "Rime ice typically forms:", o: ["From small droplets in stratiform cloud, around −10 to −20°C", "From large drops in CB", "By deposition in clear air", "Only above 0°C"], a: 0, e: "Small droplets freeze on contact trapping air — opaque, brittle, building forward on leading edges." },
+      { q: "The greatest supercooled liquid water content is generally found between:", o: ["0 and about −15°C", "−30 and −40°C", "0 and +10°C", "−40 and −50°C"], a: 0, e: "Below about −40°C almost everything is ice crystals; the dangerous liquid band is 0 to ~−15°C, worst in cumuliform cloud." },
+      { q: "Carburettor icing is possible at outside air temperatures up to about:", o: ["+25 to +30°C in humid air", "0°C only", "−10°C only", "+50°C"], a: 0, e: "Fuel vaporisation plus venturi cooling can drop carb temperature 20°C+; humid descents at low power are the classic trap." },
+      { q: "Hoar frost on a parked aircraft must be removed before flight because it:", o: ["Disrupts the airflow and degrades performance", "Adds useful weight", "Improves lift", "Only affects the windscreen"], a: 0, e: "Even thin frost spoils the boundary layer, cutting CLmax and raising stall speed — the clean aircraft concept applies." },
+    ],
+  },
+  {
+    id: "metservices",
+    code: "050·10",
+    title: "Met Services & Documentation",
+    blurb: "GAMET, area/route forecasts, VOLMET, ATIS, how forecasts are made.",
+    cards: [
+      { t: "The forecasting chain", b: "Surface and upper-air OBSERVATIONS (stations, ships, buoys, radiosondes, aircraft, satellites) feed NUMERICAL WEATHER PREDICTION models, which a forecaster interprets and refines into the products pilots use. The chain runs observation → analysis → model → forecaster → dissemination." },
+      { t: "Actual reports & forecasts", b: "METAR/SPECI give actual aerodrome weather; TAF forecasts it (9/24/30 h). For the EN-ROUTE picture there are AREA forecasts, ROUTE forecasts, and significant weather (SIGWX) plus upper wind/temperature charts. GAMET is a low-level area forecast for flights below FL100 (or FL150 in mountainous areas)." },
+      { t: "Hazard warnings", b: "SIGMET warns of en-route hazards (thunderstorms, severe turbulence/icing, mountain waves, dust/sandstorms, volcanic ash, tropical cyclones), valid up to 4 h (6 h ash/TRS). AIRMET covers lower-intensity weather for low-level flight. AERODROME and WIND SHEAR warnings cover the airfield and its approach/climb-out paths." },
+      { t: "Broadcasts", b: "VOLMET: continuous HF/VHF broadcast of METARs/TAFs/SIGMETs for groups of aerodromes. ATIS: recorded aerodrome information (weather, runway, NOTAM essentials) freeing the frequency. D-ATIS and D-VOLMET provide the same by datalink. These let crews get weather without tying up ATC." },
+      { t: "Pre-flight briefing & documentation", b: "Operators provide a met briefing package: charts, TAFs/METARs for departure, destination and alternates, SIGWX and wind/temp charts for the route, and warnings. Self-briefing terminals and online systems are standard. The crew must obtain and assess all relevant met before flight." },
+      { t: "Reading the products together", b: "Good planning cross-references several products: SIGWX for hazards and freezing levels, upper-wind charts for the cruise wind/temperature, TAFs for terminal conditions, and SIGMETs for live hazards — building one coherent picture of the flight rather than reading each in isolation." },
+    ],
+    quiz: [
+      { q: "GAMET is a forecast for flights:", o: ["At low level, below FL100 (FL150 in mountains)", "Above FL250 only", "In the cruise above FL300", "Only for transatlantic routes"], a: 0, e: "GAMET is the low-level area forecast supporting flights below FL100 (or FL150 over high ground)." },
+      { q: "A continuous broadcast of METARs and TAFs for several aerodromes is called:", o: ["VOLMET", "SIGMET", "GAMET", "ATIS"], a: 0, e: "VOLMET broadcasts grouped aerodrome reports/forecasts on HF/VHF; ATIS covers a single aerodrome." },
+      { q: "A SIGMET for volcanic ash or a tropical cyclone is typically valid for up to:", o: ["6 hours", "1 hour", "12 hours", "24 hours"], a: 0, e: "Most SIGMETs are valid up to 4 h; ash and tropical-cyclone SIGMETs extend to 6 h." },
+      { q: "The first link in the forecasting chain is:", o: ["Observations", "The forecaster's judgement", "The NWP model output", "Dissemination"], a: 0, e: "Observations feed the model and the forecaster; without good data the whole chain degrades." },
+      { q: "ATIS exists primarily to:", o: ["Provide routine aerodrome information without tying up the frequency", "Replace the TAF", "Issue SIGMETs", "Forecast upper winds"], a: 0, e: "A recorded broadcast of current aerodrome conditions and essentials frees ATC frequency time." },
+      { q: "Low-intensity en-route weather for low-level flights is warned by:", o: ["AIRMET", "SIGMET", "VOLMET", "TAF"], a: 0, e: "AIRMET covers weather below SIGMET thresholds affecting low-level operations." },
+    ],
+  },
+  {
+    id: "thunderstorms",
+    code: "050·09",
+    title: "Thunderstorms (In Depth)",
+    blurb: "Types, life cycle, squall lines, supercells, hazards, avoidance.",
+    cards: [
+      { t: "Requirements & triggers", b: "A thunderstorm needs three things: INSTABILITY through a deep layer, sufficient MOISTURE, and a LIFTING TRIGGER. Triggers: surface heating (airmass/thermal storms), frontal lifting (especially cold fronts), orographic ascent, and low-level convergence. Remove any one ingredient and the storm doesn't form." },
+      { t: "The life cycle", b: "CUMULUS (building) stage: updraughts throughout, cloud growing, no precipitation yet. MATURE stage: updraughts AND downdraughts coexist, precipitation begins, and ALL hazards peak. DISSIPATING stage: downdraughts dominate, the storm rains itself out and the anvil spreads. The mature stage is the dangerous one." },
+      { t: "Storm organisation", b: "SINGLE-CELL (airmass) storms are short-lived. MULTICELL clusters have cells at different life stages. SQUALL LINES are organised lines of storms along or ahead of a cold front — continuous and hard to circumnavigate. SUPERCELLS have a single rotating updraught (mesocyclone), are long-lived and produce the most violent weather and tornadoes." },
+      { t: "The hazards", b: "Severe turbulence, severe icing, HAIL (can be thrown out of the anvil into clear air), lightning, heavy rain and reduced visibility, windshear and the GUST FRONT, MICROBURSTS, and tornadoes. The gust front and downburst outflow are major low-level windshear threats near a storm even before you reach the cloud." },
+      { t: "Electrical effects", b: "Lightning can cause temporary blindness, hearing damage, minor structural pitting and avionics upset, though aircraft are generally protected. ST ELMO'S FIRE (corona discharge) on extremities often precedes a discharge and signals a highly charged environment — a cue to expect static and possible strikes." },
+      { t: "Avoidance", b: "Avoid severe cells by at least 10 NM (more downwind, under the anvil where hail is thrown). Never fly beneath a cell (microburst/hail) or attempt to overfly unless clearance is generous. Use weather radar to find the weakest sector, but remember radar shows precipitation, not turbulence — give a wide berth." },
+    ],
+    quiz: [
+      { q: "All thunderstorm hazards reach maximum intensity during the:", o: ["Mature stage", "Cumulus stage", "Dissipating stage", "Anvil stage"], a: 0, e: "Coexisting up- and downdraughts, precipitation onset and peak turbulence/hail/shear define the mature stage." },
+      { q: "The most violent, long-lived storm with a rotating updraught is a:", o: ["Supercell", "Single-cell airmass storm", "Dissipating cell", "Orographic shower"], a: 0, e: "A supercell's mesocyclone sustains it for hours and spawns the worst hail, windshear and tornadoes." },
+      { q: "A severe cumulonimbus should be avoided laterally by at least:", o: ["10 NM", "1 NM", "3 NM", "100 NM"], a: 0, e: "10 NM minimum — more downwind, since hail can be ejected from the anvil into clear air." },
+      { q: "Three ingredients are required for a thunderstorm:", o: ["Instability, moisture and a lifting trigger", "Cold air, high pressure and calm", "An inversion, dry air and subsidence", "Fog, frost and light wind"], a: 0, e: "Deep instability, moisture and a trigger (heating, front, orography, convergence) — remove one and no storm." },
+      { q: "St Elmo's fire indicates:", o: ["A highly charged environment, with discharge possible", "Engine fire", "Imminent icing only", "The storm has dissipated"], a: 0, e: "Corona discharge on extremities signals strong static charge — expect possible lightning and interference." },
+      { q: "A squall line is:", o: ["An organised line of storms, often along/ahead of a cold front", "A single dissipating cell", "A layer of stratus", "A fog bank"], a: 0, e: "Continuous and difficult to circumnavigate — a serious planning consideration on frontal days." },
+    ],
+  },
+  {
+    id: "mountainwaves",
+    code: "050·09",
+    title: "Mountain Waves & Orographic Effects",
+    blurb: "Lee waves, rotors, lenticular cloud, föhn, valley & slope winds.",
+    cards: [
+      { t: "Wave formation conditions", b: "Standing (lee) waves form when: wind blows roughly PERPENDICULAR to a ridge at sufficient strength (often quoted ~15–25 kt+ at the crest), wind speed INCREASES with height, and there is a STABLE layer near the crest with less stable air above and below. The airflow oscillates downwind of the ridge." },
+      { t: "Wave structure & cloud", b: "Downwind, the air rises and sinks in a train of waves of fixed wavelength. Clouds mark them where air is moist: smooth LENTICULAR (ACSL) clouds at the crests, a CAP cloud over the ridge, and ragged ROTOR cloud beneath the crests. The clouds appear stationary even in strong wind." },
+      { t: "The hazards", b: "Severe to extreme TURBULENCE, worst in the ROTOR zone beneath the wave crests (can exceed structural limits at low level). Strong up/downdraughts cause large altitude excursions — significant terrain-clearance risk. Add possible icing in the cloud. Waves can extend high into the stratosphere and far downwind." },
+      { t: "The föhn / chinook effect", b: "Air forced over a mountain loses moisture as cloud/precipitation on the windward side, then descends the lee side warmed (by latent heat release and compression) and DRY — giving warm, dry, clear conditions on the lee side, but often turbulent. Local names: Föhn (Alps), Chinook (Rockies)." },
+      { t: "Slope & valley winds", b: "ANABATIC: gentle daytime upslope flow as sunlit slopes warm. KATABATIC: nighttime downslope DRAINAGE of cold dense air, which can be strong and reach gale force off ice sheets. Valley winds blow up-valley by day, down-valley by night — all important for mountain aerodrome operations." },
+      { t: "Other orographic effects", b: "Upslope cooling produces hill fog and orographic cloud/rain on windward slopes; rain shadow leaves the lee drier. Venturi effects accelerate wind through gaps and valleys. Mountain weather changes fast and locally — terrain massively modifies the synoptic-scale picture." },
+    ],
+    quiz: [
+      { q: "Standing mountain waves require wind that is:", o: ["Roughly perpendicular to the ridge and increasing with height, with a stable layer", "Parallel to the ridge and calm", "Decreasing with height", "Below 5 kt"], a: 0, e: "Perpendicular strong wind, increasing with height, plus a stable layer near the crest sets up lee waves." },
+      { q: "The most violent turbulence in a wave system is found in the:", o: ["Rotor zone beneath the wave crests", "Smooth lenticular cloud", "Cap cloud", "Clear air above the tropopause"], a: 0, e: "Rotors — marked by ragged cloud below the lenticulars — can exceed aircraft structural limits." },
+      { q: "Lenticular (ACSL) clouds:", o: ["Are smooth and appear stationary at wave crests", "Move rapidly downwind", "Indicate fog", "Form only at night"], a: 0, e: "They form and dissipate in place at the wave crests, appearing static despite strong winds aloft." },
+      { q: "Air descending the lee side in a föhn/chinook is:", o: ["Warm and dry", "Cold and wet", "Saturated and foggy", "Unchanged"], a: 0, e: "Moisture is lost on the windward side; descent warms and dries the air — warm, dry, clear but turbulent lee conditions." },
+      { q: "Katabatic wind is:", o: ["Nighttime downslope drainage of cold dense air", "Daytime upslope flow", "A sea breeze", "A warm front wind"], a: 0, e: "Cold dense air drains downslope at night and can become strong, especially off ice fields." },
+      { q: "Standing waves can be hazardous to terrain clearance because:", o: ["Strong up/downdraughts cause large altitude excursions", "They always reduce wind to calm", "They only occur above FL400", "They remove all turbulence"], a: 0, e: "Powerful vertical currents can push an aircraft well off altitude near high terrain." },
+    ],
+  },
+  {
+    id: "visibility",
+    code: "050·04",
+    title: "Visibility & Obscurations",
+    blurb: "Met visibility, RVR, fog/mist/haze, lithometeors, reductions.",
+    cards: [
+      { t: "Defining visibility", b: "Meteorological visibility is the greatest horizontal distance at which a known object can be seen and identified. PREVAILING visibility is the value reached over at least half the horizon. RVR (runway visual range) is the distance a pilot can see runway markings/lights along the runway — used when visibility is low." },
+      { t: "Hydrometeors vs lithometeors", b: "Reductions are caused by water particles (HYDROMETEORS: fog FG, mist BR, cloud, precipitation) or dry particles (LITHOMETEORS: haze HZ, smoke FU, dust/sand, volcanic ash VA). Fog is water and clears with warming/wind; haze is dry particles and needs a change of air mass or rain to clear." },
+      { t: "Fog, mist and haze thresholds", b: "FOG (FG): visibility below 1000 m, water droplets, high humidity. MIST (BR): 1000–5000 m with humidity ≥ ~95%. HAZE (HZ): dry particles reducing visibility, lower humidity. The humidity distinction separates mist (near-saturated) from haze (dry) at similar visibilities." },
+      { t: "Precipitation & blowing obscurations", b: "Heavy rain, drizzle and especially SNOW sharply reduce visibility; wet snow is worst. BLOWING snow/sand/dust (raised by strong wind to eye level) can reduce visibility to near zero. Smoke and industrial haze concentrate under inversions, often worst in winter anticyclones (anticyclonic gloom)." },
+      { t: "RVR measurement & slant range", b: "RVR is assessed by TRANSMISSOMETERS or FORWARD-SCATTER sensors near the runway, or by counting lights. On approach the pilot's SLANT visual range to the runway can differ from the reported (horizontal) RVR — shallow fog can give good RVR yet a poor slant view, and vice versa." },
+      { t: "Diurnal & practical factors", b: "Visibility is often worst around dawn (radiation fog, peak humidity) and can improve as the sun lifts the fog. Looking into a low sun, into precipitation, or over water can all reduce perceived visibility. Always plan for the forecast trend, not just the current value." },
+    ],
+    quiz: [
+      { q: "Fog is reported when visibility falls below:", o: ["1000 m", "5000 m", "1500 m", "3000 m"], a: 0, e: "FG below 1000 m; 1000–5000 m with high humidity is mist (BR)." },
+      { q: "Haze (HZ) is caused by:", o: ["Dry particles (lithometeors)", "Water droplets", "Supercooled rain", "Melting snow"], a: 0, e: "Haze is dry particulate (dust, smoke); it needs an air-mass change or rain to clear, unlike water fog." },
+      { q: "The distinction between mist and haze at similar visibility is mainly:", o: ["Humidity (mist is near-saturated, haze is dry)", "Temperature", "Wind speed", "Pressure"], a: 0, e: "Mist (BR) occurs at high humidity (~95%+); haze (HZ) is the dry-particle equivalent." },
+      { q: "RVR is typically measured by:", o: ["Transmissometers or forward-scatter sensors near the runway", "Radiosondes", "Satellite imagery", "The altimeter"], a: 0, e: "Instruments beside the runway (or light-counting) give RVR when visibility is low." },
+      { q: "Reported (horizontal) RVR may differ from the pilot's slant view because:", o: ["Shallow fog can give good RVR but a poor slant range", "RVR is always lower than slant range", "Slant range ignores fog", "They are identical by definition"], a: 0, e: "Fog depth and the approach geometry make slant visual range differ from horizontal RVR." },
+      { q: "Visibility from blowing snow or sand can be reduced because the particles are:", o: ["Raised to eye level by strong wind", "Always falling as precipitation", "Confined above an inversion", "Only present at night"], a: 0, e: "Wind lifts surface particles into the line of sight, sometimes to near-zero visibility." },
+    ],
+  },
+  {
+    id: "satradar",
+    code: "050·10",
+    title: "Satellite & Radar Basics",
+    blurb: "What weather radar and satellite imagery show — and their limits.",
+    cards: [
+      { t: "Weather radar — what it detects", b: "Radar transmits pulses and times the echoes from PRECIPITATION-sized water particles — it shows rain, wet hail and heavy showers, NOT cloud itself or clear-air turbulence. Returns indicate intensity, so radar maps the wet cores of storms to be avoided." },
+      { t: "Radar limitations", b: "Radar does NOT see turbulence, icing or dry hail directly, and the beam can be ATTENUATED — a near, heavy cell can hide ('shadow') a worse cell behind it. Dry snow and small droplets give weak returns. Tilt management and interpreting the strongest gradients (tight intensity changes) are key skills." },
+      { t: "Satellite — visible imagery", b: "VISIBLE imagery shows reflected sunlight: thick cloud and snow appear bright, the surface dark. It gives excellent cloud-structure detail but only works in DAYLIGHT and can't easily separate high thin cloud from low cloud by brightness alone." },
+      { t: "Satellite — infrared imagery", b: "INFRARED (IR) imagery senses temperature, so it works DAY AND NIGHT. Cold surfaces appear bright/white, warm surfaces dark — so high, cold cloud tops (CB) show up bright white. IR is the workhorse for spotting deep convection and tracking systems around the clock." },
+      { t: "Water-vapour imagery", b: "WATER-VAPOUR channels show moisture in the mid/upper troposphere even where there is no cloud — useful for locating jet streams, dry slots and developing systems. Together, visible + IR + water vapour let forecasters build a 3-D picture of the atmosphere." },
+      { t: "Using imagery operationally", b: "Satellite shows the big picture (fronts, storm systems, fog banks, convection); airborne/ground radar gives the close-in precipitation detail for tactical avoidance. Neither directly shows turbulence — both are interpreted alongside SIGWX charts and SIGMETs, not in isolation." },
+    ],
+    quiz: [
+      { q: "Weather radar primarily detects:", o: ["Precipitation-sized water particles", "Cloud droplets and clear-air turbulence", "Temperature of cloud tops", "Wind direction"], a: 0, e: "It echoes off rain and wet hail — it does not show cloud itself, turbulence or icing directly." },
+      { q: "On infrared satellite imagery, high cold cloud tops appear:", o: ["Bright white", "Dark", "Invisible", "Red"], a: 0, e: "IR maps temperature; cold (high) tops show bright white, which is why CB stand out day and night." },
+      { q: "Visible satellite imagery has the limitation that it:", o: ["Only works in daylight", "Cannot show thick cloud", "Works only at night", "Detects turbulence"], a: 0, e: "Visible imagery relies on reflected sunlight, so it is unavailable at night (unlike IR)." },
+      { q: "Radar 'attenuation' or shadowing means:", o: ["A near heavy cell can hide a worse cell behind it", "The radar over-reads turbulence", "Dry hail shows strongly", "The image is always brightest far away"], a: 0, e: "The beam is absorbed by the first heavy cell, leaving a radar shadow that can conceal worse weather." },
+      { q: "Water-vapour satellite imagery is especially useful for:", o: ["Locating jet streams and dry slots in cloud-free air", "Measuring runway RVR", "Detecting hail size", "Reading surface pressure"], a: 0, e: "It reveals mid/upper-level moisture even without cloud, helping identify jets and developing systems." },
+      { q: "Neither satellite nor radar directly shows:", o: ["Turbulence", "Precipitation", "Cloud-top temperature", "Cloud structure"], a: 0, e: "Turbulence is inferred, not imaged — both are read alongside SIGWX charts and SIGMETs." },
+    ],
+  },
+  ,
+  {
+    id: "advanced_met",
+    code: "050·99",
+    title: "Advanced EASA Meteorology",
+    blurb: "Jet streams, icing, fronts, stability and operational weather interpretation.",
+    cards: [
+      { t: "Jet stream fundamentals", b: "Jet streams form near the tropopause due to strong horizontal temperature gradients. The polar front jet is strongest in winter because the temperature gradient between polar and tropical air is greatest." },
+      { t: "Clear ice", b: "Clear ice forms from large supercooled water droplets spreading before freezing. It is heavy, transparent and difficult to remove. Most dangerous in cumuliform cloud and freezing rain." },
+      { t: "Rime ice", b: "Rime ice forms from small droplets freezing rapidly on impact. It is rough, opaque and usually forms in stratiform cloud." },
+      { t: "Occluded fronts", b: "An occlusion forms when a cold front overtakes a warm front. Weather is usually extensive cloud, poor visibility and prolonged precipitation." },
+      { t: "Conditional instability", b: "Air is conditionally unstable when the ELR lies between the DALR and SALR. Unsaturated air is stable, but saturated air becomes unstable if lifted to the LCL." },
+      { t: "CAT", b: "Clear Air Turbulence is most common near jet streams and tropopause folds, especially on the cold side of the jet core." },
+      { t: "Temperature inversion", b: "An inversion exists when temperature increases with height. Inversions suppress vertical motion, trap haze/smoke and often produce poor visibility." },
+      { t: "SIGWX interpretation", b: "Significant Weather charts show turbulence, icing, CBs, fronts, jet streams and tropopause heights. Embedded CBs imply thunderstorms hidden within cloud layers." }
+    ]
+  }
+
+];
+
+// ===================== THEME =====================
+const C = {
+  bg: "#E9EEF2",
+  panel: "#FFFFFF",
+  ink: "#16222C",
+  sub: "#5A6B78",
+  line: "#C8D3DB",
+  cold: "#2B5C8A",
+  warm: "#B5402F",
+  good: "#2E7D4F",
+  bad: "#B5402F",
+  coldSoft: "#E3ECF4",
+  warmSoft: "#F6E8E5",
+};
+
+const FONTS = `
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+* { box-sizing: border-box; }
+body { margin: 0; }
+button { font-family: inherit; }
+button:focus-visible { outline: 3px solid #2B5C8A; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+`;
+
+// Front-line divider: alternating warm-front semicircles & cold-front triangles
+function FrontLine({ width = "100%" }) {
+  const units = [];
+  for (let i = 0; i < 30; i++) {
+    const x = i * 28;
+    if (i % 2 === 0) units.push(React.createElement('path', { key: i, d: `M ${x + 4} 10 A 8 8 0 0 1 ${x + 20} 10 Z`, fill: C.warm,} ));
+    else units.push(React.createElement('path', { key: i, d: `M ${x + 4} 10 L ${x + 12} 0 L ${x + 20} 10 Z`, fill: C.cold,} ));
+  }
+  return (
+    React.createElement('div', { style: { width, overflow: "hidden", lineHeight: 0 }, 'aria-hidden': "true",}
+      , React.createElement('svg', { width: "840", height: "12", viewBox: "0 0 840 12"   , style: { display: "block" },}
+        , React.createElement('line', { x1: "0", y1: "10", x2: "840", y2: "10", stroke: C.ink, strokeWidth: "2",} )
+        , units
+      )
+    )
+  );
+}
+
+const mono = { fontFamily: "'IBM Plex Mono', monospace" };
+const disp = { fontFamily: "'Archivo', sans-serif" };
+
+
+// ===================== CALC DRILL GENERATOR =====================
+function rnd(min, max, step = 1) {
+  const n = Math.floor(Math.random() * ((max - min) / step + 1));
+  return min + n * step;
+}
+function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
+function opts(correct, distractors, unit) {
+  const set = [correct, ...distractors.filter((d, i, a) => d !== correct && a.indexOf(d) === i).slice(0, 3)];
+  const shuffled = shuffle(set);
+  return { options: shuffled.map((v) => `${v}${unit}`), answer: shuffled.indexOf(correct) };
+}
+function genDrill() {
+  const type = rnd(0, 5);
+  if (type === 0) {
+    const fl = rnd(4, 35) * 10;
+    const ans = 15 - 2 * (fl / 10);
+    const { options, answer } = opts(ans, [ans + 5, ans - 5, ans + 10, -ans], "\u00b0C");
+    return { q: `What is the ISA temperature at FL${fl}?`, options, answer, e: `ISA = 15 \u2212 (2 \u00d7 ${fl / 10}) = ${ans}\u00b0C.` };
+  }
+  if (type === 1) {
+    const fl = rnd(8, 35) * 10;
+    const isa = 15 - 2 * (fl / 10);
+    const dev = rnd(-12, 12, 2);
+    const oat = isa + dev;
+    const { options, answer } = opts(dev, [dev + 5, dev - 5, -dev, dev + 10], "");
+    return { q: `OAT at FL${fl} is ${oat}\u00b0C. What is the ISA deviation?`, options, answer, e: `ISA at FL${fl} = ${isa}\u00b0C. Deviation = ${oat} \u2212 (${isa}) = ISA ${dev >= 0 ? "+" : ""}${dev}.` };
+  }
+  if (type === 2) {
+    const pa = rnd(1, 8) * 1000;
+    const isa = 15 - 2 * (pa / 1000);
+    const dev = rnd(2, 16, 2);
+    const oat = isa + dev;
+    const ans = pa + 120 * dev;
+    const { options, answer } = opts(ans, [pa + 120 * (dev - 5), pa + 60 * dev, pa - 120 * dev], " ft");
+    return { q: `Pressure altitude ${pa} ft, OAT ${oat > 0 ? "+" : ""}${oat}\u00b0C. Density altitude is approximately:`, options, answer, e: `ISA at ${pa} ft = ${isa}\u00b0C \u2192 deviation +${dev}. DA \u2248 ${pa} + (120 \u00d7 ${dev}) = ${ans} ft.` };
+  }
+  if (type === 3) {
+    const spread = rnd(3, 12);
+    const ans = 400 * spread;
+    const t = rnd(14, 26);
+    const { options, answer } = opts(ans, [ans + 800, ans - 800, 100 * spread], " ft");
+    return { q: `Surface temperature +${t}\u00b0C, dew point +${t - spread}\u00b0C. Estimated cumulus cloud base:`, options, answer, e: `Base \u2248 400 \u00d7 spread = 400 \u00d7 ${spread} = ${ans} ft AGL.` };
+  }
+  if (type === 4) {
+    const alt = rnd(4, 14) * 1000;
+    const dev = rnd(-3, 3, 1) * 10 || 10;
+    const ans = Math.round(alt * (1 + 0.04 * (dev / 10)));
+    const { options, answer } = opts(ans, [Math.round(alt * (1 - 0.04 * (dev / 10))), alt, ans + 400], " ft");
+    return { q: `Indicated altitude ${alt} ft on correct QNH, temperature ISA ${dev > 0 ? "+" : ""}${dev}. Approximate TRUE altitude (4% rule):`, options, answer, e: `4% per 10\u00b0C: ${alt} \u00d7 (1 ${dev > 0 ? "+" : "\u2212"} ${Math.abs(dev) * 0.4}%) \u2248 ${ans} ft. ${dev < 0 ? "Colder \u2192 true altitude LOWER." : "Warmer \u2192 true altitude HIGHER."}` };
+  }
+  const qnh = rnd(983, 1008);
+  const fl = rnd(4, 8) * 10;
+  const diff = 1013 - qnh;
+  const ans = fl * 100 - diff * 27;
+  const { options, answer } = opts(ans, [fl * 100 + diff * 27, fl * 100, ans + 270], " ft");
+  return { q: `Flying at FL${fl} (1013 set). QNH is ${qnh} hPa. Approximate altitude AMSL:`, options, answer, e: `1013 \u2212 ${qnh} = ${diff} hPa \u00d7 27 ft = ${diff * 27} ft. QNH is lower, so you are LOWER: ${fl * 100} \u2212 ${diff * 27} = ${ans} ft.` };
+}
+
+// ===================== DIAGRAMS (inline SVG) =====================
+const dW = { width: "100%", height: "auto", display: "block" };
+function DiaWrap({ children, vb = "0 0 340 210", cap }) {
+  return (
+    React.createElement('figure', { style: { margin: "14px 0 0", border: `1px solid ${C.line}`, background: "#FBFCFD", borderRadius: 2, padding: "10px 10px 6px" },}
+      , React.createElement('svg', { viewBox: vb, style: dW, role: "img",}, children)
+      , cap && React.createElement('figcaption', { style: { ...mono, fontSize: 10.5, color: C.sub, marginTop: 6, lineHeight: 1.4 },}, cap)
+    )
+  );
+}
+const AX = { stroke: C.ink, strokeWidth: 1 };
+const txt = (x, y, s, extra = {}) => React.createElement('text', { x: x, y: y, fontSize: extra.fs || 11, fontFamily: "'IBM Plex Mono', monospace"   , fill: extra.fill || C.ink, textAnchor: extra.ta || "start", fontWeight: extra.fw || 400,}, s);
+
+function Arrow({ x1, y1, x2, y2, color = C.ink, w = 2, id }) {
+  return (
+    React.createElement('g', null
+      , React.createElement('defs', null, React.createElement('marker', { id: id, markerWidth: "8", markerHeight: "8", refX: "6", refY: "3", orient: "auto",}, React.createElement('path', { d: "M0,0 L6,3 L0,6 Z"   , fill: color,} )))
+      , React.createElement('line', { x1: x1, y1: y1, x2: x2, y2: y2, stroke: color, strokeWidth: w, markerEnd: `url(#${id})`,} )
+    )
+  );
+}
+
+const DIAGRAMS = {
+  cumulus: () => (
+    React.createElement(DiaWrap, { cap: "Cumulus — detached, heaped, sharp-edged 'cotton-wool' cloud. Fair-weather CU is shallow; growth signals instability."             ,}
+      , React.createElement('rect', { x: "0", y: "0", width: "340", height: "210", fill: "#EAF1F7",} )
+      , React.createElement('g', { fill: "#FFFFFF", stroke: C.cold, strokeWidth: "1.2",}
+        , React.createElement('ellipse', { cx: "150", cy: "120", rx: "70", ry: "30",} )
+        , React.createElement('circle', { cx: "110", cy: "105", r: "32",} ), React.createElement('circle', { cx: "150", cy: "92", r: "40",} ), React.createElement('circle', { cx: "195", cy: "104", r: "34",} ), React.createElement('circle', { cx: "170", cy: "118", r: "30",} )
+      )
+      , React.createElement('rect', { x: "0", y: "150", width: "340", height: "60", fill: "#CFE0CF",} )
+      , txt(20, 196, "flat, darker base", { fs: 10, fill: C.sub })
+      , txt(230, 40, "FAIR-WX CU", { fs: 11, fill: C.cold, fw: 700 })
+    )
+  ),
+  cumulonimbus: () => (
+    React.createElement(DiaWrap, { cap: "Cumulonimbus — towering storm cloud with a glaciated ANVIL top. Hail, lightning, severe turbulence and icing. Avoid by 10 NM+."                   ,}
+      , React.createElement('rect', { x: "0", y: "0", width: "340", height: "210", fill: "#DfE6EC",} )
+      /* anvil */
+      , React.createElement('path', { d: "M70,55 Q150,30 270,50 Q300,55 285,68 L95,72 Q60,68 70,55 Z"        , fill: "#F4F6F8", stroke: C.cold, strokeWidth: "1.2",} )
+      /* tower */
+      , React.createElement('path', { d: "M110,170 Q95,120 120,80 Q150,55 185,72 Q215,110 205,170 Z"       , fill: "#FFFFFF", stroke: C.cold, strokeWidth: "1.2",} )
+      , React.createElement('circle', { cx: "135", cy: "95", r: "22", fill: "#fff", stroke: C.cold, strokeWidth: "1",} ), React.createElement('circle', { cx: "170", cy: "100", r: "20", fill: "#fff", stroke: C.cold, strokeWidth: "1",} )
+      , React.createElement('rect', { x: "0", y: "170", width: "340", height: "40", fill: "#CFE0CF",} )
+      , React.createElement('path', { d: "M120,170 L128,188 M140,170 L135,188 M155,170 L162,188"     , stroke: C.cold, strokeWidth: "1.5",} )
+      , React.createElement('path', { d: "M250,60 L240,95 L255,90 L243,120"   , fill: "none", stroke: C.warm, strokeWidth: "2",} )
+      , txt(225, 135, "anvil spreads", { fs: 9.5, fill: C.cold })
+      , txt(238, 150, "downwind", { fs: 9.5, fill: C.cold })
+      , txt(20, 40, "CB", { fs: 13, fill: C.warm, fw: 700 })
+    )
+  ),
+  stratusfam: () => (
+    React.createElement(DiaWrap, { cap: "Stratus — low, grey, featureless layer (like fog off the ground); drizzle. Stratocumulus is the same level but lumpy."                  ,}
+      , React.createElement('rect', { x: "0", y: "0", width: "340", height: "210", fill: "#E4EAEF",} )
+      , React.createElement('rect', { x: "20", y: "60", width: "300", height: "22", rx: "10", fill: "#C3CED7", stroke: C.cold, strokeWidth: "1",} )
+      , React.createElement('rect', { x: "20", y: "92", width: "300", height: "20", rx: "10", fill: "#CcD6DE", stroke: C.cold, strokeWidth: "0.8",} )
+      , txt(26, 50, "ST — uniform grey sheet", { fs: 10, fill: C.cold, fw: 600 })
+      , React.createElement('g', { fill: "#C3CED7", stroke: C.cold, strokeWidth: "0.8",}
+        , React.createElement('ellipse', { cx: "70", cy: "135", rx: "34", ry: "13",} ), React.createElement('ellipse', { cx: "140", cy: "135", rx: "34", ry: "13",} ), React.createElement('ellipse', { cx: "210", cy: "135", rx: "34", ry: "13",} ), React.createElement('ellipse', { cx: "280", cy: "135", rx: "30", ry: "13",} )
+      )
+      , txt(26, 162, "SC — lumpy low layer", { fs: 10, fill: C.cold, fw: 600 })
+      , React.createElement('rect', { x: "0", y: "180", width: "340", height: "30", fill: "#CFE0CF",} )
+    )
+  ),
+  cirrus: () => (
+    React.createElement(DiaWrap, { cap: "Cirrus — high, wispy ICE-crystal cloud ('mares' tails'). First sign of an approaching warm front when it thickens to cirrostratus."                   ,}
+      , React.createElement('rect', { x: "0", y: "0", width: "340", height: "210", fill: "#DCE8F2",} )
+      , React.createElement('g', { fill: "none", stroke: "#FFFFFF", strokeWidth: "3", strokeLinecap: "round",}
+        , React.createElement('path', { d: "M40,60 Q120,45 200,55 Q150,60 90,75"    ,} )
+        , React.createElement('path', { d: "M120,90 Q200,72 280,82 Q220,90 150,102"    ,} )
+        , React.createElement('path', { d: "M60,120 Q140,108 210,118"  ,} )
+      )
+      , React.createElement('g', { stroke: "#B9CDDD", strokeWidth: "1.5", strokeLinecap: "round",}
+        , React.createElement('path', { d: "M200,55 q12,-8 18,-2 M280,82 q12,-8 18,-2"     ,} )
+      )
+      , txt(20, 165, "thin, fibrous, no shading — ice crystals", { fs: 10, fill: C.cold })
+      , txt(240, 40, "CI", { fs: 13, fill: C.cold, fw: 700 })
+    )
+  ),
+  nimbostratus: () => (
+    React.createElement(DiaWrap, { cap: "Nimbostratus — thick, dark, layered cloud of the warm front: continuous, prolonged rain or snow (not showers)."                ,}
+      , React.createElement('rect', { x: "0", y: "0", width: "340", height: "210", fill: "#D7DEE4",} )
+      , React.createElement('rect', { x: "10", y: "40", width: "320", height: "80", rx: "12", fill: "#8C97A1",} )
+      , React.createElement('rect', { x: "10", y: "55", width: "320", height: "50", rx: "10", fill: "#7A848D", opacity: "0.7",} )
+      , [...Array(11)].map((_, i) => (
+        React.createElement('line', { key: i, x1: 30 + i * 28, y1: "125", x2: 22 + i * 28, y2: "170", stroke: C.cold, strokeWidth: "1.3",} )
+      ))
+      , React.createElement('rect', { x: "0", y: "175", width: "340", height: "35", fill: "#BAD0C8",} )
+      , txt(20, 35, "NS — deep, dark, rain-bearing", { fs: 10, fill: "#3a444c", fw: 600 })
+    )
+  ),
+  lenticular: () => (
+    React.createElement(DiaWrap, { cap: "Lenticular (ACSL) — smooth, lens/almond-shaped cloud marking standing mountain waves. Stationary in strong wind; rotor turbulence below."                ,}
+      , React.createElement('rect', { x: "0", y: "0", width: "340", height: "210", fill: "#DCE8F2",} )
+      , React.createElement('polygon', { points: "40,180 110,90 150,180"  , fill: "#9AAE9A", stroke: C.cold, strokeWidth: "1",} )
+      , React.createElement('g', { fill: "#FFFFFF", stroke: C.cold, strokeWidth: "1.1",}
+        , React.createElement('ellipse', { cx: "180", cy: "70", rx: "60", ry: "15",} )
+        , React.createElement('ellipse', { cx: "200", cy: "98", rx: "45", ry: "11",} )
+        , React.createElement('ellipse', { cx: "150", cy: "120", rx: "34", ry: "9",} )
+      )
+      , React.createElement('path', { d: "M30,55 q40,0 60,8 q40,8 80,2"    , fill: "none", stroke: C.warm, strokeWidth: "1.5", strokeDasharray: "4 3" ,} )
+      , txt(30, 45, "wind →", { fs: 10, fill: C.warm })
+      , txt(120, 200, "ridge", { fs: 9.5, fill: C.sub })
+      , txt(235, 130, "smooth lens", { fs: 9.5, fill: C.cold })
+    )
+  ),
+  isa: () => (
+    React.createElement(DiaWrap, { cap: "ISA temperature falls 1.98°C/1000 ft to the tropopause at 36,090 ft (−56.5°C), then is isothermal to 20 km."                 ,}
+      , React.createElement('line', { x1: "55", y1: "20", x2: "55", y2: "185", ...AX,} )
+      , React.createElement('line', { x1: "55", y1: "185", x2: "320", y2: "185", ...AX,} )
+      , txt(8, 110, "ALT", { fs: 10, fill: C.sub })
+      , txt(150, 203, "TEMPERATURE →", { fs: 10, fill: C.sub })
+      /* stratosphere isothermal */
+      , React.createElement('rect', { x: "55", y: "20", width: "265", height: "55", fill: C.coldSoft, opacity: "0.6",} )
+      , txt(200, 40, "STRATOSPHERE", { fs: 10, fill: C.cold, fw: 600 })
+      , txt(200, 53, "isothermal −56.5°C", { fs: 9, fill: C.sub })
+      /* troposphere */
+      , txt(105, 150, "TROPOSPHERE", { fs: 10, fill: C.warm, fw: 600 })
+      /* tropopause line */
+      , React.createElement('line', { x1: "55", y1: "75", x2: "320", y2: "75", stroke: C.ink, strokeWidth: "1", strokeDasharray: "4 3" ,} )
+      , txt(225, 71, "tropopause 11 km", { fs: 9, fill: C.ink })
+      /* temp profile: slope down then vertical */
+      , React.createElement('polyline', { points: "250,185 130,75 130,20"  , fill: "none", stroke: C.warm, strokeWidth: "2.5",} )
+      , React.createElement('circle', { cx: "130", cy: "75", r: "3", fill: C.warm,} )
+      , txt(60, 182, "+15°C", { fs: 9, fill: C.sub })
+      , txt(95, 70, "−56.5°C", { fs: 9, fill: C.sub, ta: "end" })
+    )
+  ),
+  altimeter: () => (
+    React.createElement(DiaWrap, { cap: "Flying level on a fixed subscale from HIGH to LOW pressure: the aircraft descends along the pressure surface — true height falls. 'High to low, look out below.'"                           ,}
+      , React.createElement('line', { x1: "20", y1: "160", x2: "320", y2: "160", stroke: C.good, strokeWidth: "2",} )
+      , txt(20, 175, "TERRAIN", { fs: 9, fill: C.good })
+      /* sloping pressure surface */
+      , React.createElement('path', { d: "M20,60 Q170,95 320,140"  , fill: "none", stroke: C.cold, strokeWidth: "2", strokeDasharray: "5 3" ,} )
+      , txt(24, 54, "constant pressure level (e.g. 850 hPa)", { fs: 9, fill: C.cold })
+      /* aircraft following it */
+      , React.createElement('g', { transform: "translate(60,73)",}, React.createElement('path', { d: "M0,0 L18,0 M9,-6 L9,6 M2,-3 L2,3 M16,-3 L16,3"       , stroke: C.ink, strokeWidth: "2",} ))
+      , React.createElement('g', { transform: "translate(250,128)",}, React.createElement('path', { d: "M0,0 L18,0 M9,-6 L9,6 M2,-3 L2,3 M16,-3 L16,3"       , stroke: C.ink, strokeWidth: "2",} ))
+      , txt(40, 96, "HIGH", { fs: 13, fill: C.warm, fw: 700 })
+      , txt(255, 118, "LOW", { fs: 13, fill: C.cold, fw: 700 })
+      , React.createElement(Arrow, { x1: "120", y1: "150", x2: "230", y2: "150", color: C.bad, id: "a-altim",} )
+      , txt(120, 145, "indicated alt unchanged — TRUE alt falls", { fs: 9, fill: C.bad })
+    )
+  ),
+  geostrophic: () => (
+    React.createElement(DiaWrap, { cap: "Above the friction layer, pressure gradient force and Coriolis balance, so the geostrophic wind blows parallel to straight isobars (NH: low on the left)."                       ,}
+      , [60, 95, 130, 165].map((y, i) => React.createElement('line', { key: i, x1: "30", y1: y, x2: "310", y2: y, stroke: C.line, strokeWidth: "1.5",} ))
+      , txt(34, 52, "LOW  996", { fs: 10, fill: C.cold, fw: 600 })
+      , txt(34, 184, "HIGH 1008", { fs: 10, fill: C.warm, fw: 600 })
+      /* PGF up (high->low) */
+      , React.createElement(Arrow, { x1: "170", y1: "150", x2: "170", y2: "78", color: C.warm, id: "g-pgf",} )
+      , txt(176, 110, "PGF", { fs: 10, fill: C.warm, fw: 600 })
+      /* Coriolis down */
+      , React.createElement(Arrow, { x1: "230", y1: "78", x2: "230", y2: "150", color: C.cold, id: "g-cor",} )
+      , txt(236, 118, "Coriolis", { fs: 10, fill: C.cold, fw: 600 })
+      /* wind along isobar */
+      , React.createElement(Arrow, { x1: "60", y1: "113", x2: "290", y2: "113", color: C.ink, w: "2.5", id: "g-wind",} )
+      , txt(120, 107, "GEOSTROPHIC WIND", { fs: 10, fill: C.ink, fw: 700 })
+    )
+  ),
+  friction: () => (
+    React.createElement(DiaWrap, { cap: "Friction slows the surface wind and weakens Coriolis, so it BACKS across the isobars towards low pressure (NH) — ~30° over land, ~10° over sea. Climbing out it veers and increases."                              ,}
+      , [55, 100, 145].map((y, i) => React.createElement('line', { key: i, x1: "25", y1: y, x2: "315", y2: y, stroke: C.line, strokeWidth: "1.5",} ))
+      , txt(28, 47, "LOW", { fs: 10, fill: C.cold, fw: 600 })
+      , txt(28, 162, "HIGH", { fs: 10, fill: C.warm, fw: 600 })
+      , React.createElement(Arrow, { x1: "90", y1: "100", x2: "270", y2: "100", color: C.sub, w: "2", id: "f-grad",} )
+      , txt(150, 94, "2000 ft (gradient) wind", { fs: 9, fill: C.sub })
+      , React.createElement(Arrow, { x1: "90", y1: "138", x2: "255", y2: "108", color: C.ink, w: "2.5", id: "f-surf",} )
+      , txt(150, 135, "surface wind — backed & slower", { fs: 9, fill: C.ink, fw: 600 })
+      , React.createElement('path', { d: "M90,120 q14,-4 16,-14"  , fill: "none", stroke: C.bad, strokeWidth: "1.2",} )
+      , txt(110, 128, "≈30° land", { fs: 8, fill: C.bad })
+    )
+  ),
+  buysballot: () => (
+    React.createElement(DiaWrap, { cap: "Buys Ballot (NH): back to the wind → LOW pressure on your left, HIGH on your right. (Reversed in the southern hemisphere.)"                     ,}
+      /* person */
+      , React.createElement('circle', { cx: "170", cy: "120", r: "12", fill: C.ink,} )
+      , React.createElement('line', { x1: "170", y1: "132", x2: "170", y2: "165", stroke: C.ink, strokeWidth: "3",} )
+      /* wind from behind (top) */
+      , React.createElement(Arrow, { x1: "170", y1: "30", x2: "170", y2: "95", color: C.sub, w: "2.5", id: "bb-wind",} )
+      , txt(178, 60, "WIND", { fs: 10, fill: C.sub, fw: 600 })
+      , txt(120, 25, "back to wind", { fs: 9, fill: C.ink })
+      , React.createElement('rect', { x: "20", y: "95", width: "80", height: "50", fill: C.coldSoft, stroke: C.cold,} )
+      , txt(60, 124, "LOW", { fs: 13, fill: C.cold, fw: 700, ta: "middle" })
+      , React.createElement('rect', { x: "240", y: "95", width: "80", height: "50", fill: C.warmSoft, stroke: C.warm,} )
+      , txt(280, 124, "HIGH", { fs: 13, fill: C.warm, fw: 700, ta: "middle" })
+      , txt(60, 162, "← left", { fs: 9, fill: C.sub, ta: "middle" })
+      , txt(280, 162, "right →", { fs: 9, fill: C.sub, ta: "middle" })
+    )
+  ),
+  stability: () => (
+    React.createElement(DiaWrap, { cap: "Compare the environmental lapse rate (ELR) with the dry (DALR 3°/1000 ft) and saturated (SALR ~1.8°) adiabatics. ELR right of DALR = unstable; left of SALR = stable; between = conditional."                              ,}
+      , React.createElement('line', { x1: "50", y1: "20", x2: "50", y2: "180", ...AX,} )
+      , React.createElement('line', { x1: "50", y1: "180", x2: "320", y2: "180", ...AX,} )
+      , txt(10, 105, "ALT", { fs: 10, fill: C.sub })
+      , txt(150, 198, "TEMP →", { fs: 10, fill: C.sub })
+      /* DALR steep-left, SALR less steep */
+      , React.createElement('line', { x1: "120", y1: "180", x2: "60", y2: "25", stroke: C.cold, strokeWidth: "2",} )
+      , txt(46, 30, "DALR 3°", { fs: 9, fill: C.cold })
+      , React.createElement('line', { x1: "120", y1: "180", x2: "95", y2: "25", stroke: C.good, strokeWidth: "2",} )
+      , txt(98, 38, "SALR 1.8°", { fs: 9, fill: C.good })
+      /* example ELR unstable (to right of DALR) */
+      , React.createElement('line', { x1: "120", y1: "180", x2: "160", y2: "25", stroke: C.warm, strokeWidth: "2.5", strokeDasharray: "5 3" ,} )
+      , txt(150, 30, "ELR", { fs: 10, fill: C.warm, fw: 700 })
+      , txt(165, 95, "this ELR is", { fs: 9, fill: C.warm })
+      , txt(165, 108, "UNSTABLE", { fs: 9, fill: C.warm, fw: 700 })
+    )
+  ),
+  cloudlevels: () => (
+    React.createElement(DiaWrap, { cap: "The ten cloud genera by étage (mid-latitudes). CB grows through all three levels."            ,}
+      , React.createElement('rect', { x: "20", y: "20", width: "300", height: "50", fill: C.coldSoft, opacity: "0.5",} )
+      , React.createElement('rect', { x: "20", y: "70", width: "300", height: "55", fill: C.coldSoft, opacity: "0.3",} )
+      , React.createElement('rect', { x: "20", y: "125", width: "300", height: "55", fill: C.good, opacity: "0.08",} )
+      , txt(26, 35, "HIGH 16,500–45,000 ft", { fs: 9, fill: C.cold, fw: 600 })
+      , txt(26, 50, "CI  ·  CS  ·  CC", { fs: 11, fill: C.ink })
+      , txt(26, 86, "MED 6,500–23,000 ft", { fs: 9, fill: C.cold, fw: 600 })
+      , txt(26, 101, "AS  ·  AC  ·  NS", { fs: 11, fill: C.ink })
+      , txt(26, 141, "LOW SFC–6,500 ft", { fs: 9, fill: C.good, fw: 600 })
+      , txt(26, 156, "ST  ·  SC  ·  CU  ·  CB", { fs: 11, fill: C.ink })
+      , React.createElement('line', { x1: "20", y1: "180", x2: "320", y2: "180", stroke: C.good, strokeWidth: "2",} )
+      /* CB tower */
+      , React.createElement('path', { d: "M275,178 C268,150 268,120 272,95 C268,80 285,72 295,82 C312,78 312,100 300,105 C305,130 300,160 300,178 Z"             , fill: "#fff", stroke: C.warm, strokeWidth: "1.5",} )
+      , txt(283, 70, "CB", { fs: 10, fill: C.warm, fw: 700, ta: "middle" })
+    )
+  ),
+  warmfront: () => (
+    React.createElement(DiaWrap, { cap: "Warm front: warm air rides over cold at a shallow 1:150 slope. Cloud lowers CI→CS→AS→NS ahead of the surface front; continuous rain in the last ~200 NM."                          ,}
+      , React.createElement('line', { x1: "20", y1: "165", x2: "320", y2: "165", stroke: C.good, strokeWidth: "2",} )
+      /* frontal slope */
+      , React.createElement('path', { d: "M70,165 L320,40" , fill: "none", stroke: C.warm, strokeWidth: "2.5",} )
+      , React.createElement('path', { d: "M70,165 L320,165 L320,40 Z"   , fill: C.warmSoft, opacity: "0.4",} )
+      , txt(150, 150, "COLD AIR", { fs: 10, fill: C.cold, fw: 600 })
+      , txt(250, 90, "WARM AIR", { fs: 10, fill: C.warm, fw: 600 })
+      , txt(300, 30, "CI", { fs: 9, fill: C.sub })
+      , txt(230, 70, "CS", { fs: 9, fill: C.sub })
+      , txt(160, 105, "AS", { fs: 9, fill: C.sub })
+      , txt(85, 140, "NS", { fs: 9, fill: C.sub })
+      /* rain */
+      , [80, 95, 110].map((x, i) => React.createElement('line', { key: i, x1: x, y1: 148, x2: x - 4, y2: 162, stroke: C.cold, strokeWidth: "1",} ))
+      , txt(40, 180, "movement →", { fs: 9, fill: C.ink })
+      , React.createElement(Arrow, { x1: "55", y1: "172", x2: "95", y2: "172", color: C.ink, w: "1.5", id: "wf-mv",} )
+    )
+  ),
+  coldfront: () => (
+    React.createElement(DiaWrap, { cap: "Cold front: cold air undercuts warm at a steep ~1:50 slope, forcing a narrow band of CB and heavy showers. On passage wind veers, pressure rises, visibility improves."                           ,}
+      , React.createElement('line', { x1: "20", y1: "165", x2: "320", y2: "165", stroke: C.good, strokeWidth: "2",} )
+      , React.createElement('path', { d: "M150,165 L235,35" , fill: "none", stroke: C.cold, strokeWidth: "2.5",} )
+      , React.createElement('path', { d: "M150,165 L20,165 L20,35 L235,35 Z"    , fill: C.coldSoft, opacity: "0.35",} )
+      , txt(60, 150, "COLD AIR (advancing)", { fs: 10, fill: C.cold, fw: 600 })
+      , txt(245, 120, "WARM", { fs: 10, fill: C.warm, fw: 600 })
+      /* CB at the front */
+      , React.createElement('path', { d: "M150,163 C140,120 150,70 165,50 C185,42 205,55 200,80 C215,100 200,140 200,163 Z"          , fill: "#fff", stroke: C.warm, strokeWidth: "1.5",} )
+      , txt(175, 60, "CB", { fs: 10, fill: C.warm, fw: 700, ta: "middle" })
+      , [160, 175, 190].map((x, i) => React.createElement('line', { key: i, x1: x, y1: 150, x2: x - 5, y2: 163, stroke: C.cold, strokeWidth: "1.2",} ))
+      , React.createElement(Arrow, { x1: "120", y1: "172", x2: "170", y2: "172", color: C.ink, w: "1.5", id: "cf-mv",} )
+    )
+  ),
+  lowcirc: () => (
+    React.createElement(DiaWrap, { cap: "NH depression: surface air spirals ANTICLOCKWISE and inward (convergence), rising in the centre — cloud and rain. A high circulates clockwise and subsides."                      ,}
+      , [55, 40, 25].map((r, i) => React.createElement('circle', { key: i, cx: "120", cy: "105", r: r, fill: "none", stroke: C.line, strokeWidth: "1.3",} ))
+      , txt(120, 109, "L", { fs: 16, fill: C.cold, fw: 700, ta: "middle" })
+      /* anticlockwise arrows */
+      , React.createElement(Arrow, { x1: "120", y1: "42", x2: "95", y2: "48", color: C.cold, id: "lc-1",} )
+      , React.createElement(Arrow, { x1: "63", y1: "105", x2: "70", y2: "80", color: C.cold, id: "lc-2",} )
+      , React.createElement(Arrow, { x1: "120", y1: "168", x2: "148", y2: "160", color: C.cold, id: "lc-3",} )
+      , React.createElement(Arrow, { x1: "178", y1: "105", x2: "170", y2: "132", color: C.cold, id: "lc-4",} )
+      , txt(150, 35, "anticlockwise + inflow", { fs: 9, fill: C.cold })
+      /* high */
+      , React.createElement('circle', { cx: "265", cy: "105", r: "28", fill: "none", stroke: C.line, strokeWidth: "1.3",} )
+      , txt(265, 109, "H", { fs: 16, fill: C.warm, fw: 700, ta: "middle" })
+      , React.createElement(Arrow, { x1: "265", y1: "72", x2: "288", y2: "80", color: C.warm, id: "hc-1",} )
+      , txt(245, 150, "clockwise + outflow", { fs: 9, fill: C.warm })
+    )
+  ),
+  cells: () => (
+    React.createElement(DiaWrap, { cap: "Three-cell circulation: rising at the equator (ITCZ), descending near 30° (subtropical highs) and 60°/poles. Surface trades are NE (NH) / SE (SH)."                     ,}
+      , React.createElement('line', { x1: "30", y1: "175", x2: "320", y2: "175", stroke: C.ink, strokeWidth: "1.5",} )
+      , txt(28, 190, "EQ", { fs: 9, fill: C.sub })
+      , txt(120, 190, "30°", { fs: 9, fill: C.sub })
+      , txt(210, 190, "60°", { fs: 9, fill: C.sub })
+      , txt(300, 190, "90°", { fs: 9, fill: C.sub })
+      /* Hadley cell loop */
+      , React.createElement('path', { d: "M35,170 C35,90 120,90 120,170"   , fill: "none", stroke: C.warm, strokeWidth: "2",} )
+      , React.createElement(Arrow, { x1: "35", y1: "120", x2: "35", y2: "100", color: C.warm, id: "ce-1",} )
+      , txt(50, 80, "HADLEY", { fs: 9, fill: C.warm, fw: 600 })
+      /* Ferrel */
+      , React.createElement('path', { d: "M125,170 C125,100 210,100 210,170"   , fill: "none", stroke: C.good, strokeWidth: "2",} )
+      , txt(140, 92, "FERREL", { fs: 9, fill: C.good, fw: 600 })
+      /* Polar */
+      , React.createElement('path', { d: "M215,170 C215,110 300,110 300,170"   , fill: "none", stroke: C.cold, strokeWidth: "2",} )
+      , txt(228, 102, "POLAR", { fs: 9, fill: C.cold, fw: 600 })
+      , txt(34, 40, "↑ITCZ rising", { fs: 9, fill: C.warm })
+      , txt(98, 60, "↓30° desc", { fs: 9, fill: C.sub })
+    )
+  ),
+  tstages: () => (
+    React.createElement(DiaWrap, { vb: "0 0 340 200"   , cap: "Thunderstorm life cycle. Cumulus: updraughts only. Mature: up- AND downdraughts, rain begins — all hazards peak. Dissipating: downdraughts only, anvil spreads."                    ,}
+      /* cumulus */
+      , React.createElement('path', { d: "M40,170 C30,140 35,110 55,108 C75,104 80,135 75,170 Z"       , fill: "#fff", stroke: C.good, strokeWidth: "1.5",} )
+      , React.createElement(Arrow, { x1: "55", y1: "165", x2: "55", y2: "120", color: C.warm, id: "ts-u1",} )
+      , txt(55, 188, "CUMULUS", { fs: 9, fill: C.ink, ta: "middle", fw: 600 })
+      /* mature with anvil */
+      , React.createElement('path', { d: "M150,170 C138,120 140,70 160,60 C150,48 175,42 185,52 C200,55 195,75 185,78 C195,120 192,150 190,170 Z"             , fill: "#fff", stroke: C.warm, strokeWidth: "1.5",} )
+      , React.createElement(Arrow, { x1: "158", y1: "165", x2: "160", y2: "80", color: C.warm, id: "ts-u2",} )
+      , React.createElement(Arrow, { x1: "182", y1: "80", x2: "184", y2: "165", color: C.cold, id: "ts-d2",} )
+      , [165, 178].map((x, i) => React.createElement('line', { key: i, x1: x, y1: 155, x2: x - 4, y2: 168, stroke: C.cold, strokeWidth: "1",} ))
+      , txt(168, 188, "MATURE", { fs: 9, fill: C.ink, ta: "middle", fw: 600 })
+      /* dissipating */
+      , React.createElement('path', { d: "M270,170 C258,120 262,75 285,68 C310,64 318,80 305,86 C312,120 305,150 305,170 Z"          , fill: "#fff", stroke: C.sub, strokeWidth: "1.5",} )
+      , React.createElement(Arrow, { x1: "288", y1: "80", x2: "290", y2: "165", color: C.cold, id: "ts-d3",} )
+      , txt(290, 188, "DISSIPATING", { fs: 9, fill: C.ink, ta: "middle", fw: 600 })
+      , React.createElement('line', { x1: "20", y1: "170", x2: "325", y2: "170", stroke: C.good, strokeWidth: "1.5",} )
+    )
+  ),
+  microburst: () => (
+    React.createElement(DiaWrap, { cap: "Microburst on approach: outflow gives a HEADWIND gain (performance up), then the core DOWNDRAUGHT, then a TAILWIND with severe sink. Recognise the gain — go around early."                          ,}
+      , React.createElement('line', { x1: "20", y1: "165", x2: "320", y2: "165", stroke: C.good, strokeWidth: "2",} )
+      , React.createElement('path', { d: "M150,30 C130,30 125,55 145,58 C140,75 175,75 172,58 C195,58 188,32 168,32 Z"          , fill: "#fff", stroke: C.sub, strokeWidth: "1.3",} )
+      , React.createElement(Arrow, { x1: "160", y1: "60", x2: "160", y2: "140", color: C.cold, w: "2.5", id: "mb-down",} )
+      , txt(166, 100, "downdraught", { fs: 9, fill: C.cold })
+      /* outflow */
+      , React.createElement(Arrow, { x1: "155", y1: "158", x2: "70", y2: "158", color: C.warm, id: "mb-l",} )
+      , React.createElement(Arrow, { x1: "165", y1: "158", x2: "250", y2: "158", color: C.warm, id: "mb-r",} )
+      /* glidepath */
+      , React.createElement('line', { x1: "40", y1: "120", x2: "290", y2: "165", stroke: C.ink, strokeWidth: "1.5", strokeDasharray: "4 3" ,} )
+      , React.createElement('g', { transform: "translate(60,128)",}, React.createElement('path', { d: "M0,0 L16,3 M8,-4 L8,7 M2,-1 L2,4"     , stroke: C.ink, strokeWidth: "1.8",} ))
+      , txt(60, 150, "headwind", { fs: 8, fill: C.warm })
+      , txt(215, 150, "tailwind", { fs: 8, fill: C.warm })
+    )
+  ),
+  windbarb: () => (
+    React.createElement(DiaWrap, { vb: "0 0 340 150"   , cap: "Wind barb decode: barb points FROM the wind direction. Pennant = 50 kt, full feather = 10 kt, half = 5 kt. This example: 65 kt."                         ,}
+      /* shaft */
+      , React.createElement('line', { x1: "90", y1: "110", x2: "90", y2: "40", stroke: C.ink, strokeWidth: "2.5",} )
+      , React.createElement('circle', { cx: "90", cy: "110", r: "4", fill: "none", stroke: C.ink, strokeWidth: "2",} )
+      /* pennant */
+      , React.createElement('path', { d: "M90,40 L112,46 L90,52 Z"   , fill: C.cold,} )
+      , txt(118, 50, "50 kt pennant", { fs: 9, fill: C.cold })
+      /* full feather */
+      , React.createElement('line', { x1: "90", y1: "58", x2: "112", y2: "52", stroke: C.ink, strokeWidth: "2",} )
+      , txt(118, 62, "10 kt feather", { fs: 9, fill: C.ink })
+      /* half feather */
+      , React.createElement('line', { x1: "90", y1: "68", x2: "101", y2: "65", stroke: C.ink, strokeWidth: "2",} )
+      , txt(118, 74, "5 kt half-feather", { fs: 9, fill: C.sub })
+      , txt(60, 130, "= 65 kt", { fs: 12, fill: C.warm, fw: 700 })
+      , txt(175, 110, "barb lies on the", { fs: 9, fill: C.sub })
+      , txt(175, 123, "UPWIND side", { fs: 9, fill: C.sub })
+    )
+  ),
+};
+
+// ===================== APP =====================
+function App() {
+  const [view, setView] = useState({ type: "home" });
+  const [progress, setProgress] = useState({ read: {}, best: {} });
+
+  useEffect(() => {
+    (async () => {
+      try {
+        if (typeof window !== "undefined" && window.storage) {
+          const r = await window.storage.get("atpl-met-v1");
+          if (r && r.value) setProgress(JSON.parse(r.value));
+        }
+      } catch (e) { /* first visit — nothing saved yet */ }
+    })();
+  }, []);
+
+  const save = (p) => {
+    setProgress(p);
+    (async () => {
+      try {
+        if (typeof window !== "undefined" && window.storage) {
+          await window.storage.set("atpl-met-v1", JSON.stringify(p));
+        }
+      } catch (e) { console.error("save failed", e); }
+    })();
+  };
+
+  const overall = Math.round(
+    TOPICS.reduce((s, t) => s + (progress.best[t.id] || 0), 0) / TOPICS.length
+  );
+
+  return (
+    React.createElement('div', { style: { minHeight: "100vh", background: C.bg, color: C.ink, ...disp },}
+      , React.createElement('style', null, FONTS)
+      , React.createElement(Header, { overall: overall, onHome: () => setView({ type: "home" }),} )
+      , React.createElement('main', { style: { maxWidth: 880, margin: "0 auto", padding: "20px 16px 60px" },}
+        , view.type === "home" && (
+          React.createElement(Home, { progress: progress, save: save, onOpen: (id) => setView({ type: "topic", id, tab: "learn" }), onDrill: () => setView({ type: "drill" }), onSaved: () => setView({ type: "saved" }),} )
+        )
+        , view.type === "saved" && (
+          React.createElement(Saved, { progress: progress, save: save, onOpen: (id) => setView({ type: "topic", id, tab: "learn" }), onBack: () => setView({ type: "home" }),} )
+        )
+        , view.type === "drill" && (
+          React.createElement(Drill, { progress: progress, save: save, onBack: () => setView({ type: "home" }),} )
+        )
+        , view.type === "topic" && (
+          React.createElement(Topic, {
+            topic: TOPICS.find((t) => t.id === view.id),
+            tab: view.tab,
+            setTab: (tab) => setView({ ...view, tab }),
+            progress: progress,
+            save: save,
+            onBack: () => setView({ type: "home" }),}
+          )
+        )
+      )
+    )
+  );
+}
+
+function Header({ overall, onHome }) {
+  return (
+    React.createElement('header', { style: { background: C.ink, color: "#F2F5F7" },}
+      , React.createElement('div', { style: { maxWidth: 880, margin: "0 auto", padding: "18px 16px 14px", display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 },}
+        , React.createElement('button', { onClick: onHome, style: { background: "none", border: "none", color: "inherit", cursor: "pointer", padding: 0, textAlign: "left" },}
+          , React.createElement('div', { style: { ...mono, fontSize: 11, letterSpacing: 3, color: "#9FB3C2" },}, "EASA ATPL · SUBJECT 050"    )
+          , React.createElement('div', { style: { ...disp, fontWeight: 800, fontSize: 26, letterSpacing: 1 },}, "METEOROLOGY")
+        )
+        , React.createElement('div', { style: { ...mono, fontSize: 13, color: "#9FB3C2" },}, "MASTERY "
+           , React.createElement('span', { style: { color: "#fff", fontWeight: 600 },}, String(overall).padStart(3, "0"), "%"), " · QNH1013"
+        )
+      )
+      , React.createElement(FrontLine, null )
+    )
+  );
+}
+
+function Home({ progress, save, onOpen, onDrill, onSaved }) {
+  const firstUndone = TOPICS.find((t) => !((progress.best[t.id] != null && progress.best[t.id] >= 75) || (progress.done && progress.done[t.id])));
+  const bmCount = progress.bookmarks ? Object.keys(progress.bookmarks).filter((k) => progress.bookmarks[k]).length : 0;
+  return (
+    React.createElement('div', null
+      , React.createElement(ExamBanner, { progress: progress,} )
+      , React.createElement('div', { style: { display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" },}
+        , firstUndone && React.createElement('button', { onClick: () => onOpen(firstUndone.id), style: { ...mono, fontSize: 13.5, padding: "11px 16px", border: "none", borderRadius: 3, background: C.cold, color: "#fff", fontWeight: 600, cursor: "pointer" },}, "▶ Continue: "  , firstUndone.title)
+        , React.createElement('button', { onClick: onSaved, style: { ...mono, fontSize: 13.5, padding: "11px 16px", border: `1px solid ${C.line}`, borderRadius: 3, background: C.panel, color: C.ink, cursor: "pointer" },}, "★ Saved ("  , bmCount, ")")
+      )
+      , React.createElement('p', { style: { color: C.sub, fontSize: 15, lineHeight: 1.5, margin: "6px 0 20px" },}, "Twenty-three modules covering the 050 syllabus. Work through "
+                , React.createElement('b', null, "Learn"), " first, then sit the "     , React.createElement('b', null, "Quiz"), " — your best scores are saved here between sessions."
+      )
+      , React.createElement('div', { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: 12 },}
+        , TOPICS.map((t) => {
+          const read = progress.read[t.id] || 0;
+          const best = progress.best[t.id];
+          const done = (best != null && best >= 75) || (progress.done && progress.done[t.id]);
+          return (
+            React.createElement('button', {
+              key: t.id,
+              onClick: () => onOpen(t.id),
+              style: {
+                position: "relative", textAlign: "left",
+                background: done ? "#F1F5F2" : C.panel, border: `1px solid ${C.line}`,
+                borderTop: `4px solid ${done ? C.good : (best != null ? C.warm : C.cold)}`,
+                padding: "14px 16px 12px", cursor: "pointer", borderRadius: 2,
+                opacity: done ? 0.6 : 1,
+              },}
+
+              , done && React.createElement('span', { 'aria-label': "completed", style: { position: "absolute", top: 8, right: 10, width: 20, height: 20, borderRadius: 10, background: C.good, color: "#fff", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" },}, "✓")
+              , React.createElement('div', { style: { ...mono, fontSize: 11, color: C.sub, letterSpacing: 2 },}, t.code)
+              , React.createElement('div', { style: { fontWeight: 700, fontSize: 17, margin: "4px 0 6px" },}, t.title)
+              , React.createElement('div', { style: { fontSize: 13, color: C.sub, lineHeight: 1.45, minHeight: 38 },}, t.blurb)
+              , React.createElement('div', { style: { ...mono, fontSize: 12, marginTop: 10, display: "flex", justifyContent: "space-between" },}
+                , React.createElement('span', { style: { color: read >= t.cards.length ? C.good : C.sub },}, "LEARN " , read, "/", t.cards.length)
+                , React.createElement('span', { style: { color: best == null ? C.sub : best >= 75 ? C.good : C.warm },}
+                  , best == null ? "QUIZ —" : `BEST ${best}%`
+                )
+              )
+            )
+          );
+        })
+      )
+      , React.createElement('button', {
+        onClick: onDrill,
+        style: {
+          width: "100%", textAlign: "left", marginTop: 12, cursor: "pointer", borderRadius: 2,
+          background: C.ink, color: "#F2F5F7", border: "none", padding: "16px 18px",
+          display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8,
+        },}
+
+        , React.createElement('span', null
+          , React.createElement('span', { style: { ...mono, fontSize: 11, letterSpacing: 2, color: "#9FB3C2", display: "block" },}, "UNLIMITED PRACTICE" )
+          , React.createElement('span', { style: { fontWeight: 700, fontSize: 18 },}, "Calculations Drill" )
+          , React.createElement('span', { style: { display: "block", fontSize: 13, color: "#9FB3C2", marginTop: 2 },}, "Randomised ISA, density altitude, true altitude, cloud base & altimetry numbers — new figures every question."
+
+          )
+        )
+        , React.createElement('span', { style: { ...mono, fontSize: 13 },}, "BEST STREAK "  , (progress.drill && progress.drill.best) || 0, " →" )
+      )
+    )
+  );
+}
+
+function Topic({ topic, tab, setTab, progress, save, onBack }) {
+  return (
+    React.createElement('div', null
+      , React.createElement('button', { onClick: onBack, style: { ...mono, background: "none", border: "none", color: C.cold, cursor: "pointer", fontSize: 13, padding: "4px 0", marginBottom: 8 },}, "← ALL MODULES"
+
+      )
+      , React.createElement('div', { style: { ...mono, fontSize: 11, color: C.sub, letterSpacing: 2 },}, topic.code)
+      , React.createElement('h1', { style: { fontSize: 26, fontWeight: 800, margin: "2px 0 14px" },}, topic.title)
+      , React.createElement('div', { style: { display: "flex", gap: 8, marginBottom: 18 },}
+        , ["learn", "quiz"].map((m) => (
+          React.createElement('button', {
+            key: m,
+            onClick: () => setTab(m),
+            style: {
+              ...mono, fontSize: 13, letterSpacing: 1, padding: "8px 18px", cursor: "pointer", borderRadius: 2,
+              border: `1px solid ${tab === m ? C.ink : C.line}`,
+              background: tab === m ? C.ink : C.panel,
+              color: tab === m ? "#fff" : C.ink,
+            },}
+
+            , m.toUpperCase()
+          )
+        ))
+      )
+      , React.createElement(DoneToggle, { topic: topic, progress: progress, save: save,} )
+      , tab === "learn" ? (
+        React.createElement(Learn, { topic: topic, progress: progress, save: save, goQuiz: () => setTab("quiz"),} )
+      ) : (
+        React.createElement(Quiz, { topic: topic, progress: progress, save: save,} )
+      )
+    )
+  );
+}
+
+function Learn({ topic, progress, save, goQuiz }) {
+  const [i, setI] = useState(0);
+  const card = topic.cards[i];
+
+  useEffect(() => {
+    const seen = progress.read[topic.id] || 0;
+    if (i + 1 > seen) save({ ...progress, read: { ...progress.read, [topic.id]: i + 1 } });
+  }, [i]); // eslint-disable-line
+
+  return (
+    React.createElement('div', null
+      , React.createElement('div', { style: { background: C.panel, border: `1px solid ${C.line}`, borderRadius: 2, padding: "20px 22px" },}
+        , React.createElement('div', { style: { ...mono, fontSize: 12, color: C.sub },}, "CARD " , i + 1, " / "  , topic.cards.length)
+        , React.createElement('h2', { style: { fontSize: 20, fontWeight: 700, margin: "8px 0 10px" },}, card.t)
+        , React.createElement('p', { style: { fontSize: 15.5, lineHeight: 1.65, margin: 0 },}, card.b)
+        , card.img && (
+          React.createElement('figure', { style: { margin: "14px 0 0" },}
+            , React.createElement('img', { src: card.img, alt: card.t, loading: "lazy", onError: (e) => { e.currentTarget.parentNode.style.display = "none"; },
+              style: { width: "100%", display: "block", borderRadius: 3, border: `1px solid ${C.line}` },} )
+            , React.createElement('figcaption', { style: { ...mono, fontSize: 10, color: C.sub, marginTop: 4 },}, "Photo: "
+               , React.createElement('a', { href: card.imgpage, target: "_blank", rel: "noopener", style: { color: C.cold },}, "Wikimedia Commons (CC)"  ), " · shown when online"
+            )
+          )
+        )
+        , card.dia && DIAGRAMS[card.dia] && DIAGRAMS[card.dia]()
+      )
+      , React.createElement(LearnControls, { topic: topic, i: i, card: card, progress: progress, save: save,} )
+      , React.createElement('div', { style: { display: "flex", gap: 6, margin: "12px 0" },}
+        , topic.cards.map((_, k) => (
+          React.createElement('div', { key: k, style: { flex: 1, height: 4, background: k <= i ? C.cold : C.line, borderRadius: 2 },} )
+        ))
+      )
+      , React.createElement('div', { style: { display: "flex", justifyContent: "space-between", gap: 10 },}
+        , React.createElement(Btn, { ghost: true, disabled: i === 0, onClick: () => setI(i - 1),}, "← Back" )
+        , i < topic.cards.length - 1 ? (
+          React.createElement(Btn, { onClick: () => setI(i + 1),}, "Next card →"  )
+        ) : (
+          React.createElement(Btn, { onClick: goQuiz, color: C.good,}, "Take the quiz →"   )
+        )
+      )
+    )
+  );
+}
+
+function Quiz({ topic, progress, save }) {
+  const [i, setI] = useState(0);
+  const [picked, setPicked] = useState(null);
+  const [score, setScore] = useState(0);
+  const [done, setDone] = useState(false);
+  const [order] = useState(() =>
+    topic.quiz.map((q) => {
+      const idx = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
+      return { ...q, o: idx.map((k) => q.o[k]), a: idx.indexOf(q.a) };
+    })
+  );
+
+  const q = order[i];
+
+  const finish = (finalScore) => {
+    const pct = Math.round((finalScore / order.length) * 100);
+    const prev = progress.best[topic.id] || 0;
+    if (pct > prev) save({ ...progress, best: { ...progress.best, [topic.id]: pct } });
+    setDone(true);
+  };
+
+  if (done) {
+    const pct = Math.round((score / order.length) * 100);
+    const pass = pct >= 75;
+    return (
+      React.createElement('div', { style: { background: C.panel, border: `1px solid ${C.line}`, borderTop: `4px solid ${pass ? C.good : C.warm}`, borderRadius: 2, padding: "26px 22px", textAlign: "center" },}
+        , React.createElement('div', { style: { ...mono, fontSize: 12, color: C.sub, letterSpacing: 2 },}, "RESULT")
+        , React.createElement('div', { style: { fontSize: 44, fontWeight: 800, color: pass ? C.good : C.warm, margin: "6px 0" },}, pct, "%")
+        , React.createElement('p', { style: { color: C.sub, fontSize: 14, margin: "0 0 4px" },}, score, " of "  , order.length, " correct · EASA pass mark is 75%"       )
+        , React.createElement('p', { style: { fontSize: 15, margin: "10px 0 18px" },}
+          , pass ? "Pass — keep it warm with a re-run in a few days." : "Below the pass mark — revisit the Learn cards, then try again."
+        )
+        , React.createElement(Btn, { onClick: () => { setI(0); setPicked(null); setScore(0); setDone(false); },}, "Retake quiz" )
+      )
+    );
+  }
+
+  return (
+    React.createElement('div', null
+      , React.createElement('div', { style: { ...mono, fontSize: 12, color: C.sub, marginBottom: 8 },}, "QUESTION "
+         , i + 1, " / "  , order.length, " · SCORE "   , score
+      )
+      , React.createElement('div', { style: { background: C.panel, border: `1px solid ${C.line}`, borderRadius: 2, padding: "18px 20px" },}
+        , React.createElement('p', { style: { fontSize: 16.5, fontWeight: 700, lineHeight: 1.5, margin: "0 0 14px" },}, q.q)
+        , React.createElement('div', { style: { display: "grid", gap: 8 },}
+          , q.o.map((opt, k) => {
+            let bg = C.panel, border = C.line;
+            if (picked != null) {
+              if (k === q.a) { bg = "#E7F2EA"; border = C.good; }
+              else if (k === picked) { bg = C.warmSoft; border = C.warm; }
+            }
+            return (
+              React.createElement('button', {
+                key: k,
+                disabled: picked != null,
+                onClick: () => { setPicked(k); if (k === q.a) setScore(score + 1); },
+                style: {
+                  textAlign: "left", padding: "11px 14px", fontSize: 15, lineHeight: 1.4,
+                  background: bg, border: `1.5px solid ${border}`, borderRadius: 2,
+                  cursor: picked == null ? "pointer" : "default", color: C.ink,
+                },}
+
+                , React.createElement('span', { style: { ...mono, color: C.sub, marginRight: 8 },}, "ABCD"[k]), opt
+              )
+            );
+          })
+        )
+        , picked != null && (
+          React.createElement('div', { style: { marginTop: 14, padding: "12px 14px", background: picked === q.a ? "#E7F2EA" : C.coldSoft, borderLeft: `4px solid ${picked === q.a ? C.good : C.cold}`, fontSize: 14.5, lineHeight: 1.55 },}
+            , React.createElement('b', null, picked === q.a ? "Correct. " : "Not quite. "), q.e
+          )
+        )
+      )
+      , picked != null && (
+        React.createElement('div', { style: { display: "flex", justifyContent: "flex-end", marginTop: 14 },}
+          , i < order.length - 1 ? (
+            React.createElement(Btn, { onClick: () => { setI(i + 1); setPicked(null); },}, "Next question →"  )
+          ) : (
+            React.createElement(Btn, { color: C.good, onClick: () => finish(score),}, "Finish →" )
+          )
+        )
+      )
+    )
+  );
+}
+
+function Btn({ children, onClick, disabled, ghost, color }) {
+  return (
+    React.createElement('button', {
+      onClick: onClick,
+      disabled: disabled,
+      style: {
+        ...mono, fontSize: 14, padding: "10px 20px", cursor: disabled ? "default" : "pointer",
+        borderRadius: 2, letterSpacing: 0.5,
+        background: ghost ? "transparent" : color || C.ink,
+        color: ghost ? (disabled ? C.line : C.ink) : "#fff",
+        border: ghost ? `1px solid ${disabled ? C.line : C.ink}` : "none",
+        opacity: disabled ? 0.6 : 1,
+      },}
+
+      , children
+    )
+  );
+}
+
+function Drill({ progress, save, onBack }) {
+  const [q, setQ] = useState(() => genDrill());
+  const [picked, setPicked] = useState(null);
+  const [streak, setStreak] = useState(0);
+  const [count, setCount] = useState(0);
+  const [right, setRight] = useState(0);
+
+  const pick = (k) => {
+    if (picked != null) return;
+    setPicked(k);
+    setCount(count + 1);
+    if (k === q.answer) {
+      setRight(right + 1);
+      const ns = streak + 1;
+      setStreak(ns);
+      const best = (progress.drill && progress.drill.best) || 0;
+      if (ns > best) save({ ...progress, drill: { best: ns } });
+    } else {
+      setStreak(0);
+    }
+  };
+
+  return (
+    React.createElement('div', null
+      , React.createElement('button', { onClick: onBack, style: { ...mono, background: "none", border: "none", color: C.cold, cursor: "pointer", fontSize: 13, padding: "4px 0", marginBottom: 8 },}, "← ALL MODULES"
+
+      )
+      , React.createElement('h1', { style: { fontSize: 26, fontWeight: 800, margin: "2px 0 4px" },}, "Calculations Drill" )
+      , React.createElement('div', { style: { ...mono, fontSize: 12, color: C.sub, marginBottom: 14 },}, "STREAK "
+         , streak, " · SESSION "   , right, "/", count, " · BEST "   , (progress.drill && progress.drill.best) || 0
+      )
+      , React.createElement('div', { style: { background: C.panel, border: `1px solid ${C.line}`, borderRadius: 2, padding: "18px 20px" },}
+        , React.createElement('p', { style: { fontSize: 16.5, fontWeight: 700, lineHeight: 1.5, margin: "0 0 14px" },}, q.q)
+        , React.createElement('div', { style: { display: "grid", gap: 8 },}
+          , q.options.map((opt, k) => {
+            let bg = C.panel, border = C.line;
+            if (picked != null) {
+              if (k === q.answer) { bg = "#E7F2EA"; border = C.good; }
+              else if (k === picked) { bg = C.warmSoft; border = C.warm; }
+            }
+            return (
+              React.createElement('button', { key: k, disabled: picked != null, onClick: () => pick(k),
+                style: { textAlign: "left", padding: "11px 14px", fontSize: 15, background: bg, border: `1.5px solid ${border}`, borderRadius: 2, cursor: picked == null ? "pointer" : "default", color: C.ink },}
+                , React.createElement('span', { style: { ...mono, color: C.sub, marginRight: 8 },}, "ABCD"[k]), opt
+              )
+            );
+          })
+        )
+        , picked != null && (
+          React.createElement('div', { style: { marginTop: 14, padding: "12px 14px", background: picked === q.answer ? "#E7F2EA" : C.coldSoft, borderLeft: `4px solid ${picked === q.answer ? C.good : C.cold}`, fontSize: 14.5, lineHeight: 1.55 },}
+            , React.createElement('b', null, picked === q.answer ? "Correct. " : "Not quite. "), q.e
+          )
+        )
+      )
+      , picked != null && (
+        React.createElement('div', { style: { display: "flex", justifyContent: "flex-end", marginTop: 14 },}
+          , React.createElement(Btn, { onClick: () => { setQ(genDrill()); setPicked(null); },}, "Next question →"  )
+        )
+      )
+    )
+  );
+}
+
+
+// ===================== ADDED FEATURES =====================
+function speak(text, onEnd) {
+  try {
+    const s = window.speechSynthesis; if (!s) return false;
+    s.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 1; u.onend = onEnd; s.speak(u); return true;
+  } catch (e) { return false; }
+}
+function stopSpeak() { try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {} }
+
+function ExamBanner({ progress }) {
+  const [date, setDate] = useState("");
+  const [editing, setEditing] = useState(false);
+  useEffect(() => { try { setDate(localStorage.getItem("atpl-exam-date") || ""); } catch (e) {} }, []);
+  const setExam = (v) => { setDate(v); try { v ? localStorage.setItem("atpl-exam-date", v) : localStorage.removeItem("atpl-exam-date"); } catch (e) {} setEditing(false); };
+  const undone = TOPICS.filter((t) => !((progress.best[t.id] != null && progress.best[t.id] >= 75) || (progress.done && progress.done[t.id]))).length;
+  let days = null;
+  if (date) { const d = new Date(date + "T00:00:00"); days = Math.ceil((d - new Date()) / 86400000); }
+  if (!date || editing) {
+    return (
+      React.createElement('div', { style: { background: C.panel, border: `1px solid ${C.line}`, borderRadius: 3, padding: "12px 14px", marginBottom: 14, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },}
+        , React.createElement('span', { style: { ...mono, fontSize: 12, color: C.sub },}, "Exam date:" )
+        , React.createElement('input', { type: "date", defaultValue: date, onChange: (e) => setExam(e.target.value), style: { ...mono, fontSize: 13, padding: "6px 8px", border: `1px solid ${C.line}`, borderRadius: 2 },} )
+        , date && React.createElement('button', { onClick: () => setExam(""), style: { ...mono, fontSize: 12, background: "none", border: "none", color: C.warm, cursor: "pointer" },}, "clear")
+      )
+    );
+  }
+  const overdue = days < 0;
+  const pace = days > 0 ? Math.ceil(undone / days) : undone;
+  return (
+    React.createElement('div', { onClick: () => setEditing(true), style: { cursor: "pointer", background: overdue ? C.warmSoft : C.ink, color: overdue ? C.warm : "#fff", borderRadius: 3, padding: "12px 16px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" },}
+      , React.createElement('span', null
+        , React.createElement('span', { style: { ...mono, fontSize: 11, letterSpacing: 2, color: overdue ? C.warm : "#9FB3C2", display: "block" },}, "EXAM COUNTDOWN" )
+        , React.createElement('span', { style: { fontWeight: 800, fontSize: 20 },}, overdue ? `${Math.abs(days)} days ago` : days === 0 ? "Exam today" : `${days} days to go`)
+      )
+      , !overdue && days > 0 && undone > 0 && React.createElement('span', { style: { ...mono, fontSize: 12, color: "#9FB3C2", textAlign: "right" },}, undone, " chapters left · ~"    , pace, "/day")
+    )
+  );
+}
+
+function DoneToggle({ topic, progress, save }) {
+  const passed = progress.best[topic.id] != null && progress.best[topic.id] >= 75;
+  const marked = !!(progress.done && progress.done[topic.id]);
+  const done = passed || marked;
+  const toggle = () => { const d = { ...(progress.done || {}) }; d[topic.id] = !marked; save({ ...progress, done: d }); };
+  return (
+    React.createElement('button', { onClick: toggle, style: { ...mono, fontSize: 12.5, padding: "8px 14px", borderRadius: 2, marginBottom: 16, cursor: "pointer", border: `1px solid ${done ? C.good : C.line}`, background: done ? "#E7F2EA" : C.panel, color: done ? C.good : C.sub },}
+      , done ? "✓ Completed — tap to unmark" : "○ Mark chapter complete"
+    )
+  );
+}
+
+function LearnControls({ topic, i, card, progress, save }) {
+  const [speaking, setSpeaking] = useState(false);
+  useEffect(() => { stopSpeak(); setSpeaking(false); }, [i]); // eslint-disable-line
+  const bmKey = topic.id + ":" + i;
+  const marked = !!(progress.bookmarks && progress.bookmarks[bmKey]);
+  const toggleBm = () => { const bm = { ...(progress.bookmarks || {}) }; bm[bmKey] = !marked; save({ ...progress, bookmarks: bm }); };
+  const toggleSpeak = () => {
+    if (speaking) { stopSpeak(); setSpeaking(false); }
+    else { const ok = speak(card.t + ". " + card.b, () => setSpeaking(false)); setSpeaking(ok); }
+  };
+  return (
+    React.createElement('div', { style: { display: "flex", gap: 8, marginTop: 12 },}
+      , React.createElement('button', { onClick: toggleSpeak, style: { ...mono, fontSize: 13, padding: "9px 14px", borderRadius: 2, border: `1px solid ${C.line}`, background: speaking ? C.coldSoft : C.panel, color: C.ink, cursor: "pointer" },}, speaking ? "■ Stop" : "▶ Listen")
+      , React.createElement('button', { onClick: toggleBm, style: { ...mono, fontSize: 13, padding: "9px 14px", borderRadius: 2, border: `1px solid ${marked ? C.warm : C.line}`, background: marked ? C.warmSoft : C.panel, color: marked ? C.warm : C.ink, cursor: "pointer" },}, marked ? "★ Saved" : "☆ Save card")
+    )
+  );
+}
+
+function Saved({ progress, save, onOpen, onBack }) {
+  const bm = progress.bookmarks || {};
+  const items = [];
+  TOPICS.forEach((t) => t.cards.forEach((c, idx) => { if (bm[t.id + ":" + idx]) items.push({ t, c, idx }); }));
+  const unsave = (key) => { const b = { ...bm }; delete b[key]; save({ ...progress, bookmarks: b }); };
+  return (
+    React.createElement('div', null
+      , React.createElement('button', { onClick: onBack, style: { ...mono, background: "none", border: "none", color: C.cold, cursor: "pointer", fontSize: 13, padding: "4px 0", marginBottom: 8 },}, "← ALL MODULES"  )
+      , React.createElement('h1', { style: { fontSize: 26, fontWeight: 800, margin: "2px 0 14px" },}, "★ Saved cards"  )
+      , items.length === 0 ? (
+        React.createElement('p', { style: { color: C.sub, fontSize: 15 },}, "No saved cards yet. Tap “☆ Save card” on any Learn card to keep it here for quick revision."                  )
+      ) : (
+        React.createElement('div', { style: { display: "grid", gap: 10 },}
+          , items.map(({ t, c, idx }) => (
+            React.createElement('div', { key: t.id + idx, style: { background: C.panel, border: `1px solid ${C.line}`, borderLeft: `4px solid ${C.warm}`, borderRadius: 2, padding: "12px 14px" },}
+              , React.createElement('div', { style: { ...mono, fontSize: 10.5, color: C.cold },}, t.code, " · "  , t.title)
+              , React.createElement('div', { style: { fontWeight: 700, fontSize: 15, margin: "3px 0 5px" },}, c.t)
+              , React.createElement('p', { style: { fontSize: 13.5, color: C.sub, lineHeight: 1.5, margin: "0 0 8px" },}, c.b)
+              , React.createElement('div', { style: { display: "flex", gap: 8 },}
+                , React.createElement('button', { onClick: () => onOpen(t.id), style: { ...mono, fontSize: 12, padding: "7px 12px", border: "none", borderRadius: 2, background: C.ink, color: "#fff", cursor: "pointer" },}, "Open chapter →"  )
+                , React.createElement('button', { onClick: () => unsave(t.id + ":" + idx), style: { ...mono, fontSize: 12, padding: "7px 12px", border: `1px solid ${C.line}`, borderRadius: 2, background: C.panel, color: C.warm, cursor: "pointer" },}, "Remove")
+              )
+            )
+          ))
+        )
+      )
+    )
+  );
+}
+
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));</script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}</script>
+</body></html>

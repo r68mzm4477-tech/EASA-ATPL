@@ -1,0 +1,1319 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" /><meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black" /><meta name="theme-color" content="#16222C" />
+<link rel="manifest" href="manifest.webmanifest" /><link rel="apple-touch-icon" href="icon-180.png" /><title>Enhanced ATPL Principles of Flight</title>
+<script src="vendor-react.js"></script>
+<style>html,body{margin:0;padding:0;background:#E9EEF2;-webkit-text-size-adjust:100%;}#root{min-height:100vh;}
+.homebar{position:sticky;top:0;z-index:50;background:#0f1820;display:flex;align-items:center;gap:8px;padding:8px 14px;font:600 13px 'IBM Plex Mono',monospace;color:#9FB3C2;}.homebar a{color:#9FB3C2;text-decoration:none;}</style>
+</head><body><div class="homebar"><a href="index.html">‹ SUBJECTS</a></div><div id="root"></div>
+<script>const storageShim={async get(k){try{const v=localStorage.getItem(k);return v==null?null:{key:k,value:v}}catch(e){return null}},async set(k,v){try{localStorage.setItem(k,v);return{key:k,value:v}}catch(e){return null}},async delete(k){try{localStorage.removeItem(k);return{key:k,deleted:true}}catch(e){return null}},async list(p){try{return{keys:Object.keys(localStorage).filter(k=>!p||k.startsWith(p))}}catch(e){return null}}};if(!window.storage)window.storage=storageShim;</script>
+<script>const {useState,useEffect}=React;
+
+// ===================== SYLLABUS DATA =====================
+const TOPICS = [
+  {
+    id: "basics",
+    code: "081·01",
+    title: "Airflow & Basic Aerodynamics",
+    blurb: "Air properties, continuity, Bernoulli, dynamic pressure, airspeeds.",
+    cards: [
+      { t: "Properties of air", b: "Air has mass, exerts static pressure, and is compressible and viscous. At low speeds (below ~M0.4) it is treated as INCOMPRESSIBLE. Density falls with altitude and temperature — and since aerodynamic force depends on density, this directly affects lift, drag and performance." },
+      { t: "The continuity equation", b: "In a streamtube, mass flow is constant: density × area × velocity = constant. For incompressible flow, where the tube NARROWS the air SPEEDS UP. This is why air accelerates over the curved upper surface of a wing." },
+      { t: "Bernoulli's theorem", b: "In steady flow, total pressure = static pressure + dynamic pressure = constant. So where the air speeds up, its STATIC pressure FALLS. Faster flow over the top of the wing means lower pressure on top — the basis of lift. Dynamic pressure q = ½ρV².", dia: "bernoulli" },
+      { t: "Dynamic pressure (½ρV²)", b: "The pressure of moving air, q = ½ρV². It drives every aerodynamic force — lift and drag are both proportional to it. Note it depends on density AND the square of speed: double the TAS and dynamic pressure quadruples." },
+      { t: "The airspeeds: IAS, CAS, EAS, TAS", b: "IAS: what the ASI reads (really dynamic pressure). CAS: IAS corrected for position/instrument error. EAS: CAS corrected for compressibility. TAS: EAS corrected for density — TAS exceeds IAS as you climb (thinner air). The aircraft's aerodynamics respond to IAS/EAS; navigation uses TAS." },
+      { t: "Why IAS matters", b: "Because lift and drag depend on dynamic pressure, the wing 'feels' IAS, not TAS. The stall always occurs at the same IAS regardless of altitude (ignoring compressibility), which is why limit speeds are given as indicated speeds." },
+    ],
+    quiz: [
+      { q: "By the continuity equation, where a streamtube narrows the airflow:", o: ["Speeds up", "Slows down", "Stops", "Reverses"], a: 0, e: "Mass flow is constant, so a smaller area means higher velocity — air accelerates over the wing's curved upper surface." },
+      { q: "According to Bernoulli, where airflow speeds up its static pressure:", o: ["Decreases", "Increases", "Stays constant", "Becomes zero"], a: 0, e: "Total pressure is constant; faster flow means more dynamic pressure and therefore less static pressure — the low pressure that lifts the wing." },
+      { q: "Dynamic pressure is given by:", o: ["½ρV²", "ρV", "ρgh", "½ρV"], a: 0, e: "q = ½ρV² — proportional to density and to the SQUARE of speed." },
+      { q: "As an aircraft climbs at constant IAS, its TAS:", o: ["Increases", "Decreases", "Stays the same", "Falls to zero"], a: 0, e: "Density falls with altitude, so a given dynamic pressure (constant IAS) corresponds to a higher true airspeed." },
+      { q: "The stalling angle of attack corresponds to a stall that occurs at a constant:", o: ["IAS (ignoring compressibility)", "TAS", "Mach number", "Altitude"], a: 0, e: "The wing responds to dynamic pressure ≈ IAS, so the stall IAS is essentially constant with altitude — hence limits in indicated speed." },
+      { q: "If TAS doubles, dynamic pressure (at constant density):", o: ["Quadruples", "Doubles", "Halves", "Is unchanged"], a: 0, e: "q ∝ V², so doubling speed multiplies dynamic pressure by four." },
+    ],
+  },
+  {
+    id: "lift",
+    code: "081·01",
+    title: "Lift & The Aerofoil",
+    blurb: "Aerofoil terms, angle of attack, the lift formula, CL, CofP.",
+    cards: [
+      { t: "Aerofoil terminology", b: "CHORD LINE: straight line from leading to trailing edge. CAMBER: curvature of the aerofoil. MEAN CAMBER LINE: midway between upper and lower surfaces. ANGLE OF ATTACK (AoA): the angle between the chord line and the RELATIVE AIRFLOW — not the same as pitch attitude.", dia: "aerofoil" },
+      { t: "The lift formula", b: "Lift L = CL × ½ρV² × S, where CL is the lift coefficient, ½ρV² is dynamic pressure, and S is wing area. The pilot controls lift mainly through CL (via angle of attack) and V (speed). At higher altitude, lower ρ must be offset by higher TAS to keep lift constant." },
+      { t: "The lift coefficient (CL) and AoA", b: "CL depends on aerofoil shape and angle of attack. CL increases roughly LINEARLY with AoA up to the stalling angle (typically ~16°), where it reaches CLmax and then drops sharply. To maintain level flight as speed reduces, AoA (and CL) must increase.", dia: "clalpha" },
+      { t: "Where lift comes from", b: "Faster, lower-pressure flow over the top and slower, higher-pressure flow underneath produce a net upward force. About two-thirds of lift typically comes from the reduced pressure on TOP of the wing, not from pressure underneath." },
+      { t: "Centre of pressure (CofP)", b: "The point through which the total lift acts. On a typical cambered aerofoil, as AoA INCREASES the CofP moves FORWARD (towards the leading edge), and it moves rearward as AoA decreases. This movement matters for stability and stick forces." },
+      { t: "The aerodynamic centre", b: "The point about which the pitching moment stays essentially CONSTANT with changing AoA — located near the QUARTER-CHORD (25% chord) in subsonic flow. Designers reference moments here because it simplifies stability analysis; in supersonic flow it shifts rearward to ~50% chord." },
+    ],
+    quiz: [
+      { q: "Angle of attack is the angle between the:", o: ["Chord line and the relative airflow", "Wing and the horizon", "Chord line and the longitudinal axis", "Flightpath and the horizon"], a: 0, e: "AoA is chord line vs relative airflow — distinct from pitch attitude, which is relative to the horizon." },
+      { q: "In the lift formula L = CL·½ρV²·S, the pilot most directly varies lift through:", o: ["CL (angle of attack) and V", "ρ and S", "S only", "ρ only"], a: 0, e: "Angle of attack (CL) and airspeed (V) are the pilot's controls; wing area changes only with flaps, density with altitude." },
+      { q: "As angle of attack increases up to the stall, CL:", o: ["Increases roughly linearly, then drops at the stall", "Decreases steadily", "Stays constant", "Increases indefinitely"], a: 0, e: "CL rises nearly linearly to CLmax at the stalling angle (~16°), then falls away sharply as the flow separates." },
+      { q: "On a typical cambered wing, most lift is generated by:", o: ["Reduced pressure over the upper surface", "Increased pressure under the lower surface", "The trailing edge", "Skin friction"], a: 0, e: "Roughly two-thirds of lift comes from the suction (low pressure) on top of the wing." },
+      { q: "As AoA increases on a cambered aerofoil, the centre of pressure generally moves:", o: ["Forward", "Rearward", "Stays fixed at 50% chord", "Off the wing"], a: 0, e: "The CofP moves forward toward the leading edge with increasing AoA (within the normal range)." },
+      { q: "The subsonic aerodynamic centre is located approximately at:", o: ["25% chord", "5% chord", "50% chord", "The trailing edge"], a: 0, e: "Near the quarter-chord, where the pitching moment is essentially independent of AoA (it moves to ~50% supersonically)." },
+    ],
+  },
+  {
+    id: "drag",
+    code: "081·01",
+    title: "Drag",
+    blurb: "Parasite & induced drag, the drag curve, Vmd, aspect ratio, winglets.",
+    cards: [
+      { t: "The two families of drag", b: "PARASITE drag (form/pressure, skin friction, interference) increases with the SQUARE of speed. INDUCED drag — the by-product of producing lift — DECREASES with speed (it is large and slow, small and fast). TOTAL drag is their sum, giving a U-shaped curve.", dia: "dragcurve" },
+      { t: "Induced drag & wingtip vortices", b: "High pressure below the wing spills around the tip to the low pressure above, creating wingtip vortices and downwash. This tilts the lift vector rearward — that rearward component IS induced drag. It is greatest at high AoA / low speed / high weight." },
+      { t: "Reducing induced drag", b: "Induced drag is reduced by HIGH ASPECT RATIO (long thin wings — gliders), by winglets/wingtip devices that weaken the vortex, and by tapered or elliptical lift distributions. Induced drag is inversely proportional to the square of speed and to aspect ratio." },
+      { t: "Vmd — minimum drag speed", b: "At the bottom of the total drag curve, parasite drag equals induced drag and total drag is least — this is Vmd, the speed for best lift/drag ratio (L/Dmax). It gives maximum glide range and, in jets, relates to maximum endurance / best range references." },
+      { t: "Speed stability", b: "Flying FASTER than Vmd is speed-stable: a speed decrease reduces drag, so the aircraft tends to re-accelerate. Flying SLOWER than Vmd (the 'back of the drag curve') is speed-UNSTABLE: slowing increases drag, which slows you further — the region of reversed command, important on approach." },
+      { t: "L/D ratio", b: "Lift/drag ratio measures aerodynamic efficiency, maximised at Vmd. A higher L/Dmax means a flatter glide and better range. L/D max occurs at one specific ANGLE OF ATTACK, so best glide is flown at a speed (which varies with weight) corresponding to that AoA." },
+    ],
+    quiz: [
+      { q: "Induced drag varies with speed in what way?", o: ["Decreases as speed increases", "Increases as speed increases", "Independent of speed", "Increases with the square of speed"], a: 0, e: "Induced drag is high at low speed/high AoA and falls as speed rises — opposite to parasite drag." },
+      { q: "Parasite drag varies with speed how?", o: ["Increases with the square of speed", "Decreases with speed", "Constant", "Decreases with the square of speed"], a: 0, e: "Parasite drag ∝ V² — it dominates at high speed, induced drag at low speed." },
+      { q: "At minimum drag speed (Vmd):", o: ["Induced drag equals parasite drag", "Induced drag is zero", "Parasite drag is zero", "Total drag is greatest"], a: 0, e: "The two curves cross at Vmd — total drag is least and L/D is maximum." },
+      { q: "Induced drag is reduced by:", o: ["Higher aspect ratio and winglets", "Lower aspect ratio", "A blunter wing", "Increasing weight"], a: 0, e: "Long thin (high aspect ratio) wings and tip devices weaken the vortices that cause induced drag." },
+      { q: "Flying on the 'back of the drag curve' (below Vmd) the aircraft is:", o: ["Speed-unstable", "Speed-stable", "At minimum drag", "At maximum L/D"], a: 0, e: "Below Vmd, slowing increases drag, which slows the aircraft further — reversed command, a trap on slow approaches." },
+      { q: "Maximum lift/drag ratio occurs at:", o: ["A specific angle of attack (Vmd)", "The highest possible speed", "Maximum AoA", "Zero AoA"], a: 0, e: "L/Dmax is a fixed AoA; the corresponding speed varies with weight but gives best glide range." },
+    ],
+  },
+  {
+    id: "stall",
+    code: "081·01",
+    title: "The Stall & Spin",
+    blurb: "Boundary layer, separation, stall speed factors, spinning.",
+    cards: [
+      { t: "The boundary layer", b: "The thin layer of air slowed by friction next to the surface. It begins LAMINAR (smooth, low drag) then becomes TURBULENT (thicker, more drag but more energetic and better at resisting separation). The transition point moves forward as speed/roughness increases." },
+      { t: "Separation and the stall", b: "As AoA increases, the adverse pressure gradient grows until the boundary layer separates from the upper surface. At the STALLING ANGLE (~16°) the airflow breaks away, CL collapses and drag rises sharply. A stall is always caused by exceeding the critical ANGLE OF ATTACK — at any speed or attitude." },
+      { t: "Stall speed factors", b: "Stall IAS INCREASES with: greater weight, increased load factor (turns, pull-ups), forward CG (more download needed from the tail), and contamination (ice/frost). It is unaffected, in IAS terms, by altitude. Stall speed ∝ √(weight) and ∝ √(load factor)." },
+      { t: "Load factor and the accelerated stall", b: "In a level turn, load factor n = 1/cos(bank). Stall speed rises with √n: a 60° bank gives n=2, raising stall speed by √2 ≈ 1.41 (about 41% higher). This is the accelerated stall — you can stall at well above the 1g stall speed by manoeuvring." },
+      { t: "Stall recognition & wing design", b: "Warnings: buffet, stall warner, high stick force/position, sloppy controls. Wings are designed to stall at the ROOT first (washout — tip has lower incidence) so ailerons stay effective and the stall is gentle. Stall strips and vortex generators tailor the behaviour." },
+      { t: "The spin", b: "A stall with yaw: one wing is more deeply stalled than the other (autorotation), giving a descending, rotating, stalled flightpath. Standard recovery (PARE): Power idle, Ailerons neutral, Rudder full OPPOSITE the spin, Elevator forward to break the stall — then recover the dive. A deep/super stall can trap T-tail aircraft with the blanked tailplane." },
+    ],
+    quiz: [
+      { q: "A stall is always caused by exceeding the critical:", o: ["Angle of attack", "Airspeed", "Mach number", "Bank angle"], a: 0, e: "The stall is an AoA phenomenon — it can occur at any speed or attitude if the critical AoA is exceeded." },
+      { q: "Stalling speed (IAS) increases with:", o: ["Increased weight and load factor", "Increased altitude", "Aft CG only", "Reduced weight"], a: 0, e: "Stall IAS rises with weight (√W) and load factor (√n); forward CG also raises it. It is essentially unchanged with altitude in IAS." },
+      { q: "In a 60° banked level turn, the stall speed increases by a factor of about:", o: ["1.41", "2.0", "1.0", "0.7"], a: 0, e: "n = 1/cos60° = 2, and stall speed rises with √n = √2 ≈ 1.41 (41% higher)." },
+      { q: "Wing washout (lower tip incidence) is used so that:", o: ["The root stalls before the tip, keeping ailerons effective", "The tip stalls first", "Induced drag increases", "The CofP moves aft"], a: 0, e: "Root-first stalling preserves roll control and gives gentle stall behaviour with early buffet." },
+      { q: "A turbulent boundary layer, compared with a laminar one:", o: ["Has more energy and resists separation better", "Always separates sooner", "Produces less drag", "Cannot exist on a wing"], a: 0, e: "Turbulent flow has higher skin friction but more energy, so it clings to the surface longer and delays the stall." },
+      { q: "In the standard spin recovery, the rudder is applied:", o: ["Full, opposite to the direction of rotation", "Full, into the rotation", "Neutral throughout", "In time with the ailerons"], a: 0, e: "PARE: power idle, ailerons neutral, full OPPOSITE rudder, elevator forward to unstall, then recover the dive." },
+    ],
+  },
+  {
+    id: "highlift",
+    code: "081·01",
+    title: "High-Lift & Drag Devices",
+    blurb: "Flaps, slats, slots, spoilers — effects on CL, drag and stall.",
+    cards: [
+      { t: "Why high-lift devices", b: "To fly slower for takeoff and landing you need more CL at low speed. Flaps and slats raise CLmax, lowering the stall speed so approach and landing speeds can be reduced and runway length saved." },
+      { t: "Flap types", b: "PLAIN: hinged trailing edge — modest CL gain, lots of drag. SPLIT: lower surface deflects — more drag, little lift gain. SLOTTED: a gap re-energises the boundary layer — large CL gain (most common on airliners). FOWLER: slides aft AND down, increasing both camber AND wing AREA — the biggest CL increase." },
+      { t: "What flaps do to the curve", b: "Lowering flaps increases CL at every AoA and raises CLmax, but REDUCES the stalling angle of attack (the curve shifts up and left). Lift increases, but so does drag — and large flap settings give more drag than lift, which is why landing flap is more than takeoff flap.", dia: "flapsslats" },
+      { t: "Slats and slots", b: "Leading-edge SLATS (and fixed SLOTS) delay separation by feeding high-energy air over the upper surface. They INCREASE the stalling angle of attack and CLmax — the opposite effect on stall angle from trailing-edge flaps. Often used together: slats extend the stall AoA, flaps boost low-speed lift." },
+      { t: "Spoilers & airbrakes", b: "Spoilers raise to DESTROY lift and increase drag. Roles: as airbrakes (both wings, descent/deceleration), as lift dumpers (on touchdown, to put weight on wheels for braking), and as roll spoilers (asymmetric, to assist or replace ailerons). Lift dump after landing dramatically improves braking." },
+      { t: "Movement summary", b: "Trailing-edge flaps: ↑CLmax, ↓stall speed, ↑drag, ↓stall AoA, nose-down pitch change is common. Leading-edge slats: ↑CLmax, ↑stall AoA. Use this contrast in exam questions — flaps and slats move the stall ANGLE in opposite directions even though both lower the stall SPEED." },
+    ],
+    quiz: [
+      { q: "The flap type that increases wing area as well as camber is the:", o: ["Fowler flap", "Plain flap", "Split flap", "Krueger flap"], a: 0, e: "Fowler flaps translate aft and down, adding area and camber — the greatest CLmax increase." },
+      { q: "Lowering trailing-edge flaps changes the stalling angle of attack how?", o: ["Reduces it", "Increases it", "Leaves it unchanged", "Doubles it"], a: 0, e: "Flaps raise CLmax but the stall now occurs at a LOWER angle of attack (curve shifts up and left)." },
+      { q: "Leading-edge slats primarily:", o: ["Increase CLmax and the stalling angle of attack", "Reduce CLmax", "Reduce the stalling angle", "Act as airbrakes"], a: 0, e: "Slats re-energise the boundary layer, delaying separation to a higher AoA and raising CLmax." },
+      { q: "On touchdown, spoilers deployed as lift dumpers:", o: ["Destroy lift to put weight on the wheels for braking", "Increase lift for a smoother rollout", "Act as flaps", "Reduce drag"], a: 0, e: "Killing lift transfers weight to the wheels, sharply improving wheel braking effectiveness." },
+      { q: "Compared with takeoff flap, full landing flap is used because it gives:", o: ["More drag (steeper, slower approach)", "Less drag", "More wing area only", "A higher stall angle"], a: 0, e: "Large flap settings add a lot of drag for relatively little extra lift — ideal for a controlled, slow descent to land." },
+      { q: "Both flaps and slats lower the stall SPEED, but they affect stall ANGLE:", o: ["In opposite directions", "Identically", "Not at all", "Only at high altitude"], a: 0, e: "Trailing-edge flaps reduce the stall angle; leading-edge slats increase it — a classic exam contrast." },
+    ],
+  },
+  {
+    id: "stability",
+    code: "081·03",
+    title: "Stability",
+    blurb: "Static & dynamic stability, CG, longitudinal/lateral/directional.",
+    cards: [
+      { t: "Static vs dynamic stability", b: "STATIC stability is the INITIAL tendency to return to equilibrium after a disturbance (positive = returns, neutral = stays, negative = diverges). DYNAMIC stability describes the motion OVER TIME — the disturbance may damp out (positive), continue undamped, or grow. An aircraft can be statically stable yet dynamically unstable.", dia: "stabilityball" },
+      { t: "Longitudinal stability & CG", b: "Stability in pitch, provided mainly by the TAILPLANE. The key is CG position relative to the wing's aerodynamic centre. FORWARD CG = more stable but heavier stick forces and higher stall speed. AFT CG = less stable, lighter controls; too far aft and the aircraft becomes uncontrollable. CG limits exist exactly for this." },
+      { t: "The pitch effect of CG", b: "A forward CG needs more nose-up tailplane download, effectively increasing the load the wing carries (higher stall speed, more drag). An aft CG reduces stability and can make pitch control over-sensitive. Loading must keep CG within the certified envelope." },
+      { t: "Lateral stability (roll)", b: "Tendency to return to wings-level after a roll disturbance, achieved by DIHEDRAL (wings angled up), high wing position, wing sweepback, and keel surface. A sideslip caused by the roll generates a restoring rolling moment. Too much lateral stability worsens Dutch roll." },
+      { t: "Directional stability (yaw)", b: "Tendency to weathercock into the relative airflow after a yaw, provided mainly by the FIN (vertical stabiliser) and fuselage side area behind the CG. Like a weathervane, the aircraft turns to point into the airflow." },
+      { t: "Dutch roll & spiral instability", b: "These come from the interaction of lateral and directional stability. DUTCH ROLL: too much lateral relative to directional stability — an oscillating roll/yaw wallow, damped by yaw dampers. SPIRAL instability: too much directional relative to lateral — a slowly tightening descending turn. Designers trade one against the other." },
+    ],
+    quiz: [
+      { q: "Static stability refers to the aircraft's:", o: ["Initial tendency to return to equilibrium", "Motion over a long period", "Cruise speed", "Maximum bank angle"], a: 0, e: "Static = the immediate response to a disturbance; dynamic = how that motion evolves with time." },
+      { q: "Moving the CG forward makes an aircraft:", o: ["More longitudinally stable, with heavier stick forces", "Less stable", "Neutrally stable", "Directionally unstable"], a: 0, e: "Forward CG increases pitch stability but raises stick forces, stall speed and drag (tail download)." },
+      { q: "Lateral (roll) stability is provided mainly by:", o: ["Wing dihedral", "The fin", "The elevator", "Flaps"], a: 0, e: "Dihedral (plus sweep, high wing, keel area) creates a restoring roll moment when the aircraft sideslips." },
+      { q: "Directional stability is provided mainly by the:", o: ["Fin (vertical stabiliser)", "Tailplane", "Ailerons", "Wing dihedral"], a: 0, e: "The fin and rear fuselage make the aircraft weathercock into the airflow after a yaw disturbance." },
+      { q: "Dutch roll results from:", o: ["Strong lateral relative to directional stability", "Strong directional relative to lateral stability", "Forward CG", "Too little dihedral"], a: 0, e: "Excess lateral stability gives the oscillating roll/yaw of Dutch roll — countered by yaw dampers. The opposite imbalance gives spiral instability." },
+      { q: "An aircraft can be:", o: ["Statically stable but dynamically unstable", "Statically unstable but always dynamically stable", "Neither type of stability at once", "Stable only in cruise"], a: 0, e: "The two are distinct: a stable initial response can still develop into a growing oscillation over time." },
+    ],
+  },
+  {
+    id: "controls",
+    code: "081·04",
+    title: "Controls & Trim",
+    blurb: "Three axes, adverse yaw, trim & tabs, mass balance, flutter.",
+    cards: [
+      { t: "The three axes & primary controls", b: "PITCH about the lateral axis — ELEVATOR. ROLL about the longitudinal axis — AILERONS. YAW about the normal (vertical) axis — RUDDER. Each control alters the camber/lift of its surface to create a moment about the corresponding axis.", dia: "axes" },
+      { t: "Adverse yaw", b: "In a roll, the down-going aileron (rising wing) creates more lift AND more induced drag, yawing the aircraft AWAY from the turn — adverse yaw. Cures: DIFFERENTIAL ailerons (up-aileron moves more than down), FRISE ailerons (up-aileron projects into the airflow to add drag), and coordinated rudder." },
+      { t: "Trim", b: "Trimming relieves the steady stick force so the pilot needn't hold pressure. A TRIM TAB on the trailing edge of a control deflects the OPPOSITE way to hold the surface in the desired position with zero stick force. Re-trim after any change of speed, power or configuration." },
+      { t: "Types of tab", b: "TRIM tab: pilot-set, holds zero stick force. BALANCE tab: moves opposite to the control to lighten the stick force during the input. ANTI-BALANCE (anti-servo) tab: moves the SAME way to HEAVEN the feel and prevent over-controlling. SERVO tab: aerodynamically drives the main surface on large aircraft." },
+      { t: "Aerodynamic & mass balancing", b: "AERODYNAMIC balance (horn balance, set-back hinge) reduces the effort to move a control. MASS balance — weight ahead of the hinge line — prevents control-surface FLUTTER by moving the surface's centre of gravity onto or ahead of the hinge. Flutter is a destructive vibration that can fail the structure." },
+      { t: "Flutter & Vne", b: "Flutter is a rapidly diverging oscillation from the coupling of aerodynamic, inertial and elastic forces — more likely at high speed. Mass balancing, stiff structures and the never-exceed speed Vne keep the aircraft clear of the flutter regime." },
+    ],
+    quiz: [
+      { q: "Roll about the longitudinal axis is controlled by the:", o: ["Ailerons", "Elevator", "Rudder", "Flaps"], a: 0, e: "Ailerons → roll (longitudinal axis); elevator → pitch (lateral); rudder → yaw (normal)." },
+      { q: "Adverse yaw during a roll is caused by:", o: ["Extra induced drag on the rising wing", "The rudder", "The down-going wing's drag", "Dihedral"], a: 0, e: "The up-aileron wing makes more lift and more induced drag, yawing away from the turn — eased by differential/Frise ailerons and rudder." },
+      { q: "A trim tab moves:", o: ["Opposite to the control surface to hold zero stick force", "The same way as the control", "Only on the ground", "To increase flutter"], a: 0, e: "It deflects opposite to the surface, holding it in place so the pilot feels no steady force." },
+      { q: "An anti-balance (anti-servo) tab:", o: ["Moves the same way as the control to increase feel", "Moves opposite to lighten feel", "Prevents flutter by mass", "Drives the surface aerodynamically"], a: 0, e: "It heavies the controls to stop over-controlling — common on all-moving stabilators." },
+      { q: "Mass balancing of a control surface is used to:", o: ["Prevent flutter", "Reduce induced drag", "Increase the stall angle", "Trim the aircraft"], a: 0, e: "A weight ahead of the hinge shifts the surface CG forward, preventing the destructive oscillation called flutter." },
+      { q: "Flutter is most likely:", o: ["At high speed", "At low speed", "At high AoA only", "On the ground"], a: 0, e: "The aero-elastic coupling that drives flutter intensifies with speed — Vne keeps the aircraft below it." },
+    ],
+  },
+  {
+    id: "mechanics",
+    code: "081·01",
+    title: "Flight Mechanics",
+    blurb: "Forces in level flight, climb, descent, glide and the turn.",
+    cards: [
+      { t: "Steady level flight", b: "Four forces in balance: LIFT = WEIGHT and THRUST = DRAG. The lift/weight and thrust/drag couples also balance in pitch. If thrust exceeds drag the aircraft accelerates or climbs; if lift exceeds weight it accelerates upward.", dia: "fourforces" },
+      { t: "The climb", b: "In a steady climb, thrust must overcome drag PLUS a component of weight acting along the flightpath. Lift is actually slightly LESS than weight (weight's other component is supported by thrust). Climb angle depends on EXCESS THRUST; rate of climb depends on EXCESS POWER. Best angle (Vx) clears obstacles; best rate (Vy) gains height fastest." },
+      { t: "The glide / descent", b: "With no thrust, a component of weight provides the forward force. Glide ANGLE depends only on L/D ratio — best glide range is flown at L/Dmax (Vmd), and is INDEPENDENT of weight (a heavier aircraft glides the same distance, just faster). Wind matters: into headwind, increase speed for best range; downwind, reduce it." },
+      { t: "The turn", b: "In a level turn the horizontal component of lift provides the CENTRIPETAL force. Lift must increase to keep the vertical component equal to weight, so load factor rises: n = 1/cos(bank). 60° bank → n = 2 (2g) and stall speed up 41%. Steeper turns demand more lift, more thrust and risk the accelerated stall.", dia: "turnforces" },
+      { t: "Load factor & turn performance", b: "Higher bank = higher load factor, higher stall speed, smaller radius, faster rate. For a given bank, turn radius and rate are set by TAS: lower TAS gives a tighter, faster turn. Rate-one (standard) turn = 3°/sec; the bank for it increases with speed." },
+      { t: "Forces summary", b: "Climb: lift slightly less than weight, thrust > drag. Descent (glide): glide angle = 1/(L/D), independent of weight. Turn: n = 1/cos bank, stall speed × √n. These three relationships answer most flight-mechanics questions." },
+    ],
+    quiz: [
+      { q: "In a steady climb, lift is:", o: ["Slightly less than weight", "Equal to weight", "Greater than weight", "Zero"], a: 0, e: "Part of weight acts along the flightpath and is balanced by thrust, so lift is a little less than weight in the climb." },
+      { q: "Best glide RANGE for a given aircraft is flown at:", o: ["The speed for L/Dmax (Vmd)", "The lowest possible speed", "Vne", "The stall speed"], a: 0, e: "Glide angle is flattest at L/Dmax; that AoA gives maximum still-air range." },
+      { q: "Glide range (still air) with increased weight:", o: ["Is unchanged (same angle, higher speed)", "Increases", "Decreases", "Becomes zero"], a: 0, e: "Best-glide angle depends only on L/D, not weight — the heavier aircraft simply flies the same path faster." },
+      { q: "In a 60° level turn the load factor is:", o: ["2", "1", "1.4", "4"], a: 0, e: "n = 1/cos60° = 1/0.5 = 2, i.e. 2g — and stall speed rises by √2 ≈ 41%." },
+      { q: "Rate of climb depends primarily on:", o: ["Excess power", "Excess thrust", "Wing area", "CG position"], a: 0, e: "Excess POWER sets rate of climb (Vy); excess THRUST sets the climb angle (Vx)." },
+      { q: "The centripetal force in a level turn is provided by:", o: ["The horizontal component of lift", "The rudder", "Thrust", "Weight"], a: 0, e: "Banking tilts the lift vector; its horizontal component pulls the aircraft round the turn." },
+    ],
+  },
+  {
+    id: "limits",
+    code: "081·05",
+    title: "Limitations & The Flight Envelope",
+    blurb: "Load factor limits, V-speeds, manoeuvre & gust envelope, Va.",
+    cards: [
+      { t: "Load factor limits", b: "Limit load factor is the maximum the structure takes without permanent deformation; ULTIMATE load (1.5 × limit) is where failure is expected. Typical limits: large transport (flaps up) +2.5g to −1.0g; utility and aerobatic categories allow more. Exceeding limit load risks hidden structural damage." },
+      { t: "The V-n diagram", b: "Plots load factor against speed, bounded by: the CURVED aerodynamic limit at low speed (you stall before overstressing), the horizontal STRUCTURAL limit (+2.5g etc.) at higher speed, and the vertical Vne/Vd line. The envelope shows where flight is both possible and safe.", dia: "vn" },
+      { t: "Manoeuvring speed Va", b: "The speed at which full deflection of a control reaches limit load just as the wing stalls. Below Va, a full abrupt input or a strong gust makes the aircraft STALL before it overstresses — protecting the structure. Above Va, full deflection can exceed limit load. Va DECREASES with reduced weight." },
+      { t: "Key V-speeds", b: "Vne never-exceed. Vno max structural cruising (top of green arc; only fly above it in smooth air, into the yellow arc). Vfe max flaps-extended (top of white arc). Vs0 stall in landing config (bottom of white arc). Vs1 stall clean (bottom of green arc). Va manoeuvring (not marked on the ASI)." },
+      { t: "Gusts", b: "A vertical gust suddenly changes the angle of attack, spiking the load factor. The gust load is greater at higher speed and lower weight (lighter aircraft are accelerated more). The gust envelope adds these loads to the V-n diagram — and is why you slow to Va or below in turbulence." },
+      { t: "ASI colour arcs", b: "WHITE arc: flap operating range (Vs0 to Vfe). GREEN arc: normal operating range (Vs1 to Vno). YELLOW arc: caution, smooth air only (Vno to Vne). RED line: Vne, never exceed. Memorise the band boundaries — common exam material." },
+    ],
+    quiz: [
+      { q: "Ultimate load factor is typically:", o: ["1.5 × limit load", "Equal to limit load", "2 × limit load", "Half the limit load"], a: 0, e: "Structures are designed to limit load with a 1.5 safety factor to ultimate, where failure is expected." },
+      { q: "Below the manoeuvring speed Va, an abrupt full control input or strong gust will:", o: ["Stall the wing before overstressing it", "Always overstress the wing", "Have no effect", "Exceed Vne"], a: 0, e: "Va is set so the wing reaches CLmax (stalls) at limit load — the stall relieves the load and protects the structure." },
+      { q: "Manoeuvring speed Va with decreasing weight:", o: ["Decreases", "Increases", "Stays the same", "Becomes Vne"], a: 0, e: "A lighter aircraft stalls at a lower speed, so Va (tied to the stall) is lower — fly slower in turbulence when light." },
+      { q: "The yellow arc on the ASI means:", o: ["Caution range — smooth air only (Vno to Vne)", "Normal operating range", "Flap range", "Never exceed"], a: 0, e: "Yellow = Vno to Vne, permitted only in smooth air; the red line is Vne itself." },
+      { q: "The top of the white arc is:", o: ["Vfe (max flaps-extended speed)", "Vno", "Vne", "Vs1"], a: 0, e: "The white arc spans Vs0 (bottom) to Vfe (top) — the flap operating range." },
+      { q: "A vertical gust increases load factor more when the aircraft is:", o: ["Faster and lighter", "Slower and heavier", "At forward CG", "On the ground"], a: 0, e: "Higher speed and lower weight both increase the gust-induced load — hence slowing to Va or below in turbulence." },
+    ],
+  },
+  {
+    id: "highspeed",
+    code: "081·02",
+    title: "High-Speed Flight",
+    blurb: "Mach, compressibility, shock waves, Mcrit, sweep, coffin corner.",
+    cards: [
+      { t: "Mach number & compressibility", b: "Mach number = TAS ÷ local speed of sound (which depends only on temperature, falling with altitude). Above about M0.4, air can no longer be treated as incompressible. Flight regimes: subsonic, TRANSONIC (mixed sub/supersonic flow, roughly M0.8–1.2), supersonic." },
+      { t: "Critical Mach number (Mcrit)", b: "The free-stream Mach number at which airflow somewhere on the wing (the upper surface, where flow accelerates) first reaches the local speed of sound (M1.0). Beyond Mcrit, a SHOCK WAVE forms. Mcrit is the practical upper speed limit for an unswept subsonic wing." },
+      { t: "Shock waves & wave drag", b: "A shock wave is a near-instant pressure/density jump. Behind it the boundary layer can separate (shock stall), causing WAVE DRAG, buffet and loss of lift. The rearward shift of the centre of pressure as shocks form produces 'Mach tuck' — an uncommanded nose-down pitch.", dia: "shock" },
+      { t: "Delaying the effects: sweep & thin wings", b: "SWEPTBACK wings raise Mcrit because only the chordwise component of airflow drives compressibility — effectively reducing the Mach number the wing 'sees'. Thin aerofoils and area ruling (the 'coke-bottle' fuselage) also reduce transonic drag. Downsides of sweep: lower CLmax, tip-stall tendency, more Dutch roll." },
+      { t: "Mach tuck & Mach trim", b: "As shocks move the centre of pressure aft near Mcrit, the nose pitches down (Mach tuck), which can accelerate the aircraft further — a dangerous tendency. A MACH TRIM system automatically applies nose-up trim with increasing Mach to counter it." },
+      { t: "Coffin corner & buffet", b: "At very high altitude the low-speed (stall) buffet boundary and the high-speed (Mach) buffet boundary converge. At this 'coffin corner' the margin between stalling and Mach buffet is tiny — any speed change in either direction triggers buffet. It limits maximum cruise altitude." },
+    ],
+    quiz: [
+      { q: "Critical Mach number is the free-stream Mach number at which:", o: ["Local airflow first reaches M1.0 somewhere on the aircraft", "The whole aircraft goes supersonic", "Drag becomes zero", "The aircraft stalls at low speed"], a: 0, e: "At Mcrit the accelerated flow over the wing first hits sonic speed; beyond it a shock wave forms." },
+      { q: "Sweepback raises the critical Mach number because:", o: ["Only the chordwise airflow component drives compressibility", "It increases wing area", "It reduces weight", "It thickens the aerofoil"], a: 0, e: "Sweep means the wing 'sees' a lower effective Mach number, delaying shock formation — at the cost of lower CLmax and tip-stall." },
+      { q: "Mach tuck is a tendency to:", o: ["Pitch nose-down as shocks move the CofP aft", "Pitch nose-up", "Roll left", "Yaw"], a: 0, e: "The rearward CofP shift near Mcrit pitches the nose down; Mach trim systems counter it." },
+      { q: "Wave drag is associated with:", o: ["Shock wave formation in transonic flow", "Wingtip vortices", "Skin friction at low speed", "Flap deployment"], a: 0, e: "Shock waves cause boundary-layer separation and a sharp drag rise — wave (or compressibility) drag." },
+      { q: "The local speed of sound depends on:", o: ["Temperature", "Pressure", "Density altitude only", "Aircraft weight"], a: 0, e: "Speed of sound varies with the square root of absolute temperature, decreasing as you climb into colder air." },
+      { q: "At 'coffin corner':", o: ["Low-speed and Mach buffet boundaries nearly coincide", "Drag is minimised", "The aircraft is at Va", "Flaps are most effective"], a: 0, e: "Stall buffet and Mach buffet speeds converge at high altitude, leaving almost no usable speed margin — it caps cruise altitude." },
+    ],
+  },
+  {
+    id: "propellers",
+    code: "081·06",
+    title: "Propellers",
+    blurb: "Blade angle, pitch, efficiency, CSU, and the four turning effects.",
+    cards: [
+      { t: "How a propeller works", b: "Each blade is a rotating aerofoil; its angle of attack is the difference between the blade angle and the helical relative airflow (made of rotational speed and forward speed). Thrust is produced like wing lift. Blade angle is TWISTED from root to tip because tip speed is far higher than root speed.", dia: "propeller" },
+      { t: "Pitch, slip & efficiency", b: "Geometric pitch: the distance the prop would advance per revolution with no slip. Effective pitch: the actual advance. SLIP is the difference. A fixed-pitch prop is efficient at only one speed: a fine (low) pitch suits climb, a coarse (high) pitch suits cruise — you cannot have both." },
+      { t: "Constant-speed units (CSU)", b: "A variable-pitch governor keeps RPM constant by adjusting blade angle: as airspeed changes, the blade angle changes to hold the selected RPM at an efficient angle of attack across the speed range. Fine pitch/high RPM for takeoff; coarse pitch/low RPM for cruise." },
+      { t: "Feathering & beta", b: "FEATHERING turns the blades edge-on (~90°) after an engine failure to minimise drag and stop windmilling. The BETA range allows fine/reverse pitch on the ground for taxi and reverse thrust. A windmilling failed prop creates huge drag — feather promptly." },
+      { t: "Torque & slipstream effects", b: "TORQUE reaction: the airframe tends to roll OPPOSITE the prop rotation (left for a conventional clockwise-from-cockpit prop, so the aircraft rolls left). SLIPSTREAM: the spiralling airflow strikes the fin, yawing the aircraft (usually left). Both are strongest at high power and low speed — needing right rudder on takeoff." },
+      { t: "Gyroscopic & asymmetric-blade effects", b: "GYROSCOPIC precession: pitching/yawing the spinning prop produces a force 90° ahead in the direction of rotation (notable as the tail comes up on a taildragger). ASYMMETRIC BLADE EFFECT (P-factor): at high AoA the down-going blade has a greater angle of attack and thrust, yawing the aircraft (left for a conventional prop)." },
+    ],
+    quiz: [
+      { q: "Propeller blades are twisted from root to tip because:", o: ["Tip speed is much higher than root speed", "The tip is thicker", "It increases weight", "To reduce noise only"], a: 0, e: "To keep a roughly constant angle of attack along the blade, the higher-speed tip needs a finer blade angle." },
+      { q: "Propeller slip is the difference between:", o: ["Geometric and effective pitch", "RPM and airspeed", "Thrust and drag", "Fine and coarse pitch"], a: 0, e: "Geometric pitch (theoretical advance) minus effective pitch (actual advance) = slip." },
+      { q: "A constant-speed unit maintains constant RPM by:", o: ["Varying the blade angle", "Varying the throttle", "Changing the mixture", "Feathering"], a: 0, e: "The governor adjusts blade pitch so the engine holds the selected RPM at an efficient blade AoA across speeds." },
+      { q: "After an engine failure, feathering the propeller:", o: ["Minimises drag by turning blades edge-on", "Increases drag for braking", "Increases RPM", "Reverses thrust"], a: 0, e: "Feathered blades (~90°) stop windmilling and cut the large drag of a failed, windmilling prop." },
+      { q: "Asymmetric blade effect (P-factor) is greatest at:", o: ["High angle of attack and high power", "High speed, low AoA", "Idle on the ground", "Cruise"], a: 0, e: "At high AoA the down-going blade meets the air at a greater angle, producing more thrust on one side and a yaw (left for a conventional prop)." },
+      { q: "Slipstream effect on a conventional single typically causes:", o: ["A yaw to the left, needing right rudder", "A yaw to the right", "A pitch up", "A roll to the right"], a: 0, e: "The spiralling slipstream strikes the fin and yaws the nose left — corrected with right rudder, most at high power/low speed." },
+    ],
+  },
+  {
+    id: "special",
+    code: "081·01",
+    title: "Vortices, Ground Effect & Asymmetry",
+    blurb: "Wake turbulence, ground effect, contamination, Vmc.",
+    cards: [
+      { t: "Wingtip vortices & wake turbulence", b: "The tip vortices trail behind as wake turbulence — strongest when the generating aircraft is HEAVY, CLEAN and SLOW (high AoA, e.g. on approach/departure). Vortices sink ~500–1000 ft below the flightpath and drift with the wind. Avoid by staying above and upwind of a heavy's path; on landing, touch down beyond its touchdown point.", dia: "vortex" },
+      { t: "Ground effect", b: "Within about one wingspan of the ground, the surface reduces downwash and the strength of the wingtip vortices, cutting INDUCED DRAG and increasing effective lift. Effects: the aircraft may float on landing, or lift off below normal flying speed and then sink/struggle to climb out of ground effect on takeoff.", dia: "groundeffect" },
+      { t: "Airframe contamination", b: "Frost, ice or snow on the wing disrupts the boundary layer: CLmax falls, stall speed and stall AoA change unpredictably, and drag rises — often with NO change to control feel until it's too late. Even thin frost is dangerous; the wing must be clean for takeoff (the 'clean aircraft concept')." },
+      { t: "Asymmetric thrust & Vmc", b: "On a multi-engine aircraft, an engine failure yaws and rolls the aircraft towards the dead engine. Vmc (minimum control speed) is the lowest speed at which directional control can be maintained with the critical engine failed and the other at takeoff power. Below Vmc, full rudder can't hold the yaw." },
+      { t: "Vmc factors & the critical engine", b: "Vmc is higher with: takeoff power, aft CG (shorter rudder moment arm), low weight, and the most unfavourable configuration. The CRITICAL engine (on a conventional twin) is the one whose failure is hardest to control — usually the LEFT, because P-factor puts the right engine's thrust line further out (the 'descending blade' is outboard on the right)." },
+      { t: "Bank for asymmetric control", b: "When flying on one engine, a small bank (~5°) towards the LIVE engine reduces Vmc and the rudder needed, and helps maintain a balanced, controllable flightpath. Pure wings-level with rudder alone needs a higher speed for control." },
+    ],
+    quiz: [
+      { q: "Wingtip vortices are strongest when the generating aircraft is:", o: ["Heavy, clean and slow", "Light, dirty and fast", "On the ground", "In a descent at high speed"], a: 0, e: "High AoA (heavy, clean, slow) produces the strongest vortices — the wake-turbulence hazard on approach and departure." },
+      { q: "Ground effect mainly:", o: ["Reduces induced drag near the surface", "Increases induced drag", "Increases the stall speed", "Has no effect on lift"], a: 0, e: "Reduced downwash and weaker tip vortices cut induced drag within about a wingspan of the ground — the aircraft tends to float." },
+      { q: "Frost on the wing before takeoff:", o: ["Reduces CLmax and is dangerous even when thin", "Improves lift", "Only matters above the freezing level", "Has no aerodynamic effect"], a: 0, e: "Even light contamination disrupts the boundary layer, cutting CLmax and raising stall speed — the clean aircraft concept is mandatory." },
+      { q: "Vmc is the minimum speed at which:", o: ["Directional control is maintained with the critical engine failed", "The aircraft stalls", "Flaps may be extended", "The gear retracts"], a: 0, e: "Below Vmc, full rudder cannot counter the yaw from asymmetric thrust at takeoff power." },
+      { q: "On a conventional twin, the critical engine is usually the:", o: ["Left engine", "Right engine", "Either, equally", "Rear engine"], a: 0, e: "P-factor moves the right engine's effective thrust line outboard, so losing the LEFT engine is harder to control — that makes it critical." },
+      { q: "When flying asymmetric, a small bank towards the live engine:", o: ["Lowers Vmc and reduces rudder required", "Raises Vmc", "Has no effect", "Increases the yaw"], a: 0, e: "About 5° of bank towards the operating engine reduces the control speed and balances the flightpath." },
+    ],
+  },
+  {
+    id: "weightalt",
+    code: "081·05",
+    title: "Weight, Altitude & Speed Effects",
+    blurb: "How weight, altitude and load factor shift the key speeds.",
+    cards: [
+      { t: "Effect of weight", b: "More weight needs more lift, so EVERY characteristic speed rises: stall speed (∝√weight), VMD/best-glide speed, best-climb speeds, and approach speed all increase with weight. Glide ANGLE is unchanged (you cover the same distance, faster), but rate of climb and ceiling reduce, and induced drag rises." },
+      { t: "Effect of altitude on IAS/TAS", b: "The wing responds to IAS, so stall IAS is essentially constant with altitude. But TAS rises for a given IAS as air thins — so the same IAS is a higher TAS up high. Performance speeds quoted as IAS stay put; the TAS (and groundspeed) climbs with you." },
+      { t: "Load factor effects", b: "Manoeuvring increases load factor n. Stall speed rises with √n (60° bank → n=2 → +41%). Higher n also increases induced drag and structural loading. The manoeuvre envelope (V-n diagram) and Va exist to keep load factor within limits — and Va itself falls as weight reduces." },
+      { t: "High & low speed buffet", b: "At altitude the low-speed (stall) buffet boundary rises in IAS terms while the high-speed (Mach) buffet boundary falls, so the usable band narrows. The buffet boundaries also tighten as weight and load factor increase — a steep turn at high altitude can trigger buffet from either side." },
+      { t: "Service ceiling & performance", b: "As you climb, thinner air reduces both lift available and engine/thrust output, so excess power and excess thrust shrink — rate of climb falls to ~100 ft/min at the SERVICE CEILING. Higher weight, higher temperature and (for some) higher humidity all lower the achievable ceiling and climb performance." },
+      { t: "Density altitude & performance", b: "Hot, high and humid = high DENSITY ALTITUDE = the air behaves like a higher altitude: less lift, less thrust, longer takeoff/landing, poorer climb. The wing still stalls at the same IAS, but TAS and groundspeed are higher, lengthening the ground run — a major performance and runway consideration." },
+    ],
+    quiz: [
+      { q: "Increasing aircraft weight causes the stall speed to:", o: ["Increase (∝ √weight)", "Decrease", "Stay the same", "Fall to zero"], a: 0, e: "More weight needs more lift; stall IAS rises with the square root of weight. Most characteristic speeds rise with weight." },
+      { q: "For a given IAS, climbing to altitude makes the TAS:", o: ["Increase", "Decrease", "Stay the same", "Equal the stall speed"], a: 0, e: "Thinner air means a given dynamic pressure (IAS) corresponds to a higher true airspeed." },
+      { q: "Best glide ANGLE with increased weight:", o: ["Is unchanged (same distance, higher speed)", "Becomes steeper", "Becomes shallower", "Doubles"], a: 0, e: "Glide angle depends only on L/D; weight changes the speed flown, not the still-air distance." },
+      { q: "At the service ceiling, the rate of climb has fallen to about:", o: ["100 ft/min", "1000 ft/min", "0 ft/min", "500 ft/min"], a: 0, e: "Service ceiling is conventionally where ROC reduces to ~100 ft/min as excess power runs out." },
+      { q: "High density altitude (hot, high, humid) results in:", o: ["Reduced performance and a longer ground run", "Improved climb", "A lower stall IAS", "Shorter takeoff distance"], a: 0, e: "The air behaves as if higher: less lift/thrust, higher TAS for the same IAS, so takeoff/landing distances grow." },
+      { q: "At high altitude, the gap between low-speed and Mach buffet:", o: ["Narrows", "Widens", "Disappears at Va", "Is unaffected by weight"], a: 0, e: "The boundaries converge with altitude (and tighten with weight/load factor) — the coffin-corner effect." },
+    ],
+  },
+  {
+    id: "sweptdelta",
+    code: "081·02",
+    title: "Swept & Delta Wings",
+    blurb: "Why sweep, tip stall & pitch-up, vortex lift, area rule.",
+    cards: [
+      { t: "Why sweep a wing", b: "Sweepback raises the CRITICAL MACH NUMBER: only the airflow component ACROSS the wing (chordwise) drives compressibility, so the wing 'sees' a lower effective Mach number. This delays shock formation and wave drag, letting the aircraft cruise faster before transonic effects bite." },
+      { t: "The downsides of sweep", b: "Swept wings have a LOWER CLmax (so higher take-off/landing speeds, hence high-lift devices), a tendency to TIP-STALL first, reduced effectiveness of ailerons near the stall, and increased lateral stability that can worsen Dutch roll. Spanwise flow toward the tips is the root cause of several of these." },
+      { t: "Tip stall & pitch-up", b: "Spanwise flow makes the TIPS stall before the root. Because the tips are aft of the CG on a swept wing, losing their lift moves the centre of pressure FORWARD, pitching the nose UP — deepening the stall (pitch-up). Cures: wing fences, vortilons, sawtooth/dogtooth leading edges, vortex generators and washout." },
+      { t: "Vortex lift & delta wings", b: "DELTA (and highly swept) wings generate strong leading-edge VORTICES at high AoA that re-energise the upper surface and keep lift increasing to very high angles — so deltas stall gently at a high AoA but with a high induced drag and a very nose-high landing attitude." },
+      { t: "Mach tuck & area rule", b: "Near Mcrit, shocks move the centre of pressure AFT, pitching the nose DOWN (Mach tuck) — countered by a MACH TRIM system. AREA RULE ('coke-bottle' fuselage) smooths the total cross-sectional area along the aircraft to minimise transonic wave drag. Thin aerofoils also reduce compressibility effects." },
+      { t: "Sweep and stability trade-offs", b: "Sweep increases effective dihedral (lateral stability), which combined with directional stability sets the Dutch-roll/spiral balance — too much sweep worsens Dutch roll, managed by yaw dampers. Forward sweep exists but brings structural and divergence problems. Variable-sweep wings trade low-speed lift for high-speed efficiency." },
+    ],
+    quiz: [
+      { q: "Sweepback raises the critical Mach number because:", o: ["Only the chordwise flow component drives compressibility", "It increases wing area", "It reduces aircraft weight", "It thickens the aerofoil"], a: 0, e: "The wing 'sees' a lower effective Mach number, delaying shock formation — at the cost of lower CLmax and tip-stall." },
+      { q: "A swept wing tends to stall first at the:", o: ["Tips", "Root", "Trailing edge centre", "Leading-edge root"], a: 0, e: "Spanwise flow toward the tips makes them stall first — and, being aft of the CG, this causes pitch-up." },
+      { q: "Tip-stall on a swept wing typically causes the nose to:", o: ["Pitch up, deepening the stall", "Pitch down, aiding recovery", "Yaw left", "Roll level"], a: 0, e: "Losing aft tip-lift moves the CofP forward — a nose-up pitch (pitch-up). Fences and vortex generators help prevent it." },
+      { q: "Delta wings maintain lift to high angles of attack by means of:", o: ["Leading-edge vortex lift", "Boundary-layer suction", "Fowler flaps", "Mach tuck"], a: 0, e: "Strong leading-edge vortices re-energise the upper surface, giving a gentle high-AoA stall but a nose-high attitude." },
+      { q: "Area ruling (the 'coke-bottle' fuselage) is used to:", o: ["Reduce transonic wave drag", "Increase CLmax", "Improve low-speed handling", "Raise the stall angle"], a: 0, e: "Smoothing total cross-sectional area along the aircraft minimises the wave drag rise near Mcrit." },
+      { q: "Mach trim systems are fitted to counter:", o: ["Mach tuck (nose-down at high Mach)", "Tip-stall pitch-up", "Dutch roll", "Adverse yaw"], a: 0, e: "As shocks move the CofP aft the nose drops; Mach trim applies nose-up trim with increasing Mach." },
+    ],
+  },
+  {
+    id: "augmentation",
+    code: "081·04",
+    title: "Feel, Augmentation & Modern Controls",
+    blurb: "Power controls, artificial feel, dampers, FBW and protections.",
+    cards: [
+      { t: "Manual vs powered controls", b: "At high speed and size, aerodynamic loads exceed muscle power, so large aircraft use POWERED (hydraulic) flying controls. The pilot's input meters hydraulic actuators rather than moving the surface directly — removing the natural aerodynamic 'feel' that warned of speed and load." },
+      { t: "Artificial feel", b: "Because powered controls have no natural feedback, ARTIFICIAL FEEL is built in. Q-FEEL varies stick force with dynamic pressure (½ρV²) so controls feel heavier at high speed, discouraging over-stress. Spring feel, bob-weights and trim systems complete the picture, restoring safe, speed-related stick forces." },
+      { t: "Stability augmentation", b: "YAW DAMPERS sense yaw rate and apply rudder to damp Dutch roll automatically. Other augmentation includes pitch dampers and stick pushers (forcing the nose down at the approach to a stall, e.g. on T-tails prone to deep stall). These systems make an otherwise marginal aircraft comfortably controllable." },
+      { t: "Stall & overspeed protection", b: "STALL WARNING (stick shaker) and STALL IDENTIFICATION (stick pusher) protect the low-speed end; overspeed warnings and Mach trim protect the high-speed end. Angle-of-attack sensors drive these systems — which is why AoA-sensor faults (icing, miscalibration) are safety-critical." },
+      { t: "Fly-by-wire (FBW)", b: "FBW replaces mechanical linkages with electrical signals to computers that command the actuators. Benefits: weight saving, flight-envelope PROTECTIONS (limiting AoA, bank, load factor and speed), gust alleviation, and tailored handling. The computer interprets pilot demand (e.g. a load factor or flight-path) rather than a raw surface deflection." },
+      { t: "Control laws & protections", b: "FBW operates in CONTROL LAWS: a 'normal law' with full envelope protection, degrading to 'alternate' or 'direct' laws if enough systems fail, where protections are reduced and handling becomes more conventional. Pilots must know which protections remain in each law — automation does not remove the need to fly the aircraft." },
+    ],
+    quiz: [
+      { q: "Large high-speed aircraft use powered flying controls mainly because:", o: ["Aerodynamic loads exceed pilot muscle power", "They are cheaper", "They need no maintenance", "They increase drag usefully"], a: 0, e: "Hydraulic actuators move the surfaces; the pilot meters them — but this removes natural aerodynamic feel." },
+      { q: "Q-feel makes the controls:", o: ["Heavier as dynamic pressure (speed) increases", "Lighter at high speed", "Constant at all speeds", "Disconnected above Vmo"], a: 0, e: "Artificial feel proportional to ½ρV² discourages over-controlling and over-stressing at high speed." },
+      { q: "A yaw damper is fitted primarily to:", o: ["Damp Dutch roll", "Prevent tip stall", "Increase CLmax", "Trim for Mach tuck"], a: 0, e: "It senses yaw rate and applies corrective rudder automatically, suppressing the Dutch-roll oscillation." },
+      { q: "A stick pusher is used to:", o: ["Force the nose down at the approach to a stall", "Increase stick force at high speed", "Trim the rudder", "Retract the flaps"], a: 0, e: "Stall identification — important on T-tail aircraft prone to deep (super) stall where the tail blanks." },
+      { q: "A key advantage of fly-by-wire is:", o: ["Flight-envelope protections (AoA, bank, g, speed)", "Heavier controls", "No need for hydraulics", "Elimination of stalls in all laws"], a: 0, e: "FBW computers can limit AoA, bank, load factor and speed — but protections reduce in degraded control laws." },
+      { q: "In a degraded FBW control law (e.g. alternate/direct):", o: ["Some envelope protections are reduced or lost", "Protections increase", "The aircraft cannot be flown", "Handling is always identical to normal law"], a: 0, e: "Pilots must know which protections remain — degraded laws hand more responsibility back to the crew." },
+    ],
+  },
+  {
+    id: "spindeep",
+    code: "081·01",
+    title: "Spinning & Deep Stall",
+    blurb: "Autorotation, spin phases & recovery, flat spin, deep/super stall.",
+    cards: [
+      { t: "What a spin is", b: "A spin is a STALLED, descending, AUTOROTATING flightpath: a stall combined with yaw. The down-going wing is MORE deeply stalled (less lift, more drag) than the up-going wing, which sustains the rotation. The aircraft follows a steep helical path at a roughly constant, low IAS." },
+      { t: "Autorotation", b: "Once one wing drops at the stall, its higher angle of attack reduces its lift and increases its drag relative to the other wing — producing a self-sustaining roll and yaw (autorotation). The wing must be STALLED for autorotation to continue; unstalling it stops the spin." },
+      { t: "Spin phases", b: "INCIPIENT: the first ~2 turns as the spin develops — recovery is easiest here. DEVELOPED (steady) spin: stabilised rotation, attitude and rate roughly constant. A FLAT spin (flatter attitude, often from aft CG or mishandling) is harder or impossible to recover and may be unrecoverable." },
+      { t: "Standard recovery (PARE)", b: "Power to IDLE (power can flatten the spin), Ailerons NEUTRAL, Rudder FULL OPPOSITE to the rotation, then Elevator progressively FORWARD to break the stall. As rotation stops, centralise the rudder and recover from the ensuing dive — avoiding a secondary stall by not pulling too hard." },
+      { t: "Deep (super) stall", b: "On some swept-wing/T-TAIL aircraft, at a very high AoA the stalled wing's wake BLANKETS the tailplane, so the elevator loses authority and the nose can't be lowered — a stable, unrecoverable DEEP STALL. Prevented by stick pushers and AoA limiting; a key reason T-tails carry stall-identification systems." },
+      { t: "Secondary & accelerated stalls", b: "A SECONDARY stall occurs if you pull up too aggressively during recovery, re-stalling the wing. An ACCELERATED stall occurs at higher-than-normal speed under load factor (e.g. a tight turn) since stall speed rises with √n. Smooth recovery and respecting load factor avoid both." },
+    ],
+    quiz: [
+      { q: "Autorotation in a spin is sustained because the down-going wing:", o: ["Is more deeply stalled (less lift, more drag)", "Produces more lift", "Is unstalled", "Has less drag"], a: 0, e: "Its higher AoA reduces lift and increases drag relative to the other wing, driving the rotation." },
+      { q: "In the standard PARE recovery, the rudder is applied:", o: ["Full, opposite to the rotation", "Full, into the rotation", "Neutral throughout", "With the ailerons"], a: 0, e: "Power idle, ailerons neutral, FULL OPPOSITE rudder, then elevator forward to unstall." },
+      { q: "A deep (super) stall is dangerous because:", o: ["The stalled wake blankets the tailplane, removing pitch control", "The wings produce too much lift", "It only occurs near the ground", "The rudder over-controls"], a: 0, e: "With the tailplane blanked, the nose can't be lowered — a stable, often unrecoverable stall, hence stick pushers." },
+      { q: "The easiest phase from which to recover a spin is the:", o: ["Incipient phase", "Developed phase", "Flat spin", "Secondary stall"], a: 0, e: "Recovery in the first turn or two (incipient) is far easier than from a stabilised or flat spin." },
+      { q: "A secondary stall is caused by:", o: ["Pulling up too aggressively during recovery", "Lowering the nose", "Reducing power", "Neutralising the rudder"], a: 0, e: "Over-rotating in the pull-out re-exceeds the critical AoA — recover smoothly." },
+      { q: "Leaving power ON during a spin tends to:", o: ["Flatten the spin and hinder recovery", "Stop the spin instantly", "Have no effect", "Lower the nose automatically"], a: 0, e: "Power and slipstream can flatten the attitude — close the throttle as the first recovery action." },
+    ],
+  },
+  {
+    id: "aeroelastic",
+    code: "081·04",
+    title: "Aeroelasticity",
+    blurb: "Flutter, divergence, control reversal — and how speed limits protect you.",
+    cards: [
+      { t: "What aeroelasticity is", b: "The interaction of AERODYNAMIC forces with the ELASTIC (bending/twisting) and INERTIAL properties of the structure. Because wings and control surfaces flex, high airspeed can couple these forces into dangerous, sometimes destructive, behaviour. The risk grows with the SQUARE of speed." },
+      { t: "Flutter", b: "A rapidly DIVERGING oscillation from the coupling of aerodynamic, inertial and elastic forces — typically bending coupled with twisting or with control-surface rotation. Above a critical speed it grows explosively and can destroy the structure in seconds. It's the dominant aeroelastic hazard and the main reason for Vne/Vd." },
+      { t: "Preventing flutter", b: "MASS BALANCING (weight ahead of the hinge line) moves the control-surface CG onto/ahead of the hinge, decoupling rotation from wing bending. Structural STIFFNESS raises the flutter speed above the operating range. Powered controls with irreversibility and dampers also help. Damaged or repainted (re-weighted) surfaces can lose their balance — a maintenance concern." },
+      { t: "Divergence", b: "Static torsional failure: aerodynamic load twists the wing to a higher AoA, which increases the load, which twists it more — a runaway until the structure fails. It sets an upper speed limit for a given torsional stiffness; stiffer wings diverge at higher speeds. Forward-swept wings are especially prone." },
+      { t: "Control reversal", b: "At high speed, deflecting an aileron can TWIST the flexible wing enough that the wing's twist produces more rolling moment than the aileron — so the aircraft rolls the WRONG way. Cures: stiffer wings, inboard ailerons used at high speed, or roll spoilers. It also sets a high-speed handling limit." },
+      { t: "Speed limits as protection", b: "Vne/Vd (and Mmo/Vmo) are set with margins below the speeds at which flutter, divergence or control reversal would occur. Respecting the never-exceed speeds — and not flying with damaged, unbalanced or improperly repaired surfaces — keeps the aircraft clear of these regimes." },
+    ],
+    quiz: [
+      { q: "Flutter is:", o: ["A rapidly diverging aeroelastic oscillation", "A slow trim change", "A type of stall", "Steady buffet"], a: 0, e: "Coupling of aerodynamic, inertial and elastic forces grows explosively above a critical speed." },
+      { q: "Mass balancing a control surface prevents flutter by:", o: ["Moving its CG onto/ahead of the hinge line", "Adding drag", "Increasing camber", "Heating the surface"], a: 0, e: "It decouples surface rotation from wing bending — a weight ahead of the hinge does this." },
+      { q: "Divergence is:", o: ["Aerodynamic twisting that runs away until structural failure", "A controlled descent", "A spin entry", "A communication failure"], a: 0, e: "Load twists the wing to higher AoA, increasing load — a runaway limited by torsional stiffness." },
+      { q: "Control reversal at high speed means an aileron input:", o: ["Twists the wing so it rolls the wrong way", "Has no effect", "Increases lift symmetrically", "Causes a stall"], a: 0, e: "Wing twist overpowers the aileron's own moment — cured by stiffer wings, inboard ailerons or spoilers." },
+      { q: "Aeroelastic risks generally increase with:", o: ["The square of airspeed", "Decreasing speed", "Lower altitude only", "Reduced weight only"], a: 0, e: "Dynamic pressure (½ρV²) drives the aerodynamic forces involved, so risk rises steeply with speed." },
+      { q: "Vne/Vd are set to:", o: ["Keep the aircraft clear of flutter, divergence and reversal with a margin", "Mark the stall speed", "Indicate best glide", "Show flap limits"], a: 0, e: "Never-exceed/design-dive speeds sit safely below the onset of these aeroelastic phenomena." },
+    ],
+  },
+  {
+    id: "windshear",
+    code: "081·05",
+    title: "Windshear & Gust Response",
+    blurb: "Sources, effect on approach, microburst encounter, gust loads.",
+    cards: [
+      { t: "What windshear is", b: "A sudden change in wind speed and/or direction over a short distance, horizontally or vertically. It changes the aircraft's airspeed and angle of attack abruptly, upsetting the flightpath — most dangerous near the ground on approach and departure where there's little height to recover." },
+      { t: "Sources", b: "Thunderstorms and MICROBURSTS (the most violent), frontal passages (especially fast cold fronts), low-level temperature INVERSIONS and the nocturnal jet above them, terrain and buildings, and sea-breeze fronts. Strong surface wind over rough terrain gives mechanical low-level shear and turbulence." },
+      { t: "Effect on the approach", b: "An increasing HEADWIND (or decreasing tailwind) raises IAS and the aircraft tends to go HIGH; the reverse makes it go LOW and slow. The hazard is responding to the transient by re-trimming/reducing power, then being caught out when the shear reverses — leaving you low, slow and short of energy." },
+      { t: "The microburst encounter", b: "Flying through a microburst on approach: first an increasing HEADWIND (performance gain, tends high), then the core DOWNDRAUGHT, then a TAILWIND with severe sink and performance LOSS. Recognising the initial gain as a warning — and going around early — is the key defence." },
+      { t: "Gust loads on the airframe", b: "A sharp vertical GUST instantly changes the wing's angle of attack, spiking the LOAD FACTOR. The gust-induced load is greater at HIGHER speed and LOWER weight (a light aircraft is accelerated more). This is why the gust lines on the V-n diagram exist and why you slow to Va or below in turbulence." },
+      { t: "Recovery & avoidance", b: "On a windshear/microburst encounter: apply maximum thrust, follow the escape manoeuvre (target pitch, don't chase airspeed), and don't change configuration until safe. Avoid by heeding PIREPs, LLWAS/predictive windshear alerts and convective signs, and delaying approach/departure if a storm is over the field." },
+    ],
+    quiz: [
+      { q: "Windshear is most dangerous:", o: ["Near the ground on approach and departure", "In the cruise at FL350", "In smooth high-pressure air", "Only above the tropopause"], a: 0, e: "Low height leaves little margin to recover from the airspeed and flightpath upset." },
+      { q: "Flying through a microburst on approach, the sequence is:", o: ["Headwind gain, downdraught, tailwind and sink", "Tailwind, updraught, headwind", "Steady crosswind", "Updraught only"], a: 0, e: "An initial performance gain, then the downdraught core, then a severe performance-losing tailwind." },
+      { q: "A vertical gust increases the load factor more when the aircraft is:", o: ["Faster and lighter", "Slower and heavier", "At forward CG", "On the ground"], a: 0, e: "Higher speed and lower weight both raise the gust-induced load — hence slowing to Va in turbulence." },
+      { q: "An increasing headwind on short final tends to make the aircraft:", o: ["Balloon high with increased IAS", "Sink low and slow", "Yaw left", "Stall immediately"], a: 0, e: "More headwind raises IAS and the aircraft tends high; the danger is the subsequent reversal." },
+      { q: "The recommended response to a severe windshear encounter is to:", o: ["Apply maximum thrust and fly the escape pitch attitude", "Reduce thrust to regain the glidepath", "Lower more flap", "Continue the approach"], a: 0, e: "Max thrust, target pitch (don't chase IAS), configuration unchanged until safely clear." },
+      { q: "The nocturnal jet that causes low-level shear sits:", o: ["Above a nighttime radiation inversion", "At the tropopause", "In the centre of a CB", "Below the surface"], a: 0, e: "Decoupled from surface friction above the inversion, a fast layer aloft creates marked low-level shear." },
+    ],
+  },
+  {
+    id: "tailplane",
+    code: "081·03",
+    title: "Tailplane, Canard & Configurations",
+    blurb: "Tail download, tailplane stall, T-tails, canards, stabilators.",
+    cards: [
+      { t: "The conventional tailplane", b: "The horizontal stabiliser usually produces a DOWNWARD force (download) that, with the CG ahead of the wing's lift, balances the aircraft in pitch and provides longitudinal stability. The elevator varies this force for pitch control. A forward CG needs more download — effectively more lift required from the wing." },
+      { t: "Tailplane (ice-contaminated) stall", b: "The tailplane can stall — notably when ICE contaminates its leading edge, reducing its download capability. Lowering flap increases downwash onto the tailplane and its loading, and can trigger a tailplane stall: the NOSE PITCHES DOWN sharply (the opposite of a wing stall). Recovery: RETRACT some flap, reduce AoA on the tail, pull back, reduce power." },
+      { t: "T-tails", b: "Mounting the tailplane atop the fin keeps it clear of wing/engine wake in normal flight (cleaner airflow, often allows rear-mounted engines). The penalty: at very high AoA the wing wake can BLANKET the high tailplane, causing the deep/super stall — so T-tails usually carry stick shakers and pushers." },
+      { t: "Canard configuration", b: "A CANARD has a small FOREPLANE ahead of the main wing. Designed so the foreplane stalls FIRST, dropping the nose and preventing the main wing from reaching its stalling angle — an inherently stall-resistant layout. The foreplane usually carries an upload, contributing lift rather than download." },
+      { t: "All-moving stabilator", b: "Some aircraft use an ALL-MOVING tailplane (stabilator) instead of a fixed stabiliser plus elevator — the whole surface pivots. Because it's very powerful and sensitive, it's fitted with an ANTI-BALANCE (anti-servo) tab that increases stick force with deflection to prevent over-controlling and restore feel." },
+      { t: "Other layouts", b: "THREE-SURFACE aircraft combine a canard, wing and tailplane for control/CG flexibility. TAILLESS/flying-wing designs use the wing itself (reflex/elevons, sweep) for pitch control and stability. Each layout trades stability, control power, drag and stall behaviour differently — the tailplane's job (balance + pitch control) must be met somehow." },
+    ],
+    quiz: [
+      { q: "A conventional tailplane normally produces:", o: ["A download that balances the aircraft in pitch", "An upward force equal to the wing", "No force at all", "Thrust"], a: 0, e: "With CG ahead of the wing lift, a tail download trims the aircraft and gives longitudinal stability." },
+      { q: "A tailplane (ice-contaminated) stall, often triggered by lowering flap, causes the nose to:", o: ["Pitch down sharply", "Pitch up", "Yaw", "Roll level"], a: 0, e: "Opposite to a wing stall — recovery is to RETRACT some flap and pull back, reducing tail loading." },
+      { q: "T-tail aircraft are particularly prone to:", o: ["Deep (super) stall from a blanketed tailplane", "Tailplane icing immunity", "Adverse yaw only", "Mach tuck only"], a: 0, e: "At high AoA the wing wake can blanket the high tail — hence stick shakers/pushers are fitted." },
+      { q: "A canard is designed so that:", o: ["The foreplane stalls first, dropping the nose", "The main wing stalls first", "The tail produces download", "It cannot be trimmed"], a: 0, e: "Foreplane-first stalling prevents the main wing reaching CLmax — an inherently stall-resistant layout." },
+      { q: "An all-moving stabilator is fitted with an anti-balance tab to:", o: ["Increase stick force and prevent over-controlling", "Reduce stick force to zero", "Act as an airbrake", "Trim the rudder"], a: 0, e: "The all-moving surface is very powerful; the anti-servo tab heavies the feel to stop over-controlling." },
+      { q: "A forward CG requires the tailplane to provide:", o: ["More download (more lift demanded of the wing)", "Less download", "An upward force", "No change"], a: 0, e: "Forward CG increases the balancing download, raising the effective load on the wing (higher stall speed)." },
+    ],
+  },
+  ,
+  {
+    id: "advanced_pof",
+    code: "081·99",
+    title: "Advanced Aerodynamics",
+    blurb: "Compressibility, stability and swept-wing effects.",
+    cards: [
+      { t: "Mach tuck", b: "At high Mach numbers the centre of pressure moves aft, causing a nose-down pitching tendency known as Mach tuck." },
+      { t: "Dutch roll", b: "A coupled yawing and rolling oscillation common in swept-wing aircraft. Yaw dampers are commonly used to reduce it." },
+      { t: "Critical Mach number", b: "The lowest Mach number at which airflow somewhere over the aircraft first reaches Mach 1." },
+      { t: "Wingtip vortices", b: "Wingtip vortices increase induced drag and are strongest at high weight, low speed and high angle of attack." },
+      { t: "Static stability", b: "Positive static stability means the aircraft initially tends to return toward equilibrium after disturbance." },
+      { t: "Swept wings", b: "Swept wings delay compressibility effects and increase critical Mach number, but reduce low-speed performance." }
+    ]
+  }
+
+];
+
+// ===================== THEME =====================
+const C = {
+  bg: "#E9EEF2",
+  panel: "#FFFFFF",
+  ink: "#16222C",
+  sub: "#5A6B78",
+  line: "#C8D3DB",
+  cold: "#2B5C8A",
+  warm: "#B5402F",
+  good: "#2E7D4F",
+  bad: "#B5402F",
+  coldSoft: "#E3ECF4",
+  warmSoft: "#F6E8E5",
+};
+
+const FONTS = `
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+* { box-sizing: border-box; }
+body { margin: 0; }
+button { font-family: inherit; }
+button:focus-visible { outline: 3px solid #2B5C8A; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+`;
+
+// Front-line divider: alternating warm-front semicircles & cold-front triangles
+function FrontLine({ width = "100%" }) {
+  const units = [];
+  for (let i = 0; i < 30; i++) {
+    const x = i * 28;
+    if (i % 2 === 0) units.push(React.createElement('path', { key: i, d: `M ${x + 4} 10 A 8 8 0 0 1 ${x + 20} 10 Z`, fill: C.warm,} ));
+    else units.push(React.createElement('path', { key: i, d: `M ${x + 4} 10 L ${x + 12} 0 L ${x + 20} 10 Z`, fill: C.cold,} ));
+  }
+  return (
+    React.createElement('div', { style: { width, overflow: "hidden", lineHeight: 0 }, 'aria-hidden': "true",}
+      , React.createElement('svg', { width: "840", height: "12", viewBox: "0 0 840 12"   , style: { display: "block" },}
+        , React.createElement('line', { x1: "0", y1: "10", x2: "840", y2: "10", stroke: C.ink, strokeWidth: "2",} )
+        , units
+      )
+    )
+  );
+}
+
+const mono = { fontFamily: "'IBM Plex Mono', monospace" };
+const disp = { fontFamily: "'Archivo', sans-serif" };
+
+
+// ===================== CALC DRILL GENERATOR =====================
+function rnd(min, max, step = 1) {
+  const n = Math.floor(Math.random() * ((max - min) / step + 1));
+  return min + n * step;
+}
+function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
+function opts(correct, distractors, unit) {
+  const set = [correct, ...distractors.filter((d, i, a) => d !== correct && a.indexOf(d) === i).slice(0, 3)];
+  const shuffled = shuffle(set);
+  return { options: shuffled.map((v) => `${v}${unit}`), answer: shuffled.indexOf(correct) };
+}
+function genDrill() {
+  const type = rnd(0, 5);
+  if (type === 0) {
+    const fl = rnd(4, 35) * 10;
+    const ans = 15 - 2 * (fl / 10);
+    const { options, answer } = opts(ans, [ans + 5, ans - 5, ans + 10, -ans], "\u00b0C");
+    return { q: `What is the ISA temperature at FL${fl}?`, options, answer, e: `ISA = 15 \u2212 (2 \u00d7 ${fl / 10}) = ${ans}\u00b0C.` };
+  }
+  if (type === 1) {
+    const fl = rnd(8, 35) * 10;
+    const isa = 15 - 2 * (fl / 10);
+    const dev = rnd(-12, 12, 2);
+    const oat = isa + dev;
+    const { options, answer } = opts(dev, [dev + 5, dev - 5, -dev, dev + 10], "");
+    return { q: `OAT at FL${fl} is ${oat}\u00b0C. What is the ISA deviation?`, options, answer, e: `ISA at FL${fl} = ${isa}\u00b0C. Deviation = ${oat} \u2212 (${isa}) = ISA ${dev >= 0 ? "+" : ""}${dev}.` };
+  }
+  if (type === 2) {
+    const pa = rnd(1, 8) * 1000;
+    const isa = 15 - 2 * (pa / 1000);
+    const dev = rnd(2, 16, 2);
+    const oat = isa + dev;
+    const ans = pa + 120 * dev;
+    const { options, answer } = opts(ans, [pa + 120 * (dev - 5), pa + 60 * dev, pa - 120 * dev], " ft");
+    return { q: `Pressure altitude ${pa} ft, OAT ${oat > 0 ? "+" : ""}${oat}\u00b0C. Density altitude is approximately:`, options, answer, e: `ISA at ${pa} ft = ${isa}\u00b0C \u2192 deviation +${dev}. DA \u2248 ${pa} + (120 \u00d7 ${dev}) = ${ans} ft.` };
+  }
+  if (type === 3) {
+    const spread = rnd(3, 12);
+    const ans = 400 * spread;
+    const t = rnd(14, 26);
+    const { options, answer } = opts(ans, [ans + 800, ans - 800, 100 * spread], " ft");
+    return { q: `Surface temperature +${t}\u00b0C, dew point +${t - spread}\u00b0C. Estimated cumulus cloud base:`, options, answer, e: `Base \u2248 400 \u00d7 spread = 400 \u00d7 ${spread} = ${ans} ft AGL.` };
+  }
+  if (type === 4) {
+    const alt = rnd(4, 14) * 1000;
+    const dev = rnd(-3, 3, 1) * 10 || 10;
+    const ans = Math.round(alt * (1 + 0.04 * (dev / 10)));
+    const { options, answer } = opts(ans, [Math.round(alt * (1 - 0.04 * (dev / 10))), alt, ans + 400], " ft");
+    return { q: `Indicated altitude ${alt} ft on correct QNH, temperature ISA ${dev > 0 ? "+" : ""}${dev}. Approximate TRUE altitude (4% rule):`, options, answer, e: `4% per 10\u00b0C: ${alt} \u00d7 (1 ${dev > 0 ? "+" : "\u2212"} ${Math.abs(dev) * 0.4}%) \u2248 ${ans} ft. ${dev < 0 ? "Colder \u2192 true altitude LOWER." : "Warmer \u2192 true altitude HIGHER."}` };
+  }
+  const qnh = rnd(983, 1008);
+  const fl = rnd(4, 8) * 10;
+  const diff = 1013 - qnh;
+  const ans = fl * 100 - diff * 27;
+  const { options, answer } = opts(ans, [fl * 100 + diff * 27, fl * 100, ans + 270], " ft");
+  return { q: `Flying at FL${fl} (1013 set). QNH is ${qnh} hPa. Approximate altitude AMSL:`, options, answer, e: `1013 \u2212 ${qnh} = ${diff} hPa \u00d7 27 ft = ${diff * 27} ft. QNH is lower, so you are LOWER: ${fl * 100} \u2212 ${diff * 27} = ${ans} ft.` };
+}
+
+
+
+// ===================== DIAGRAMS (inline SVG) =====================
+const dW = { width: "100%", height: "auto", display: "block" };
+function DiaWrap({ children, vb = "0 0 340 210", cap }) {
+  return (
+    React.createElement('figure', { style: { margin: "14px 0 0", border: `1px solid ${C.line}`, background: "#FBFCFD", borderRadius: 2, padding: "10px 10px 6px" },}
+      , React.createElement('svg', { viewBox: vb, style: dW, role: "img",}, children)
+      , cap && React.createElement('figcaption', { style: { ...mono, fontSize: 10.5, color: C.sub, marginTop: 6, lineHeight: 1.4 },}, cap)
+    )
+  );
+}
+const AX = { stroke: C.ink, strokeWidth: 1 };
+const txt = (x, y, s, extra = {}) => React.createElement('text', { x: x, y: y, fontSize: extra.fs || 11, fontFamily: "'IBM Plex Mono', monospace"   , fill: extra.fill || C.ink, textAnchor: extra.ta || "start", fontWeight: extra.fw || 400,}, s);
+function Arrow({ x1, y1, x2, y2, color = C.ink, w = 2, id }) {
+  return (
+    React.createElement('g', null
+      , React.createElement('defs', null, React.createElement('marker', { id: id, markerWidth: "8", markerHeight: "8", refX: "6", refY: "3", orient: "auto",}, React.createElement('path', { d: "M0,0 L6,3 L0,6 Z"   , fill: color,} )))
+      , React.createElement('line', { x1: x1, y1: y1, x2: x2, y2: y2, stroke: color, strokeWidth: w, markerEnd: `url(#${id})`,} )
+    )
+  );
+}
+const wing = (cx, cy, s = 1) => `M${cx-60*s},${cy} C${cx-40*s},${cy-16*s} ${cx+20*s},${cy-18*s} ${cx+60*s},${cy-4*s} C${cx+20*s},${cy+4*s} ${cx-30*s},${cy+8*s} ${cx-60*s},${cy} Z`;
+
+const DIAGRAMS = {
+  aerofoil: () => (
+    React.createElement(DiaWrap, { cap: "Aerofoil terms. Angle of attack is between the chord line and the relative airflow — not the horizon."                 ,}
+      , React.createElement('path', { d: wing(160, 110, 1.4), fill: C.coldSoft, stroke: C.cold, strokeWidth: "1.8",} )
+      /* chord line */
+      , React.createElement('line', { x1: "76", y1: "112", x2: "246", y2: "106", stroke: C.ink, strokeWidth: "1.5", strokeDasharray: "5 3" ,} )
+      , txt(250, 108, "chord line", { fs: 9, fill: C.ink })
+      /* relative airflow */
+      , React.createElement(Arrow, { x1: "30", y1: "140", x2: "120", y2: "128", color: C.warm, w: "2", id: "af-raf",} )
+      , txt(20, 155, "relative airflow", { fs: 9, fill: C.warm })
+      /* AoA arc */
+      , React.createElement('path', { d: "M110,126 q22,-2 30,-12"  , fill: "none", stroke: C.good, strokeWidth: "1.5",} )
+      , txt(118, 120, "α", { fs: 12, fill: C.good, fw: 700 })
+      /* camber note */
+      , txt(120, 78, "camber (curvature)", { fs: 9, fill: C.sub })
+      , React.createElement(Arrow, { x1: "120", y1: "82", x2: "150", y2: "95", color: C.sub, w: "1.2", id: "af-cam",} )
+    )
+  ),
+  fourforces: () => (
+    React.createElement(DiaWrap, { cap: "Steady level flight: Lift = Weight, Thrust = Drag. Any imbalance accelerates the aircraft along that axis."                ,}
+      , React.createElement('path', { d: wing(170, 110, 1.3), fill: C.coldSoft, stroke: C.cold, strokeWidth: "1.5",} )
+      , React.createElement(Arrow, { x1: "170", y1: "95", x2: "170", y2: "35", color: C.cold, w: "2.5", id: "ff-l",} )
+      , txt(176, 50, "LIFT", { fs: 11, fill: C.cold, fw: 700 })
+      , React.createElement(Arrow, { x1: "170", y1: "125", x2: "170", y2: "185", color: C.warm, w: "2.5", id: "ff-w",} )
+      , txt(176, 175, "WEIGHT", { fs: 11, fill: C.warm, fw: 700 })
+      , React.createElement(Arrow, { x1: "120", y1: "110", x2: "250", y2: "110", color: C.good, w: "2.5", id: "ff-t",} )
+      , txt(255, 113, "THRUST", { fs: 11, fill: C.good, fw: 700 })
+      , React.createElement(Arrow, { x1: "120", y1: "110", x2: "40", y2: "110", color: C.ink, w: "2.5", id: "ff-d",} )
+      , txt(8, 113, "DRAG", { fs: 11, fill: C.ink, fw: 700 })
+    )
+  ),
+  bernoulli: () => (
+    React.createElement(DiaWrap, { cap: "Air accelerates over the curved upper surface (lower pressure); slower flow beneath (higher pressure). The net upward force is lift."                   ,}
+      , React.createElement('path', { d: wing(165, 120, 1.6), fill: C.coldSoft, stroke: C.cold, strokeWidth: "1.8",} )
+      /* upper fast streamlines */
+      , [78, 88].map((y, i) => React.createElement('path', { key: i, d: `M60,${y} Q165,${y-18} 270,${y}`, fill: "none", stroke: C.warm, strokeWidth: "1.3",} ))
+      , txt(120, 70, "fast flow → low pressure", { fs: 9, fill: C.warm })
+      /* lower slow */
+      , [150, 160].map((y, i) => React.createElement('path', { key: i, d: `M60,${y} Q165,${y+6} 270,${y}`, fill: "none", stroke: C.cold, strokeWidth: "1.3",} ))
+      , txt(120, 178, "slow flow → high pressure", { fs: 9, fill: C.cold })
+      , React.createElement(Arrow, { x1: "165", y1: "115", x2: "165", y2: "55", color: C.ink, w: "2", id: "be-l",} )
+      , txt(170, 60, "LIFT", { fs: 10, fill: C.ink, fw: 700 })
+    )
+  ),
+  dragcurve: () => (
+    React.createElement(DiaWrap, { cap: "Total drag = parasite (∝V²) + induced (∝1/V²). They cross at Vmd — minimum drag and best L/D."                 ,}
+      , React.createElement('line', { x1: "48", y1: "20", x2: "48", y2: "175", ...AX,} )
+      , React.createElement('line', { x1: "48", y1: "175", x2: "320", y2: "175", ...AX,} )
+      , txt(10, 100, "DRAG", { fs: 9, fill: C.sub })
+      , txt(160, 195, "SPEED →", { fs: 10, fill: C.sub })
+      /* induced: falling */
+      , React.createElement('path', { d: "M60,30 Q90,150 320,168"  , fill: "none", stroke: C.cold, strokeWidth: "2",} )
+      , txt(70, 45, "induced", { fs: 9, fill: C.cold })
+      /* parasite: rising */
+      , React.createElement('path', { d: "M60,172 Q220,168 300,30"  , fill: "none", stroke: C.warm, strokeWidth: "2",} )
+      , txt(255, 50, "parasite", { fs: 9, fill: C.warm })
+      /* total: U */
+      , React.createElement('path', { d: "M60,40 Q150,120 175,118 Q230,118 300,38"    , fill: "none", stroke: C.ink, strokeWidth: "2.5",} )
+      , txt(95, 35, "total", { fs: 9, fill: C.ink, fw: 700 })
+      , React.createElement('line', { x1: "176", y1: "118", x2: "176", y2: "175", stroke: C.good, strokeWidth: "1", strokeDasharray: "3 2" ,} )
+      , txt(176, 190, "Vmd", { fs: 10, fill: C.good, fw: 700, ta: "middle" })
+    )
+  ),
+  clalpha: () => (
+    React.createElement(DiaWrap, { cap: "CL rises nearly linearly with angle of attack to CLmax at the stalling angle (~16°), then drops sharply as flow separates."                    ,}
+      , React.createElement('line', { x1: "48", y1: "20", x2: "48", y2: "175", ...AX,} )
+      , React.createElement('line', { x1: "48", y1: "175", x2: "320", y2: "175", ...AX,} )
+      , txt(20, 95, "CL", { fs: 11, fill: C.sub })
+      , txt(150, 195, "ANGLE OF ATTACK →", { fs: 10, fill: C.sub })
+      , React.createElement('path', { d: "M48,170 L210,45 Q230,35 250,55 L275,120"    , fill: "none", stroke: C.cold, strokeWidth: "2.5",} )
+      , React.createElement('circle', { cx: "222", cy: "40", r: "3.5", fill: C.warm,} )
+      , txt(180, 32, "CLmax / stall", { fs: 9, fill: C.warm, fw: 600 })
+      , React.createElement('line', { x1: "222", y1: "40", x2: "222", y2: "175", stroke: C.line, strokeWidth: "1", strokeDasharray: "3 2" ,} )
+      , txt(214, 190, "~16°", { fs: 9, fill: C.sub })
+    )
+  ),
+  flapsslats: () => (
+    React.createElement(DiaWrap, { cap: "Flaps raise CLmax but LOWER the stall angle (curve shifts up & left). Slats raise CLmax AND the stall angle (shift right)."                     ,}
+      , React.createElement('line', { x1: "48", y1: "20", x2: "48", y2: "175", ...AX,} )
+      , React.createElement('line', { x1: "48", y1: "175", x2: "320", y2: "175", ...AX,} )
+      , txt(20, 95, "CL", { fs: 11, fill: C.sub })
+      , txt(160, 195, "AoA →", { fs: 10, fill: C.sub })
+      /* clean */
+      , React.createElement('path', { d: "M48,170 L200,60 Q215,52 228,66"   , fill: "none", stroke: C.sub, strokeWidth: "2",} )
+      , txt(232, 64, "clean", { fs: 8.5, fill: C.sub })
+      /* flap: higher, peak at lower AoA */
+      , React.createElement('path', { d: "M48,150 L168,40 Q182,32 196,48"   , fill: "none", stroke: C.warm, strokeWidth: "2.5",} )
+      , txt(120, 40, "flap", { fs: 9, fill: C.warm, fw: 700 })
+      /* slat: higher peak further right */
+      , React.createElement('path', { d: "M48,170 L250,45 Q265,38 278,55"   , fill: "none", stroke: C.cold, strokeWidth: "2.5",} )
+      , txt(258, 42, "slat", { fs: 9, fill: C.cold, fw: 700 })
+    )
+  ),
+  stabilityball: () => (
+    React.createElement(DiaWrap, { vb: "0 0 340 150"   , cap: "Static stability by analogy. Positive: returns. Neutral: stays put. Negative: diverges."          ,}
+      , [["POSITIVE", 60, C.good, "bowl"], ["NEUTRAL", 170, C.sub, "flat"], ["NEGATIVE", 280, C.bad, "dome"]].map((b, i) => {
+        const cx = b[1];
+        return (
+          React.createElement('g', { key: i,}
+            , b[3] === "bowl" && React.createElement('path', { d: `M${cx-32},60 Q${cx},120 ${cx+32},60`, fill: "none", stroke: b[2], strokeWidth: "2.5",} )
+            , b[3] === "flat" && React.createElement('line', { x1: cx-32, y1: "95", x2: cx+32, y2: "95", stroke: b[2], strokeWidth: "2.5",} )
+            , b[3] === "dome" && React.createElement('path', { d: `M${cx-32},95 Q${cx},45 ${cx+32},95`, fill: "none", stroke: b[2], strokeWidth: "2.5",} )
+            , React.createElement('circle', { cx: cx, cy: b[3] === "bowl" ? 96 : b[3] === "flat" ? 88 : 52, r: "7", fill: b[2],} )
+            , txt(cx, 135, b[0], { fs: 9, fill: b[2], fw: 700, ta: "middle" })
+          )
+        );
+      })
+    )
+  ),
+  axes: () => (
+    React.createElement(DiaWrap, { cap: "Three axes through the CG. Pitch/lateral = elevator. Roll/longitudinal = ailerons. Yaw/normal = rudder."             ,}
+      /* simple top-ish aircraft */
+      , React.createElement('line', { x1: "170", y1: "40", x2: "170", y2: "170", stroke: C.ink, strokeWidth: "3",} )
+      , React.createElement('line', { x1: "95", y1: "105", x2: "245", y2: "105", stroke: C.ink, strokeWidth: "3",} )
+      , React.createElement('line', { x1: "150", y1: "165", x2: "190", y2: "165", stroke: C.ink, strokeWidth: "3",} )
+      /* longitudinal axis */
+      , React.createElement('line', { x1: "60", y1: "105", x2: "300", y2: "105", stroke: C.cold, strokeWidth: "1.5", strokeDasharray: "5 3" ,} )
+      , txt(250, 99, "ROLL (long.)", { fs: 8.5, fill: C.cold })
+      /* lateral axis */
+      , React.createElement('line', { x1: "170", y1: "60", x2: "60", y2: "150", stroke: C.warm, strokeWidth: "1.5", strokeDasharray: "5 3" ,} )
+      , txt(58, 158, "PITCH (lat.)", { fs: 8.5, fill: C.warm })
+      /* normal axis */
+      , React.createElement('line', { x1: "170", y1: "30", x2: "170", y2: "185", stroke: C.good, strokeWidth: "1.5", strokeDasharray: "5 3" ,} )
+      , txt(176, 40, "YAW (normal)", { fs: 8.5, fill: C.good })
+      , React.createElement('circle', { cx: "170", cy: "105", r: "4", fill: C.ink,} )
+    )
+  ),
+  turnforces: () => (
+    React.createElement(DiaWrap, { cap: "In a level turn, lift tilts: its vertical part balances weight, its horizontal part turns the aircraft. Load factor n = 1/cos(bank)."                     ,}
+      , React.createElement('g', { transform: "translate(170,120) rotate(35)" ,}, React.createElement('path', { d: wing(0, 0, 1.0), fill: C.coldSoft, stroke: C.cold, strokeWidth: "1.5",} ))
+      , React.createElement(Arrow, { x1: "170", y1: "118", x2: "135", y2: "48", color: C.cold, w: "2.5", id: "tf-l",} )
+      , txt(100, 45, "LIFT", { fs: 10, fill: C.cold, fw: 700 })
+      , React.createElement(Arrow, { x1: "170", y1: "118", x2: "170", y2: "55", color: C.sub, w: "1.5", id: "tf-v",} )
+      , txt(176, 70, "vert = weight", { fs: 8.5, fill: C.sub })
+      , React.createElement(Arrow, { x1: "170", y1: "118", x2: "120", y2: "118", color: C.warm, w: "2", id: "tf-h",} )
+      , txt(95, 133, "horiz", { fs: 8.5, fill: C.warm })
+      , React.createElement(Arrow, { x1: "170", y1: "122", x2: "170", y2: "185", color: C.warm, w: "2", id: "tf-w",} )
+      , txt(176, 180, "WEIGHT", { fs: 9, fill: C.warm, fw: 600 })
+      , txt(210, 150, "60° bank → n=2", { fs: 9, fill: C.ink, fw: 600 })
+    )
+  ),
+  vn: () => (
+    React.createElement(DiaWrap, { cap: "The V-n (flight envelope): stall limit (curve) at low speed, structural limit (+2.5g) above, Vne on the right. Va is where they meet."                      ,}
+      , React.createElement('line', { x1: "48", y1: "20", x2: "48", y2: "175", ...AX,} )
+      , React.createElement('line', { x1: "48", y1: "98", x2: "320", y2: "98", stroke: C.line, strokeWidth: "1",} )
+      , txt(10, 50, "+g", { fs: 9, fill: C.sub })
+      , txt(10, 150, "−g", { fs: 9, fill: C.sub })
+      , txt(160, 195, "SPEED →", { fs: 10, fill: C.sub })
+      /* positive stall curve to Va */
+      , React.createElement('path', { d: "M48,98 Q120,40 150,38"  , fill: "none", stroke: C.cold, strokeWidth: "2",} )
+      /* structural limit */
+      , React.createElement('line', { x1: "150", y1: "38", x2: "285", y2: "38", stroke: C.warm, strokeWidth: "2",} )
+      , txt(180, 32, "+2.5g limit", { fs: 8.5, fill: C.warm })
+      /* Vne */
+      , React.createElement('line', { x1: "285", y1: "38", x2: "285", y2: "135", stroke: C.bad, strokeWidth: "2",} )
+      , txt(262, 150, "Vne", { fs: 9, fill: C.bad, fw: 700 })
+      /* neg */
+      , React.createElement('path', { d: "M48,98 Q120,150 170,150"  , fill: "none", stroke: C.cold, strokeWidth: "2",} )
+      , React.createElement('line', { x1: "170", y1: "150", x2: "285", y2: "135", stroke: C.warm, strokeWidth: "2",} )
+      , React.createElement('line', { x1: "150", y1: "38", x2: "150", y2: "98", stroke: C.good, strokeWidth: "1", strokeDasharray: "3 2" ,} )
+      , txt(140, 112, "Va", { fs: 9, fill: C.good, fw: 700 })
+    )
+  ),
+  shock: () => (
+    React.createElement(DiaWrap, { cap: "Beyond Mcrit, flow over the wing goes supersonic and ends in a shock wave. Behind it the boundary layer separates — wave drag, buffet, CofP shift (Mach tuck)."                           ,}
+      , React.createElement('path', { d: wing(160, 120, 1.7), fill: C.coldSoft, stroke: C.cold, strokeWidth: "1.8",} )
+      /* supersonic region */
+      , txt(110, 80, "M>1 region", { fs: 9, fill: C.warm })
+      , React.createElement('path', { d: "M90,95 Q150,80 195,92"  , fill: "none", stroke: C.warm, strokeWidth: "1.3", strokeDasharray: "3 2" ,} )
+      /* shock wave */
+      , React.createElement('line', { x1: "185", y1: "70", x2: "190", y2: "118", stroke: C.bad, strokeWidth: "3",} )
+      , txt(196, 70, "shock wave", { fs: 9, fill: C.bad, fw: 700 })
+      /* separation behind */
+      , [200, 210, 220].map((x, i) => React.createElement('path', { key: i, d: `M${x},108 q3,-6 -2,-10`, fill: "none", stroke: C.sub, strokeWidth: "1.2",} ))
+      , txt(205, 145, "separation", { fs: 8.5, fill: C.sub })
+      , React.createElement(Arrow, { x1: "30", y1: "118", x2: "95", y2: "118", color: C.ink, w: "1.5", id: "sh-flow",} )
+    )
+  ),
+  propeller: () => (
+    React.createElement(DiaWrap, { cap: "The blade is a rotating aerofoil. Its angle of attack is blade angle minus the helix angle of the resultant airflow (rotation + forward speed)."                        ,}
+      , React.createElement('line', { x1: "60", y1: "150", x2: "290", y2: "150", stroke: C.line, strokeWidth: "1",} )
+      /* rotational velocity */
+      , React.createElement(Arrow, { x1: "120", y1: "150", x2: "240", y2: "150", color: C.cold, w: "2", id: "pr-rot",} )
+      , txt(180, 165, "rotational velocity", { fs: 8.5, fill: C.cold })
+      /* forward velocity */
+      , React.createElement(Arrow, { x1: "120", y1: "150", x2: "120", y2: "80", color: C.warm, w: "2", id: "pr-fwd",} )
+      , txt(70, 95, "forward", { fs: 8.5, fill: C.warm })
+      /* resultant */
+      , React.createElement(Arrow, { x1: "120", y1: "150", x2: "230", y2: "86", color: C.ink, w: "2", id: "pr-res",} )
+      , txt(195, 100, "resultant airflow", { fs: 8.5, fill: C.ink })
+      /* blade chord */
+      , React.createElement('line', { x1: "95", y1: "120", x2: "180", y2: "55", stroke: C.good, strokeWidth: "3",} )
+      , txt(150, 50, "blade", { fs: 9, fill: C.good, fw: 700 })
+      , txt(125, 138, "α", { fs: 12, fill: C.good, fw: 700 })
+    )
+  ),
+  vortex: () => (
+    React.createElement(DiaWrap, { cap: "High pressure below spills around the tip to low pressure above, forming trailing vortices (wake turbulence) — strongest when heavy, clean and slow."                      ,}
+      , React.createElement('path', { d: wing(165, 100, 1.8), fill: C.coldSoft, stroke: C.cold, strokeWidth: "1.5",} )
+      /* spiral at tip */
+      , React.createElement('path', { d: "M250,100 q18,-14 30,2 q10,14 -6,22 q-14,6 -18,-10"      , fill: "none", stroke: C.warm, strokeWidth: "2",} )
+      , React.createElement('path', { d: "M80,100 q-18,-14 -30,2 q-10,14 6,22 q14,6 18,-10"      , fill: "none", stroke: C.warm, strokeWidth: "2",} )
+      , txt(110, 150, "trailing vortices (downwash)", { fs: 9, fill: C.warm, ta: "middle" })
+      /* spill arrows */
+      , React.createElement(Arrow, { x1: "250", y1: "118", x2: "270", y2: "96", color: C.cold, w: "1.3", id: "vx-1",} )
+    )
+  ),
+  groundeffect: () => (
+    React.createElement(DiaWrap, { cap: "Within ~1 wingspan of the ground, downwash and tip vortices are reduced — induced drag falls and effective lift rises (the aircraft tends to float)."                        ,}
+      , React.createElement('line', { x1: "20", y1: "160", x2: "320", y2: "160", stroke: C.good, strokeWidth: "2",} )
+      , txt(24, 175, "GROUND", { fs: 9, fill: C.good })
+      , React.createElement('path', { d: wing(165, 95, 1.6), fill: C.coldSoft, stroke: C.cold, strokeWidth: "1.5",} )
+      /* compressed downwash */
+      , [120, 165, 210].map((x, i) => React.createElement(Arrow, { key: i, x1: x, y1: 110, x2: x, y2: 150, color: C.sub, w: "1.2", id: `ge-${i}`,} ))
+      , txt(110, 130, "reduced downwash", { fs: 8.5, fill: C.sub })
+      , React.createElement('path', { d: "M70,160 q95,-8 200,0"  , fill: "none", stroke: C.line, strokeWidth: "1",} )
+      , txt(120, 60, "≈ within one wingspan", { fs: 9, fill: C.cold })
+    )
+  ),
+};
+
+// ===================== NUMBERS DRILL =====================
+const NUMBERS = [
+  { q: "Dynamic pressure is:", o: ["\\u00bd\\u03c1V\\u00b2", "\\u03c1V", "\\u03c1gh", "\\u00bd\\u03c1V"], a: 0, e: "q = \\u00bd\\u03c1V\\u00b2 \\u2014 drives all aerodynamic force, proportional to the square of speed." },
+  { q: "If TAS doubles, dynamic pressure:", o: ["\\u00d74", "\\u00d72", "halves", "unchanged"], a: 0, e: "q \\u221d V\\u00b2, so double speed \\u2192 four times the dynamic pressure." },
+  { q: "Typical stalling angle of attack:", o: ["~16\\u00b0", "~4\\u00b0", "~45\\u00b0", "~90\\u00b0"], a: 0, e: "CLmax is reached near 16\\u00b0 for a typical aerofoil, then CL drops." },
+  { q: "Subsonic aerodynamic centre is at about:", o: ["25% chord", "5% chord", "50% chord", "75% chord"], a: 0, e: "Quarter-chord subsonically; it shifts to ~50% supersonically." },
+  { q: "Load factor in a 60\\u00b0 level turn:", o: ["2", "1", "1.4", "4"], a: 0, e: "n = 1/cos60\\u00b0 = 2; stall speed rises by \\u221a2 \\u2248 1.41." },
+  { q: "Stall speed at 60\\u00b0 bank increases by:", o: ["~41%", "~100%", "~10%", "0%"], a: 0, e: "\\u221an = \\u221a2 \\u2248 1.41, i.e. about 41% higher." },
+  { q: "Dry-air compressibility must be considered above about:", o: ["M0.4", "M0.1", "M0.8", "M1.0"], a: 0, e: "Below ~M0.4 air is treated as incompressible." },
+  { q: "Transonic range is roughly:", o: ["M0.8\\u2013M1.2", "M0.2\\u2013M0.5", "M1.5\\u2013M2.0", "M0.4\\u2013M0.6"], a: 0, e: "Mixed sub- and supersonic flow spans roughly M0.8 to M1.2." },
+  { q: "Typical transport limit load factor (flaps up):", o: ["+2.5g / \\u22121.0g", "+3.8g / \\u22121.5g", "+6g / \\u22123g", "+1.5g / 0g"], a: 0, e: "Large transports: +2.5g to \\u22121.0g clean; utility/aerobatic allow more." },
+  { q: "Ultimate load factor is:", o: ["1.5 \\u00d7 limit", "2 \\u00d7 limit", "= limit", "0.5 \\u00d7 limit"], a: 0, e: "A 1.5 safety factor from limit to ultimate (where failure is expected)." },
+  { q: "Manoeuvring speed Va with lower weight:", o: ["decreases", "increases", "unchanged", "becomes Vne"], a: 0, e: "Lighter \\u2192 lower stall speed \\u2192 lower Va. Slow down in turbulence when light." },
+  { q: "Best glide range is flown at:", o: ["L/Dmax (Vmd)", "lowest speed", "Vne", "stall speed"], a: 0, e: "Flattest glide angle = L/Dmax, giving max still-air range." },
+  { q: "Top of the WHITE arc on the ASI:", o: ["Vfe", "Vno", "Vne", "Vs1"], a: 0, e: "White arc = Vs0 to Vfe (flap operating range)." },
+  { q: "Top of the GREEN arc:", o: ["Vno", "Vne", "Vfe", "Va"], a: 0, e: "Green arc = Vs1 to Vno (normal operating range)." },
+  { q: "The YELLOW arc means:", o: ["caution \\u2014 smooth air only", "normal range", "flap range", "never exceed"], a: 0, e: "Vno to Vne, permitted only in smooth air." },
+  { q: "Glide angle depends only on:", o: ["L/D ratio", "weight", "thrust", "wing area"], a: 0, e: "Glide angle = 1/(L/D), independent of weight." },
+  { q: "Rate of climb depends on:", o: ["excess power", "excess thrust", "wing area", "CG"], a: 0, e: "Excess power \\u2192 rate (Vy); excess thrust \\u2192 angle (Vx)." },
+  { q: "Standard rate-one turn is:", o: ["3\\u00b0/sec", "1\\u00b0/sec", "6\\u00b0/sec", "10\\u00b0/sec"], a: 0, e: "Rate one = 3\\u00b0 per second; bank required increases with TAS." },
+  { q: "Wingtip vortices are strongest when the aircraft is:", o: ["heavy, clean, slow", "light, dirty, fast", "on the ground", "descending fast"], a: 0, e: "High AoA (heavy/clean/slow) \\u2192 strongest wake turbulence." },
+  { q: "Ground effect is significant within about:", o: ["one wingspan", "ten wingspans", "one chord-tenth", "500 ft"], a: 0, e: "Within roughly one wingspan of the surface induced drag falls markedly." },
+  { q: "On a conventional twin, the critical engine is the:", o: ["left", "right", "either", "rear"], a: 0, e: "P-factor moves the right engine's thrust line outboard, so losing the LEFT is harder to control." },
+  { q: "About lift: most is produced by:", o: ["suction on the upper surface", "pressure on the lower surface", "the trailing edge", "skin friction"], a: 0, e: "Roughly two-thirds of lift comes from low pressure on top of the wing." },
+  { q: "Vmc increases with:", o: ["takeoff power & aft CG", "low power", "forward CG", "high weight"], a: 0, e: "Max power, aft CG, low weight and worst config all raise Vmc." },
+  { q: "Sweepback's main aerodynamic benefit:", o: ["raises Mcrit", "raises CLmax", "reduces weight", "increases dihedral effect only"], a: 0, e: "Only the chordwise flow component drives compressibility \\u2014 sweep delays shock formation." },
+];
+function genDrill() {
+  const pool = [...NUMBERS].sort(() => Math.random() - 0.5)[0];
+  const idx = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
+  return { q: pool.q, options: idx.map((k) => pool.o[k]), answer: idx.indexOf(pool.a), e: pool.e };
+}
+
+
+// ===================== APP =====================
+function App() {
+  const [view, setView] = useState({ type: "home" });
+  const [progress, setProgress] = useState({ read: {}, best: {} });
+
+  useEffect(() => {
+    (async () => {
+      try {
+        if (typeof window !== "undefined" && window.storage) {
+          const r = await window.storage.get("atpl-pof-v1");
+          if (r && r.value) setProgress(JSON.parse(r.value));
+        }
+      } catch (e) { /* first visit — nothing saved yet */ }
+    })();
+  }, []);
+
+  const save = (p) => {
+    setProgress(p);
+    (async () => {
+      try {
+        if (typeof window !== "undefined" && window.storage) {
+          await window.storage.set("atpl-pof-v1", JSON.stringify(p));
+        }
+      } catch (e) { console.error("save failed", e); }
+    })();
+  };
+
+  const overall = Math.round(
+    TOPICS.reduce((s, t) => s + (progress.best[t.id] || 0), 0) / TOPICS.length
+  );
+
+  return (
+    React.createElement('div', { style: { minHeight: "100vh", background: C.bg, color: C.ink, ...disp },}
+      , React.createElement('style', null, FONTS)
+      , React.createElement(Header, { overall: overall, onHome: () => setView({ type: "home" }),} )
+      , React.createElement('main', { style: { maxWidth: 880, margin: "0 auto", padding: "20px 16px 60px" },}
+        , view.type === "home" && (
+          React.createElement(Home, { progress: progress, save: save, onOpen: (id) => setView({ type: "topic", id, tab: "learn" }), onDrill: () => setView({ type: "drill" }), onSaved: () => setView({ type: "saved" }),} )
+        )
+        , view.type === "saved" && (
+          React.createElement(Saved, { progress: progress, save: save, onOpen: (id) => setView({ type: "topic", id, tab: "learn" }), onBack: () => setView({ type: "home" }),} )
+        )
+        , view.type === "drill" && (
+          React.createElement(Drill, { progress: progress, save: save, onBack: () => setView({ type: "home" }),} )
+        )
+        , view.type === "topic" && (
+          React.createElement(Topic, {
+            topic: TOPICS.find((t) => t.id === view.id),
+            tab: view.tab,
+            setTab: (tab) => setView({ ...view, tab }),
+            progress: progress,
+            save: save,
+            onBack: () => setView({ type: "home" }),}
+          )
+        )
+      )
+    )
+  );
+}
+
+function Header({ overall, onHome }) {
+  return (
+    React.createElement('header', { style: { background: C.ink, color: "#F2F5F7" },}
+      , React.createElement('div', { style: { maxWidth: 880, margin: "0 auto", padding: "18px 16px 14px", display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 },}
+        , React.createElement('button', { onClick: onHome, style: { background: "none", border: "none", color: "inherit", cursor: "pointer", padding: 0, textAlign: "left" },}
+          , React.createElement('div', { style: { ...mono, fontSize: 11, letterSpacing: 3, color: "#9FB3C2" },}, "EASA ATPL · SUBJECT 081"    )
+          , React.createElement('div', { style: { ...disp, fontWeight: 800, fontSize: 26, letterSpacing: 1 },}, "PRINCIPLES OF FLIGHT"  )
+        )
+        , React.createElement('div', { style: { ...mono, fontSize: 13, color: "#9FB3C2" },}, "MASTERY "
+           , React.createElement('span', { style: { color: "#fff", fontWeight: 600 },}, String(overall).padStart(3, "0"), "%"), " · QNH1013"
+        )
+      )
+      , React.createElement(FrontLine, null )
+    )
+  );
+}
+
+function Home({ progress, save, onOpen, onDrill, onSaved }) {
+  const firstUndone = TOPICS.find((t) => !((progress.best[t.id] != null && progress.best[t.id] >= 75) || (progress.done && progress.done[t.id])));
+  const bmCount = progress.bookmarks ? Object.keys(progress.bookmarks).filter((k) => progress.bookmarks[k]).length : 0;
+  return (
+    React.createElement('div', null
+      , React.createElement(ExamBanner, { progress: progress,} )
+      , React.createElement('div', { style: { display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" },}
+        , firstUndone && React.createElement('button', { onClick: () => onOpen(firstUndone.id), style: { ...mono, fontSize: 13.5, padding: "11px 16px", border: "none", borderRadius: 3, background: C.cold, color: "#fff", fontWeight: 600, cursor: "pointer" },}, "▶ Continue: "  , firstUndone.title)
+        , React.createElement('button', { onClick: onSaved, style: { ...mono, fontSize: 13.5, padding: "11px 16px", border: `1px solid ${C.line}`, borderRadius: 3, background: C.panel, color: C.ink, cursor: "pointer" },}, "★ Saved ("  , bmCount, ")")
+      )
+      , React.createElement('p', { style: { color: C.sub, fontSize: 15, lineHeight: 1.5, margin: "6px 0 20px" },}, "Nineteen modules covering the 081 syllabus. Work through "
+                , React.createElement('b', null, "Learn"), " first, then sit the "     , React.createElement('b', null, "Quiz"), " — your best scores are saved here between sessions."
+      )
+      , React.createElement('div', { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: 12 },}
+        , TOPICS.map((t) => {
+          const read = progress.read[t.id] || 0;
+          const best = progress.best[t.id];
+          const done = (best != null && best >= 75) || (progress.done && progress.done[t.id]);
+          return (
+            React.createElement('button', {
+              key: t.id,
+              onClick: () => onOpen(t.id),
+              style: {
+                position: "relative", textAlign: "left",
+                background: done ? "#F1F5F2" : C.panel, border: `1px solid ${C.line}`,
+                borderTop: `4px solid ${done ? C.good : (best != null ? C.warm : C.cold)}`,
+                padding: "14px 16px 12px", cursor: "pointer", borderRadius: 2,
+                opacity: done ? 0.6 : 1,
+              },}
+
+              , done && React.createElement('span', { 'aria-label': "completed", style: { position: "absolute", top: 8, right: 10, width: 20, height: 20, borderRadius: 10, background: C.good, color: "#fff", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" },}, "✓")
+              , React.createElement('div', { style: { ...mono, fontSize: 11, color: C.sub, letterSpacing: 2 },}, t.code)
+              , React.createElement('div', { style: { fontWeight: 700, fontSize: 17, margin: "4px 0 6px" },}, t.title)
+              , React.createElement('div', { style: { fontSize: 13, color: C.sub, lineHeight: 1.45, minHeight: 38 },}, t.blurb)
+              , React.createElement('div', { style: { ...mono, fontSize: 12, marginTop: 10, display: "flex", justifyContent: "space-between" },}
+                , React.createElement('span', { style: { color: read >= t.cards.length ? C.good : C.sub },}, "LEARN " , read, "/", t.cards.length)
+                , React.createElement('span', { style: { color: best == null ? C.sub : best >= 75 ? C.good : C.warm },}
+                  , best == null ? "QUIZ —" : `BEST ${best}%`
+                )
+              )
+            )
+          );
+        })
+      )
+      , React.createElement('button', {
+        onClick: onDrill,
+        style: {
+          width: "100%", textAlign: "left", marginTop: 12, cursor: "pointer", borderRadius: 2,
+          background: C.ink, color: "#F2F5F7", border: "none", padding: "16px 18px",
+          display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8,
+        },}
+
+        , React.createElement('span', null
+          , React.createElement('span', { style: { ...mono, fontSize: 11, letterSpacing: 2, color: "#9FB3C2", display: "block" },}, "QUICK-FIRE RECALL" )
+          , React.createElement('span', { style: { fontWeight: 700, fontSize: 18 },}, "Numbers Drill" )
+          , React.createElement('span', { style: { display: "block", fontSize: 13, color: "#9FB3C2", marginTop: 2 },}, "Load factors, V-speed arcs, Mach numbers, stall & lift facts — the exact figures the 081 exam asks for."
+
+          )
+        )
+        , React.createElement('span', { style: { ...mono, fontSize: 13 },}, "BEST STREAK "  , (progress.drill && progress.drill.best) || 0, " →" )
+      )
+    )
+  );
+}
+
+function Topic({ topic, tab, setTab, progress, save, onBack }) {
+  return (
+    React.createElement('div', null
+      , React.createElement('button', { onClick: onBack, style: { ...mono, background: "none", border: "none", color: C.cold, cursor: "pointer", fontSize: 13, padding: "4px 0", marginBottom: 8 },}, "← ALL MODULES"
+
+      )
+      , React.createElement('div', { style: { ...mono, fontSize: 11, color: C.sub, letterSpacing: 2 },}, topic.code)
+      , React.createElement('h1', { style: { fontSize: 26, fontWeight: 800, margin: "2px 0 14px" },}, topic.title)
+      , React.createElement('div', { style: { display: "flex", gap: 8, marginBottom: 18 },}
+        , ["learn", "quiz"].map((m) => (
+          React.createElement('button', {
+            key: m,
+            onClick: () => setTab(m),
+            style: {
+              ...mono, fontSize: 13, letterSpacing: 1, padding: "8px 18px", cursor: "pointer", borderRadius: 2,
+              border: `1px solid ${tab === m ? C.ink : C.line}`,
+              background: tab === m ? C.ink : C.panel,
+              color: tab === m ? "#fff" : C.ink,
+            },}
+
+            , m.toUpperCase()
+          )
+        ))
+      )
+      , React.createElement(DoneToggle, { topic: topic, progress: progress, save: save,} )
+      , tab === "learn" ? (
+        React.createElement(Learn, { topic: topic, progress: progress, save: save, goQuiz: () => setTab("quiz"),} )
+      ) : (
+        React.createElement(Quiz, { topic: topic, progress: progress, save: save,} )
+      )
+    )
+  );
+}
+
+function Learn({ topic, progress, save, goQuiz }) {
+  const [i, setI] = useState(0);
+  const card = topic.cards[i];
+
+  useEffect(() => {
+    const seen = progress.read[topic.id] || 0;
+    if (i + 1 > seen) save({ ...progress, read: { ...progress.read, [topic.id]: i + 1 } });
+  }, [i]); // eslint-disable-line
+
+  return (
+    React.createElement('div', null
+      , React.createElement('div', { style: { background: C.panel, border: `1px solid ${C.line}`, borderRadius: 2, padding: "20px 22px" },}
+        , React.createElement('div', { style: { ...mono, fontSize: 12, color: C.sub },}, "CARD " , i + 1, " / "  , topic.cards.length)
+        , React.createElement('h2', { style: { fontSize: 20, fontWeight: 700, margin: "8px 0 10px" },}, card.t)
+        , React.createElement('p', { style: { fontSize: 15.5, lineHeight: 1.65, margin: 0 },}, card.b)
+        , card.dia && DIAGRAMS[card.dia] && DIAGRAMS[card.dia]()
+        , card.dia && DIAGRAMS[card.dia] && DIAGRAMS[card.dia]()
+      )
+      , React.createElement(LearnControls, { topic: topic, i: i, card: card, progress: progress, save: save,} )
+      , React.createElement('div', { style: { display: "flex", gap: 6, margin: "12px 0" },}
+        , topic.cards.map((_, k) => (
+          React.createElement('div', { key: k, style: { flex: 1, height: 4, background: k <= i ? C.cold : C.line, borderRadius: 2 },} )
+        ))
+      )
+      , React.createElement('div', { style: { display: "flex", justifyContent: "space-between", gap: 10 },}
+        , React.createElement(Btn, { ghost: true, disabled: i === 0, onClick: () => setI(i - 1),}, "← Back" )
+        , i < topic.cards.length - 1 ? (
+          React.createElement(Btn, { onClick: () => setI(i + 1),}, "Next card →"  )
+        ) : (
+          React.createElement(Btn, { onClick: goQuiz, color: C.good,}, "Take the quiz →"   )
+        )
+      )
+    )
+  );
+}
+
+function Quiz({ topic, progress, save }) {
+  const [i, setI] = useState(0);
+  const [picked, setPicked] = useState(null);
+  const [score, setScore] = useState(0);
+  const [done, setDone] = useState(false);
+  const [order] = useState(() =>
+    topic.quiz.map((q) => {
+      const idx = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
+      return { ...q, o: idx.map((k) => q.o[k]), a: idx.indexOf(q.a) };
+    })
+  );
+
+  const q = order[i];
+
+  const finish = (finalScore) => {
+    const pct = Math.round((finalScore / order.length) * 100);
+    const prev = progress.best[topic.id] || 0;
+    if (pct > prev) save({ ...progress, best: { ...progress.best, [topic.id]: pct } });
+    setDone(true);
+  };
+
+  if (done) {
+    const pct = Math.round((score / order.length) * 100);
+    const pass = pct >= 75;
+    return (
+      React.createElement('div', { style: { background: C.panel, border: `1px solid ${C.line}`, borderTop: `4px solid ${pass ? C.good : C.warm}`, borderRadius: 2, padding: "26px 22px", textAlign: "center" },}
+        , React.createElement('div', { style: { ...mono, fontSize: 12, color: C.sub, letterSpacing: 2 },}, "RESULT")
+        , React.createElement('div', { style: { fontSize: 44, fontWeight: 800, color: pass ? C.good : C.warm, margin: "6px 0" },}, pct, "%")
+        , React.createElement('p', { style: { color: C.sub, fontSize: 14, margin: "0 0 4px" },}, score, " of "  , order.length, " correct · EASA pass mark is 75%"       )
+        , React.createElement('p', { style: { fontSize: 15, margin: "10px 0 18px" },}
+          , pass ? "Pass — keep it warm with a re-run in a few days." : "Below the pass mark — revisit the Learn cards, then try again."
+        )
+        , React.createElement(Btn, { onClick: () => { setI(0); setPicked(null); setScore(0); setDone(false); },}, "Retake quiz" )
+      )
+    );
+  }
+
+  return (
+    React.createElement('div', null
+      , React.createElement('div', { style: { ...mono, fontSize: 12, color: C.sub, marginBottom: 8 },}, "QUESTION "
+         , i + 1, " / "  , order.length, " · SCORE "   , score
+      )
+      , React.createElement('div', { style: { background: C.panel, border: `1px solid ${C.line}`, borderRadius: 2, padding: "18px 20px" },}
+        , React.createElement('p', { style: { fontSize: 16.5, fontWeight: 700, lineHeight: 1.5, margin: "0 0 14px" },}, q.q)
+        , React.createElement('div', { style: { display: "grid", gap: 8 },}
+          , q.o.map((opt, k) => {
+            let bg = C.panel, border = C.line;
+            if (picked != null) {
+              if (k === q.a) { bg = "#E7F2EA"; border = C.good; }
+              else if (k === picked) { bg = C.warmSoft; border = C.warm; }
+            }
+            return (
+              React.createElement('button', {
+                key: k,
+                disabled: picked != null,
+                onClick: () => { setPicked(k); if (k === q.a) setScore(score + 1); },
+                style: {
+                  textAlign: "left", padding: "11px 14px", fontSize: 15, lineHeight: 1.4,
+                  background: bg, border: `1.5px solid ${border}`, borderRadius: 2,
+                  cursor: picked == null ? "pointer" : "default", color: C.ink,
+                },}
+
+                , React.createElement('span', { style: { ...mono, color: C.sub, marginRight: 8 },}, "ABCD"[k]), opt
+              )
+            );
+          })
+        )
+        , picked != null && (
+          React.createElement('div', { style: { marginTop: 14, padding: "12px 14px", background: picked === q.a ? "#E7F2EA" : C.coldSoft, borderLeft: `4px solid ${picked === q.a ? C.good : C.cold}`, fontSize: 14.5, lineHeight: 1.55 },}
+            , React.createElement('b', null, picked === q.a ? "Correct. " : "Not quite. "), q.e
+          )
+        )
+      )
+      , picked != null && (
+        React.createElement('div', { style: { display: "flex", justifyContent: "flex-end", marginTop: 14 },}
+          , i < order.length - 1 ? (
+            React.createElement(Btn, { onClick: () => { setI(i + 1); setPicked(null); },}, "Next question →"  )
+          ) : (
+            React.createElement(Btn, { color: C.good, onClick: () => finish(score),}, "Finish →" )
+          )
+        )
+      )
+    )
+  );
+}
+
+function Btn({ children, onClick, disabled, ghost, color }) {
+  return (
+    React.createElement('button', {
+      onClick: onClick,
+      disabled: disabled,
+      style: {
+        ...mono, fontSize: 14, padding: "10px 20px", cursor: disabled ? "default" : "pointer",
+        borderRadius: 2, letterSpacing: 0.5,
+        background: ghost ? "transparent" : color || C.ink,
+        color: ghost ? (disabled ? C.line : C.ink) : "#fff",
+        border: ghost ? `1px solid ${disabled ? C.line : C.ink}` : "none",
+        opacity: disabled ? 0.6 : 1,
+      },}
+
+      , children
+    )
+  );
+}
+
+function Drill({ progress, save, onBack }) {
+  const [q, setQ] = useState(() => genDrill());
+  const [picked, setPicked] = useState(null);
+  const [streak, setStreak] = useState(0);
+  const [count, setCount] = useState(0);
+  const [right, setRight] = useState(0);
+
+  const pick = (k) => {
+    if (picked != null) return;
+    setPicked(k);
+    setCount(count + 1);
+    if (k === q.answer) {
+      setRight(right + 1);
+      const ns = streak + 1;
+      setStreak(ns);
+      const best = (progress.drill && progress.drill.best) || 0;
+      if (ns > best) save({ ...progress, drill: { best: ns } });
+    } else {
+      setStreak(0);
+    }
+  };
+
+  return (
+    React.createElement('div', null
+      , React.createElement('button', { onClick: onBack, style: { ...mono, background: "none", border: "none", color: C.cold, cursor: "pointer", fontSize: 13, padding: "4px 0", marginBottom: 8 },}, "← ALL MODULES"
+
+      )
+      , React.createElement('h1', { style: { fontSize: 26, fontWeight: 800, margin: "2px 0 4px" },}, "Numbers Drill" )
+      , React.createElement('div', { style: { ...mono, fontSize: 12, color: C.sub, marginBottom: 14 },}, "STREAK "
+         , streak, " · SESSION "   , right, "/", count, " · BEST "   , (progress.drill && progress.drill.best) || 0
+      )
+      , React.createElement('div', { style: { background: C.panel, border: `1px solid ${C.line}`, borderRadius: 2, padding: "18px 20px" },}
+        , React.createElement('p', { style: { fontSize: 16.5, fontWeight: 700, lineHeight: 1.5, margin: "0 0 14px" },}, q.q)
+        , React.createElement('div', { style: { display: "grid", gap: 8 },}
+          , q.options.map((opt, k) => {
+            let bg = C.panel, border = C.line;
+            if (picked != null) {
+              if (k === q.answer) { bg = "#E7F2EA"; border = C.good; }
+              else if (k === picked) { bg = C.warmSoft; border = C.warm; }
+            }
+            return (
+              React.createElement('button', { key: k, disabled: picked != null, onClick: () => pick(k),
+                style: { textAlign: "left", padding: "11px 14px", fontSize: 15, background: bg, border: `1.5px solid ${border}`, borderRadius: 2, cursor: picked == null ? "pointer" : "default", color: C.ink },}
+                , React.createElement('span', { style: { ...mono, color: C.sub, marginRight: 8 },}, "ABCD"[k]), opt
+              )
+            );
+          })
+        )
+        , picked != null && (
+          React.createElement('div', { style: { marginTop: 14, padding: "12px 14px", background: picked === q.answer ? "#E7F2EA" : C.coldSoft, borderLeft: `4px solid ${picked === q.answer ? C.good : C.cold}`, fontSize: 14.5, lineHeight: 1.55 },}
+            , React.createElement('b', null, picked === q.answer ? "Correct. " : "Not quite. "), q.e
+          )
+        )
+      )
+      , picked != null && (
+        React.createElement('div', { style: { display: "flex", justifyContent: "flex-end", marginTop: 14 },}
+          , React.createElement(Btn, { onClick: () => { setQ(genDrill()); setPicked(null); },}, "Next question →"  )
+        )
+      )
+    )
+  );
+}
+
+
+// ===================== ADDED FEATURES =====================
+function speak(text, onEnd) {
+  try {
+    const s = window.speechSynthesis; if (!s) return false;
+    s.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 1; u.onend = onEnd; s.speak(u); return true;
+  } catch (e) { return false; }
+}
+function stopSpeak() { try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {} }
+
+function ExamBanner({ progress }) {
+  const [date, setDate] = useState("");
+  const [editing, setEditing] = useState(false);
+  useEffect(() => { try { setDate(localStorage.getItem("atpl-exam-date") || ""); } catch (e) {} }, []);
+  const setExam = (v) => { setDate(v); try { v ? localStorage.setItem("atpl-exam-date", v) : localStorage.removeItem("atpl-exam-date"); } catch (e) {} setEditing(false); };
+  const undone = TOPICS.filter((t) => !((progress.best[t.id] != null && progress.best[t.id] >= 75) || (progress.done && progress.done[t.id]))).length;
+  let days = null;
+  if (date) { const d = new Date(date + "T00:00:00"); days = Math.ceil((d - new Date()) / 86400000); }
+  if (!date || editing) {
+    return (
+      React.createElement('div', { style: { background: C.panel, border: `1px solid ${C.line}`, borderRadius: 3, padding: "12px 14px", marginBottom: 14, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },}
+        , React.createElement('span', { style: { ...mono, fontSize: 12, color: C.sub },}, "Exam date:" )
+        , React.createElement('input', { type: "date", defaultValue: date, onChange: (e) => setExam(e.target.value), style: { ...mono, fontSize: 13, padding: "6px 8px", border: `1px solid ${C.line}`, borderRadius: 2 },} )
+        , date && React.createElement('button', { onClick: () => setExam(""), style: { ...mono, fontSize: 12, background: "none", border: "none", color: C.warm, cursor: "pointer" },}, "clear")
+      )
+    );
+  }
+  const overdue = days < 0;
+  const pace = days > 0 ? Math.ceil(undone / days) : undone;
+  return (
+    React.createElement('div', { onClick: () => setEditing(true), style: { cursor: "pointer", background: overdue ? C.warmSoft : C.ink, color: overdue ? C.warm : "#fff", borderRadius: 3, padding: "12px 16px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" },}
+      , React.createElement('span', null
+        , React.createElement('span', { style: { ...mono, fontSize: 11, letterSpacing: 2, color: overdue ? C.warm : "#9FB3C2", display: "block" },}, "EXAM COUNTDOWN" )
+        , React.createElement('span', { style: { fontWeight: 800, fontSize: 20 },}, overdue ? `${Math.abs(days)} days ago` : days === 0 ? "Exam today" : `${days} days to go`)
+      )
+      , !overdue && days > 0 && undone > 0 && React.createElement('span', { style: { ...mono, fontSize: 12, color: "#9FB3C2", textAlign: "right" },}, undone, " chapters left · ~"    , pace, "/day")
+    )
+  );
+}
+
+function DoneToggle({ topic, progress, save }) {
+  const passed = progress.best[topic.id] != null && progress.best[topic.id] >= 75;
+  const marked = !!(progress.done && progress.done[topic.id]);
+  const done = passed || marked;
+  const toggle = () => { const d = { ...(progress.done || {}) }; d[topic.id] = !marked; save({ ...progress, done: d }); };
+  return (
+    React.createElement('button', { onClick: toggle, style: { ...mono, fontSize: 12.5, padding: "8px 14px", borderRadius: 2, marginBottom: 16, cursor: "pointer", border: `1px solid ${done ? C.good : C.line}`, background: done ? "#E7F2EA" : C.panel, color: done ? C.good : C.sub },}
+      , done ? "✓ Completed — tap to unmark" : "○ Mark chapter complete"
+    )
+  );
+}
+
+function LearnControls({ topic, i, card, progress, save }) {
+  const [speaking, setSpeaking] = useState(false);
+  useEffect(() => { stopSpeak(); setSpeaking(false); }, [i]); // eslint-disable-line
+  const bmKey = topic.id + ":" + i;
+  const marked = !!(progress.bookmarks && progress.bookmarks[bmKey]);
+  const toggleBm = () => { const bm = { ...(progress.bookmarks || {}) }; bm[bmKey] = !marked; save({ ...progress, bookmarks: bm }); };
+  const toggleSpeak = () => {
+    if (speaking) { stopSpeak(); setSpeaking(false); }
+    else { const ok = speak(card.t + ". " + card.b, () => setSpeaking(false)); setSpeaking(ok); }
+  };
+  return (
+    React.createElement('div', { style: { display: "flex", gap: 8, marginTop: 12 },}
+      , React.createElement('button', { onClick: toggleSpeak, style: { ...mono, fontSize: 13, padding: "9px 14px", borderRadius: 2, border: `1px solid ${C.line}`, background: speaking ? C.coldSoft : C.panel, color: C.ink, cursor: "pointer" },}, speaking ? "■ Stop" : "▶ Listen")
+      , React.createElement('button', { onClick: toggleBm, style: { ...mono, fontSize: 13, padding: "9px 14px", borderRadius: 2, border: `1px solid ${marked ? C.warm : C.line}`, background: marked ? C.warmSoft : C.panel, color: marked ? C.warm : C.ink, cursor: "pointer" },}, marked ? "★ Saved" : "☆ Save card")
+    )
+  );
+}
+
+function Saved({ progress, save, onOpen, onBack }) {
+  const bm = progress.bookmarks || {};
+  const items = [];
+  TOPICS.forEach((t) => t.cards.forEach((c, idx) => { if (bm[t.id + ":" + idx]) items.push({ t, c, idx }); }));
+  const unsave = (key) => { const b = { ...bm }; delete b[key]; save({ ...progress, bookmarks: b }); };
+  return (
+    React.createElement('div', null
+      , React.createElement('button', { onClick: onBack, style: { ...mono, background: "none", border: "none", color: C.cold, cursor: "pointer", fontSize: 13, padding: "4px 0", marginBottom: 8 },}, "← ALL MODULES"  )
+      , React.createElement('h1', { style: { fontSize: 26, fontWeight: 800, margin: "2px 0 14px" },}, "★ Saved cards"  )
+      , items.length === 0 ? (
+        React.createElement('p', { style: { color: C.sub, fontSize: 15 },}, "No saved cards yet. Tap “☆ Save card” on any Learn card to keep it here for quick revision."                  )
+      ) : (
+        React.createElement('div', { style: { display: "grid", gap: 10 },}
+          , items.map(({ t, c, idx }) => (
+            React.createElement('div', { key: t.id + idx, style: { background: C.panel, border: `1px solid ${C.line}`, borderLeft: `4px solid ${C.warm}`, borderRadius: 2, padding: "12px 14px" },}
+              , React.createElement('div', { style: { ...mono, fontSize: 10.5, color: C.cold },}, t.code, " · "  , t.title)
+              , React.createElement('div', { style: { fontWeight: 700, fontSize: 15, margin: "3px 0 5px" },}, c.t)
+              , React.createElement('p', { style: { fontSize: 13.5, color: C.sub, lineHeight: 1.5, margin: "0 0 8px" },}, c.b)
+              , React.createElement('div', { style: { display: "flex", gap: 8 },}
+                , React.createElement('button', { onClick: () => onOpen(t.id), style: { ...mono, fontSize: 12, padding: "7px 12px", border: "none", borderRadius: 2, background: C.ink, color: "#fff", cursor: "pointer" },}, "Open chapter →"  )
+                , React.createElement('button', { onClick: () => unsave(t.id + ":" + idx), style: { ...mono, fontSize: 12, padding: "7px 12px", border: `1px solid ${C.line}`, borderRadius: 2, background: C.panel, color: C.warm, cursor: "pointer" },}, "Remove")
+              )
+            )
+          ))
+        )
+      )
+    )
+  );
+}
+
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));</script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}</script>
+</body></html>

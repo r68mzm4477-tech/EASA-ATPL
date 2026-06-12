@@ -1,0 +1,960 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" /><meta name="apple-mobile-web-app-capable" content="yes" /><meta name="mobile-web-app-capable" content="yes" /><meta name="apple-mobile-web-app-status-bar-style" content="black" /><meta name="theme-color" content="#16222C" /><link rel="manifest" href="manifest.webmanifest" /><link rel="apple-touch-icon" href="icon-180.png" /><title>ATPL Mass & Balance</title><script src="vendor-react.js"></script><style>html,body{margin:0;padding:0;background:#E9EEF2;-webkit-text-size-adjust:100%;}#root{min-height:100vh;}.homebar{position:sticky;top:0;z-index:50;background:#0f1820;display:flex;align-items:center;gap:8px;padding:8px 14px;font:600 13px IBM Plex Mono,monospace;color:#9FB3C2;}.homebar a{color:#9FB3C2;text-decoration:none;}</style></head><body><div class="homebar"><a href="index.html">‹ SUBJECTS</a></div><div id="root"></div><script>const storageShim={async get(k){try{const v=localStorage.getItem(k);return v==null?null:{key:k,value:v}}catch(e){return null}},async set(k,v){try{localStorage.setItem(k,v);return{key:k,value:v}}catch(e){return null}},async delete(k){try{localStorage.removeItem(k);return{key:k,deleted:true}}catch(e){return null}},async list(p){try{return{keys:Object.keys(localStorage).filter(k=>!p||k.startsWith(p))}}catch(e){return null}}};if(!window.storage)window.storage=storageShim;</script><script>const {useState,useEffect}=React;
+
+// ===================== SYLLABUS DATA =====================
+const TOPICS = [
+  {
+    id: "definitions",
+    code: "031·01",
+    title: "Mass Definitions",
+    blurb: "The standard masses: empty, operating, zero-fuel, ramp, takeoff, landing.",
+    cards: [
+      { t: "Mass vs weight", b: "MASS is the quantity of matter (kg) — it never changes. WEIGHT is the force of gravity on that mass (mass × g) and varies slightly with location. In aviation we plan in mass (kg), but 'weight' is used loosely for the same thing. Lift must support weight, so mass directly sets the lift, speeds and performance required." },
+      { t: "Basic & dry operating mass", b: "BASIC EMPTY MASS (BEM): the airframe, engines, fixed equipment and unusable fluids — from weighing. DRY OPERATING MASS (DOM): BEM plus everything needed for service but NO fuel and NO traffic load — crew, catering, water, documents. DOM is the operator's standard starting point for load planning." },
+      { t: "Zero-fuel & traffic load", b: "TRAFFIC LOAD (payload): passengers, baggage and cargo — the revenue load. ZERO FUEL MASS (ZFM) = DOM + traffic load (everything except usable fuel). The MAXIMUM ZERO FUEL MASS (MZFM) is a STRUCTURAL limit: fuel in the wings relieves wing bending, so the mass NOT in the wings (fuselage load) is capped." },
+      { t: "Ramp, take-off & landing mass", b: "RAMP (taxi) MASS: mass at engine start, including taxi fuel. TAKE-OFF MASS (TOM) = ramp mass − taxi fuel. LANDING MASS (LM) = TOM − trip fuel. Each has a maximum: MRM, MTOM and MLM. You must satisfy ALL limits — the most restrictive governs." },
+      { t: "The maximum masses", b: "MTOM (max take-off), MLM (max landing), MZFM (max zero fuel) and MRM (max ramp) are CERTIFICATED STRUCTURAL limits from the AFM. Separately, PERFORMANCE-limited masses (runway, climb, obstacle) may be lower on the day. The regulated take-off mass is the LOWEST of the structural and performance limits." },
+      { t: "Useful load & relationships", b: "USEFUL LOAD = traffic load + usable fuel = TOM − DOM. Key chain: DOM → (+ traffic load) → ZFM → (+ usable fuel) → TOM → (− trip fuel) → LM. Working up or down this chain, with each maximum, is the heart of mass planning. Remember: MZFM and MLM often limit traffic load before MTOM does." },
+    ],
+    quiz: [
+      { q: "Zero fuel mass is:", o: ["Dry operating mass plus traffic load", "Basic empty mass only", "Take-off mass minus taxi fuel", "Landing mass plus trip fuel"], a: 0, e: "ZFM = DOM + traffic load — everything except usable fuel. MZFM is a structural (wing-bending) limit." },
+      { q: "Take-off mass equals:", o: ["Ramp mass minus taxi fuel", "Landing mass minus trip fuel", "DOM plus trip fuel", "ZFM minus reserve fuel"], a: 0, e: "TOM = ramp/taxi mass − taxi fuel. Then LM = TOM − trip fuel." },
+      { q: "The maximum zero fuel mass is primarily a:", o: ["Structural limit (wing-bending relief from fuel)", "Performance limit", "Climb limit", "Runway length limit"], a: 0, e: "Fuel in the wings relieves bending, so the non-wing (fuselage) load is structurally capped by MZFM." },
+      { q: "Dry operating mass includes:", o: ["Crew, catering and equipment but no fuel or traffic load", "Fuel but no passengers", "Passengers but no crew", "Trip fuel only"], a: 0, e: "DOM = basic empty mass + crew, catering, water, documents — but NO usable fuel and NO payload." },
+      { q: "The regulated take-off mass is:", o: ["The lowest of the structural and performance-limited masses", "Always the MTOM", "The ramp mass", "The zero fuel mass"], a: 0, e: "You must meet every limit; the most restrictive (structural or performance) governs the allowed take-off mass." },
+      { q: "Useful load is:", o: ["Traffic load plus usable fuel (TOM − DOM)", "Just the passengers", "DOM minus fuel", "The basic empty mass"], a: 0, e: "Useful load = everything added to DOM = traffic load + usable fuel." },
+    ],
+  },
+  {
+    id: "effects",
+    code: "031·01",
+    title: "Effects of Mass & Balance",
+    blurb: "Why overloading and out-of-limit CG are dangerous.",
+    cards: [
+      { t: "Effects of excess mass", b: "Greater mass needs more lift, so it raises STALL SPEED, all take-off/landing/manoeuvre speeds, take-off and landing DISTANCES, fuel burn and structural stress, while REDUCING climb gradient/rate, ceiling, range and manoeuvrability. Overweight operation also eats into structural fatigue life." },
+      { t: "Why CG position matters", b: "The aircraft balances about its CG. The tailplane provides a balancing force; if the CG moves, the tail load and hence stability and control change. CG must stay between a FORWARD and an AFT limit — the certificated CG envelope — at all masses, throughout the flight as fuel burns and load shifts." },
+      { t: "Forward CG effects", b: "A forward CG increases stability but: needs more tail DOWNLOAD (more lift required → higher stall speed, more drag, reduced performance and range), gives HEAVIER stick forces, a higher approach speed, and can reduce elevator authority to flare/rotate. Too far forward: may not be able to raise the nose." },
+      { t: "Aft CG effects", b: "An aft CG reduces stability and stick forces — controls become light and SENSITIVE, the aircraft is less inclined to recover from upsets, and stall/spin recovery is harder. Too far aft: the aircraft can become longitudinally UNSTABLE and uncontrollable. Aft CG does slightly improve performance (less tail download) — but safety limits dominate." },
+      { t: "CG and the stall", b: "A FORWARD CG raises the stall speed (more lift needed to balance the larger tail download). It also tends to give a more pronounced nose-down at the stall (good). An aft CG lowers stall speed slightly but worsens recovery — the trade is stability and control, which is why the aft limit is conservative." },
+      { t: "In-flight CG movement", b: "CG MOVES during flight: fuel burn (wing/tank position), passengers/crew moving, and configuration changes all shift it. Planning must ensure the CG stays within limits for the WHOLE flight — including after fuel burn (which can move CG forward or aft depending on tank layout) and at landing mass." },
+    ],
+    quiz: [
+      { q: "Increasing mass causes the stall speed to:", o: ["Increase", "Decrease", "Stay the same", "Fall to zero"], a: 0, e: "More mass needs more lift; stall IAS rises with √mass, along with take-off/landing distances and speeds." },
+      { q: "A forward CG typically results in:", o: ["Higher stall speed and heavier stick forces", "Lighter, more sensitive controls", "Reduced stability", "Lower approach speed"], a: 0, e: "Forward CG needs more tail download (more lift → higher stall speed), giving heavier stick forces but more stability." },
+      { q: "An aft CG beyond the limit makes the aircraft:", o: ["Longitudinally unstable and possibly uncontrollable", "More stable", "Slower to stall", "Heavier on the controls"], a: 0, e: "Reduced stability and light controls; too far aft, recovery from upsets and stalls becomes impossible." },
+      { q: "Which CG position gives the lowest stall speed?", o: ["Aft (within limits)", "Forward", "It has no effect", "Exactly at the datum"], a: 0, e: "Aft CG needs less tail download, so slightly less total lift and a marginally lower stall speed — but recovery worsens." },
+      { q: "Excess take-off mass will:", o: ["Reduce climb gradient and increase take-off distance", "Improve climb performance", "Shorten the take-off run", "Lower the stall speed"], a: 0, e: "Heavier means more lift/thrust needed: longer runs, shallower climb, reduced ceiling, range and manoeuvrability." },
+      { q: "CG must remain within limits:", o: ["Throughout the entire flight, including after fuel burn", "Only at take-off", "Only at landing", "Only on the ground"], a: 0, e: "Fuel burn and load movement shift the CG, so it must stay inside the envelope for the whole flight." },
+    ],
+  },
+  {
+    id: "moments",
+    code: "031·02",
+    title: "CG, Datum, Arm & Moments",
+    blurb: "Datum, arm, moment = mass × arm, finding the CG.",
+    cards: [
+      { t: "The datum and arm", b: "The DATUM is an arbitrary reference plane chosen by the manufacturer (often the nose, firewall, or a point ahead of the aircraft). The ARM (balance arm) is the horizontal distance from the datum to an item's CG. Arms behind the datum are positive; ahead are negative (sign convention matters).", dia: "datumarm" },
+      { t: "Moment = mass × arm", b: "A MOMENT is the turning effect of a mass about the datum: moment = mass × arm. Units are kg·m (or lb·in). Every item of load has a moment; the aircraft balances when the total moment is accounted for. Moments can be positive or negative depending on the arm's sign." },
+      { t: "Finding the CG", b: "The CG is the point where total mass would balance: CG = TOTAL MOMENT ÷ TOTAL MASS. Tabulate each item's mass and arm, compute each moment, sum the masses and sum the moments, then divide. This single relationship underlies every loading calculation." },
+      { t: "Worked example", b: "Empty 1000 kg at arm 3.0 m → moment 3000. Pilot 80 kg at 2.0 m → 160. Fuel 120 kg at 3.5 m → 420. Totals: mass 1200 kg, moment 3580 kg·m. CG = 3580 ÷ 1200 = 2.98 m from datum. Compare 2.98 m against the fwd/aft limits to confirm it's in the envelope." },
+      { t: "Index units", b: "To keep numbers manageable, airlines use an INDEX: moment scaled by dividing by a constant (and often adding an offset to avoid negatives). The load sheet sums index units instead of raw moments, then reads CG (as %MAC) from a graph or table. The principle is identical — just scaled." },
+      { t: "Station numbers", b: "Aircraft positions are given as STATIONS — the arm (distance from datum) of that location, often in inches. Loading a hold or seat row at a known station means you know its arm directly. Combined with the load's mass, that gives its moment for the calculation." },
+    ],
+    quiz: [
+      { q: "A moment is calculated as:", o: ["Mass × arm", "Mass ÷ arm", "Arm ÷ mass", "Mass + arm"], a: 0, e: "Moment = mass × arm (the turning effect about the datum), in kg·m or lb·in." },
+      { q: "The centre of gravity is found by:", o: ["Total moment ÷ total mass", "Total mass ÷ total moment", "Total moment × total mass", "The largest single arm"], a: 0, e: "CG = Σmoments ÷ Σmass — the balance point of all the loaded masses." },
+      { q: "The datum is:", o: ["An arbitrary reference plane chosen by the manufacturer", "Always at the centre of gravity", "Always at the main wheels", "The aft CG limit"], a: 0, e: "It's a fixed reference for measuring arms; it can even be ahead of the nose." },
+      { q: "Total mass 1200 kg, total moment 3580 kg·m. The CG is:", o: ["2.98 m from datum", "4.30 m from datum", "1.98 m from datum", "3580 m from datum"], a: 0, e: "CG = 3580 ÷ 1200 = 2.98 m — then check against the CG limits." },
+      { q: "An index system is used to:", o: ["Scale moments into manageable numbers", "Change the CG limits", "Replace the datum", "Measure fuel only"], a: 0, e: "Index = scaled moment (often offset to avoid negatives); the method is identical, just easier to add up." },
+      { q: "A 'station' on an aircraft refers to:", o: ["The arm (distance from datum) of a location", "A radio frequency", "A weighing point only", "A fuel tank"], a: 0, e: "Station numbers give the arm of seats, holds and equipment directly for moment calculations." },
+    ],
+  },
+  {
+    id: "envelope",
+    code: "031·02",
+    title: "CG Limits, MAC & the Envelope",
+    blurb: "Forward/aft limits, mean aerodynamic chord, %MAC, the CG envelope.",
+    cards: [
+      { t: "The CG envelope", b: "A graph of MASS (vertical) against CG position (horizontal) bounded by the forward and aft CG limits and the max/min mass lines. A loaded aircraft's CG and mass must plot INSIDE this envelope — at take-off, in flight and at landing. The limits may narrow at higher mass.", dia: "cgenvelope" },
+      { t: "Mean aerodynamic chord (MAC)", b: "The MAC is a representative chord of the wing. CG is often expressed as a percentage of MAC: %MAC = (distance of CG aft of MAC leading edge ÷ MAC length) × 100. Using %MAC makes the limits independent of the arbitrary datum and easy to compare across loadings." },
+      { t: "Converting CG to %MAC", b: "Given the CG arm, the leading-edge-of-MAC (LEMAC) arm, and the MAC length: %MAC = ((CG arm − LEMAC) ÷ MAC) × 100. Example: CG 12.5 m, LEMAC 11.5 m, MAC 4 m → (1.0 ÷ 4) × 100 = 25% MAC. Loading limits are commonly quoted as, say, 15–35% MAC." },
+      { t: "Forward and aft limits", b: "The FORWARD limit is set by elevator authority (must be able to rotate/flare) and acceptable stick forces; the AFT limit by minimum stability. Loading aims to keep CG within these — and many operators target a slightly AFT CG (within limits) for lower trim drag and better fuel efficiency." },
+      { t: "Limits can vary with mass & config", b: "The envelope is not a simple box: forward and aft limits can change with mass (and sometimes with flap/gear/configuration). Always read the limit applicable to the actual mass. Some aircraft also have a separate landing-gear or take-off CG restriction." },
+      { t: "Why %MAC is used operationally", b: "Load sheets express CG as %MAC because it directly relates CG to the wing and the stability/control limits, and is independent of the datum choice. Trim settings for take-off are derived from the take-off CG in %MAC — a wrong CG/trim entry is a known take-off hazard." },
+    ],
+    quiz: [
+      { q: "The CG envelope is a plot of:", o: ["Mass against CG position, bounded by the limits", "Speed against altitude", "Fuel against time", "Thrust against drag"], a: 0, e: "Loaded mass and CG must plot inside the forward/aft limits and mass lines — for take-off, flight and landing." },
+      { q: "CG at arm 12.5 m, LEMAC 11.5 m, MAC 4 m. The CG in %MAC is:", o: ["25%", "12.5%", "40%", "11.5%"], a: 0, e: "((12.5 − 11.5) ÷ 4) × 100 = 25% MAC." },
+      { q: "The forward CG limit is set mainly by:", o: ["Elevator authority and stick forces", "Minimum stability", "Fuel capacity", "Maximum landing mass"], a: 0, e: "Far-forward CG can leave too little elevator power to rotate/flare and gives heavy stick forces." },
+      { q: "Expressing CG as %MAC is useful because it:", o: ["Relates CG to the wing and is independent of the datum", "Changes the aircraft's mass", "Removes the need for limits", "Only applies to fuel"], a: 0, e: "%MAC ties CG directly to the stability/control limits and doesn't depend on the arbitrary datum." },
+      { q: "The aft CG limit is set mainly by:", o: ["Minimum acceptable stability", "Elevator authority to flare", "Tyre limits", "Fuel tank position"], a: 0, e: "Too far aft and the aircraft becomes unstable/uncontrollable — the aft limit guards stability." },
+      { q: "Many operators load to a slightly aft CG (within limits) to:", o: ["Reduce trim drag and improve fuel efficiency", "Increase stall speed", "Raise stick forces", "Reduce range"], a: 0, e: "An aft-but-legal CG needs less tail download, cutting trim drag — a small efficiency gain." },
+    ],
+  },
+  {
+    id: "shifts",
+    code: "031·02",
+    title: "Loading Changes & CG Shift",
+    blurb: "Adding, removing and shifting mass — the standard formulas.",
+    cards: [
+      { t: "Shifting mass already on board", b: "Move a mass that's already loaded and the CG shifts. Formula: CG SHIFT = (mass moved × distance moved) ÷ TOTAL mass. The CG moves in the SAME direction as the load is moved. Total mass is unchanged because nothing was added or removed — only redistributed.", dia: "cgshift" },
+      { t: "Shift example", b: "Total mass 5000 kg, move 200 kg of cargo 4 m aft. CG shift = (200 × 4) ÷ 5000 = 0.16 m aft. So the whole-aircraft CG moves 0.16 m toward the tail. Use this to bring an out-of-limits CG back inside by relocating load." },
+      { t: "Adding or removing mass", b: "Add/remove a mass and BOTH the CG and total mass change. CG SHIFT = (mass added × (arm of mass − old CG)) ÷ NEW total mass. Adding mass behind the CG moves CG aft; ahead of the CG moves it forward. Removing mass does the opposite. Note the NEW total mass in the denominator." },
+      { t: "Add/remove example", b: "Aircraft 4000 kg, CG 3.0 m. Add 500 kg at arm 5.0 m. New mass 4500 kg. CG shift = (500 × (5.0 − 3.0)) ÷ 4500 = 1000 ÷ 4500 = 0.22 m aft → new CG 3.22 m. Always check the new CG against the limits at the new mass." },
+      { t: "Loading to achieve a target CG", b: "To find how much mass to move/add to reach a required CG, rearrange the formulas. E.g. to move CG by a required amount: mass to move = (total mass × required CG shift) ÷ distance available. These rearrangements are common exam tasks — know the formula both ways." },
+      { t: "Practical use", b: "These tools let you fix an out-of-limits load: redistribute baggage between holds, move passengers, or adjust fuel loading. The direction rule (CG follows the load) plus the shift formula tells you exactly how much movement is needed to bring the CG inside the envelope at every flight phase." },
+    ],
+    quiz: [
+      { q: "When a loaded mass is moved aft, the CG:", o: ["Moves aft (same direction)", "Moves forward", "Stays the same", "Moves to the datum"], a: 0, e: "The CG always shifts in the same direction as the load is moved." },
+      { q: "Total mass 5000 kg; 200 kg moved 4 m aft. CG shift is:", o: ["0.16 m aft", "0.80 m aft", "0.04 m aft", "1.6 m aft"], a: 0, e: "(200 × 4) ÷ 5000 = 0.16 m aft." },
+      { q: "When ADDING mass, the denominator of the CG-shift formula is:", o: ["The new total mass", "The old total mass", "The mass added", "The arm"], a: 0, e: "CG shift = (mass added × (arm − old CG)) ÷ NEW total mass." },
+      { q: "Aircraft 4000 kg at CG 3.0 m; add 500 kg at arm 5.0 m. New CG is about:", o: ["3.22 m", "3.00 m", "4.00 m", "2.78 m"], a: 0, e: "Shift = (500 × (5.0−3.0)) ÷ 4500 = 0.22 m aft → 3.22 m." },
+      { q: "To move the CG by a required amount, the mass to relocate is:", o: ["(total mass × required CG shift) ÷ distance", "(distance × required shift) ÷ total mass", "total mass × distance", "required shift ÷ total mass"], a: 0, e: "Rearrange CG shift = (mass × distance) ÷ total mass to solve for mass." },
+      { q: "Removing baggage from a forward hold moves the CG:", o: ["Aft", "Forward", "It cannot change CG", "To the datum"], a: 0, e: "Removing mass ahead of the CG shifts the CG away from that point — i.e. aft." },
+    ],
+  },
+  {
+    id: "cargo",
+    code: "031·03",
+    title: "Cargo & Floor Loading Limits",
+    blurb: "Running load, area/distribution limits, securing, structural floors.",
+    cards: [
+      { t: "Why floor limits exist", b: "The cabin/hold floor and structure can only bear so much load per unit area or length. Exceeding floor limits risks structural damage even if the aircraft's total mass and CG are fine. Three limits commonly apply: distribution (running) load, area load, and individual compartment maximums." },
+      { t: "Area load limit", b: "The maximum mass per unit FLOOR AREA (e.g. kg/m² or lb/ft²), set by the floor panel strength. Check: load mass ÷ contact area ≤ area limit. A heavy item on small feet/pallets concentrates load — spreading it over a larger area (boards/pallets) reduces the pressure to within limits." },
+      { t: "Running (linear) load limit", b: "The maximum mass per unit LENGTH along the hold (e.g. kg/m), set by the floor beams. Check: load mass ÷ length occupied ≤ running-load limit. Long heavy items must be spread along enough length; otherwise the beams are overstressed even within the area limit." },
+      { t: "Compartment & total limits", b: "Each hold/compartment has a maximum permitted mass. The sum across compartments must also respect MZFM and CG. So a load can be legal for the whole aircraft yet ILLEGAL in a single compartment — every limit (area, running, compartment, total, CG) must be satisfied simultaneously." },
+      { t: "Securing the load", b: "Cargo must be SECURED so it cannot move in flight — load shift changes CG (potentially out of limits) and can damage structure. Lashing points have rated strengths; restraint must withstand the certificated load factors in all directions (forward being the most demanding for emergency deceleration)." },
+      { t: "Calculating a safe load", b: "To place a heavy item: confirm (1) it's within the compartment maximum, (2) mass ÷ area ≤ area limit (spread if needed), (3) mass ÷ length ≤ running-load limit, and (4) the resulting CG and ZFM stay in limits. Spreading load over pallets/boards is the usual fix for area or running-load exceedances." },
+    ],
+    quiz: [
+      { q: "The area load limit is the maximum mass per:", o: ["Unit floor area", "Unit length", "Compartment", "Aircraft"], a: 0, e: "kg/m² (or lb/ft²) set by floor-panel strength; spread load over a larger area to comply." },
+      { q: "A heavy item exceeds the area limit. The usual fix is to:", o: ["Spread it over a larger area (pallet/boards)", "Add fuel", "Move it forward only", "Increase the total mass"], a: 0, e: "Spreading the contact area reduces pressure (kg/m²) to within the floor limit." },
+      { q: "The running load limit is the maximum mass per:", o: ["Unit length along the hold", "Unit area", "Passenger", "Engine"], a: 0, e: "kg/m set by the floor beams — long heavy items must occupy enough length." },
+      { q: "A load can be within total mass and CG limits yet still illegal because:", o: ["It exceeds a single compartment or floor limit", "It is too light", "The datum moved", "The fuel is in the wings"], a: 0, e: "Every limit applies at once: compartment max, area, running load, plus total and CG." },
+      { q: "Cargo must be secured chiefly because unrestrained load can:", o: ["Shift in flight, moving the CG and damaging structure", "Increase lift", "Reduce fuel burn", "Lower the stall speed"], a: 0, e: "A shifting load can push CG out of limits and harm the structure — restraint must meet certificated load factors." },
+      { q: "The most demanding direction for cargo restraint is usually:", o: ["Forward (emergency deceleration)", "Upward", "Sideways only", "Rearward only"], a: 0, e: "Restraint must withstand high forward load factors from a sudden stop/crash deceleration." },
+    ],
+  },
+  {
+    id: "loadsheet",
+    code: "031·04",
+    title: "Standard Masses, Load Sheet & LMC",
+    blurb: "Standard passenger/baggage masses, the load sheet, last-minute changes.",
+    cards: [
+      { t: "Standard masses", b: "For aircraft with 20+ seats, operators may use EASA STANDARD MASSES instead of weighing each passenger — these INCLUDE hand baggage. Current values (AMC1 CAT.POL.MAB.100, confirmed unchanged at the 2022 EASA review): male 88 kg, female 70 kg, child 35 kg; an 'all-adult' value of 84 kg may be used at 30+ seats. Holiday charters are lower (83 / 69 / 76 kg). Smaller aircraft use higher per-head figures (e.g. 6–9 seats: male 96, female 78) or actual weighing. Operators may also use their own validated survey values." },
+      { t: "When standard masses apply", b: "Standard masses are permitted above a minimum number of seats; smaller aircraft generally use ACTUAL masses (passengers and bags weighed, or by declaration). Crew, baggage and special loads have their own standard or actual values. Seasonal/holiday adjustments and seat-count bands change the figures — use the applicable table." },
+      { t: "The load sheet", b: "The LOAD SHEET is the master document: it builds from DOM, adds traffic load by compartment and passengers by zone, adds fuel, and computes ZFM, TOM and LM against their maxima, plus the CG (%MAC) and the take-off TRIM setting. It is cross-checked before departure — errors here are a real safety risk." },
+      { t: "Take-off trim & stab setting", b: "The take-off CG (%MAC) determines the stabiliser/trim setting for rotation. A wrong CG entry (e.g. transposed figures, wrong ZFM) gives a wrong trim and a mis-rotation — a known cause of tail strikes and near-accidents. The crew sanity-checks the load sheet figures against expectations." },
+      { t: "Last-minute changes (LMC)", b: "After the load sheet is produced, small changes (a few passengers or bags) can be handled as a LAST-MINUTE CHANGE noted on the sheet, provided they stay within an allowed LMC limit and don't breach any mass or CG limit. Larger changes require a new load sheet. LMCs are recorded, not just verbal." },
+      { t: "Cross-checks & responsibility", b: "The commander is responsible for ensuring the aircraft is loaded within limits and the load sheet is correct. Practical checks: do the masses look sensible, is ZFM ≤ MZFM, TOM ≤ MTOM (and performance limit), LM ≤ MLM, and is the CG within the envelope at every phase? Catch gross errors before they fly." },
+    ],
+    quiz: [
+      { q: "Standard passenger masses:", o: ["Are defined in the regulations and depend on seat count/category — confirm current values", "Are the same for every aircraft worldwide and never change", "Are chosen freely by the crew", "Apply only to cargo"], a: 0, e: "They're regulatory, seat-band and category dependent, include hand baggage, and are periodically revised — always use the applicable current table." },
+      { q: "Smaller aircraft generally must use:", o: ["Actual masses", "Standard masses only", "No mass data", "Fuel mass only"], a: 0, e: "Standard masses are permitted above a minimum seat count; smaller aircraft use actual (weighed/declared) masses." },
+      { q: "The take-off CG (%MAC) is used to set the:", o: ["Stabiliser/trim setting for rotation", "Fuel quantity", "Flap limit speed", "Landing gear position"], a: 0, e: "A wrong CG entry gives a wrong trim and mis-rotation — a known tail-strike cause." },
+      { q: "A last-minute change (LMC) is acceptable when it:", o: ["Stays within the allowed limit and breaches no mass/CG limit", "Is any size at all", "Is only spoken, not recorded", "Always requires a new load sheet"], a: 0, e: "Small changes within the LMC limit are noted on the sheet; larger changes need a new load sheet." },
+      { q: "Ultimate responsibility for correct loading rests with the:", o: ["Commander", "Catering team", "Passengers", "Air traffic control"], a: 0, e: "The commander ensures the aircraft is within limits and the load sheet is correct before flight." },
+      { q: "A sensible load-sheet cross-check is to confirm:", o: ["ZFM ≤ MZFM, TOM ≤ MTOM, LM ≤ MLM and CG in envelope", "Only the fuel figure", "Only the passenger count", "The cabin temperature"], a: 0, e: "Check every limiting mass and the CG at each phase to catch gross errors before departure." },
+    ],
+  },
+  {
+    id: "weighing",
+    code: "031·01",
+    title: "Weighing & Mass Records",
+    blurb: "Weighing procedure, basic empty mass, fleet masses, reweighing.",
+    cards: [
+      { t: "Why and when to weigh", b: "An aircraft's BASIC EMPTY MASS and CG are established by actual WEIGHING, because accumulated changes (paint, repairs, equipment, dirt/moisture) drift the figures over time. New aircraft are weighed before entry to service, and re-weighed periodically or after major modifications." },
+      { t: "Weighing conditions", b: "Weigh in a clean, level, draught-free hangar with the aircraft in a defined configuration: specified equipment fitted, unusable fuel/oil accounted for, and usable fuel normally DRAINED (or precisely known). Scales under each wheel/jack point give the reaction at each, and the arms of those points give the CG." },
+      { t: "Finding mass and CG from weighing", b: "Total mass = sum of the scale readings. CG = total moment ÷ total mass, where each reaction's moment = reaction × its arm from the datum. The result is the basic empty mass and its CG — the foundation for all later loading calculations." },
+      { t: "Fleet (mean) masses", b: "An operator with several IDENTICAL aircraft may use a FLEET MEAN basic mass and CG, provided individual aircraft stay within defined tolerances of the mean (and the fleet is re-evaluated periodically). If an individual drifts outside tolerance it must be weighed and removed from the fleet figures." },
+      { t: "Reweighing intervals", b: "Aircraft using individual masses are typically re-weighed at intervals (commonly every 4 years), or after modifications/repairs that change mass or CG significantly, or when the accumulated changes recorded on the mass-change record exceed set limits. Fleet aircraft are re-evaluated on their own schedule." },
+      { t: "Mass and balance records", b: "Every change in equipment or modification is logged on a MASS-CHANGE record with its mass and arm, keeping the basic empty mass and CG current between weighings. The current weighing report and these records together give the up-to-date DOM and CG used for load planning." },
+    ],
+    quiz: [
+      { q: "Basic empty mass and CG are primarily established by:", o: ["Actual weighing", "Calculation from the load sheet", "The fuel gauge", "ATC"], a: 0, e: "Weighing measures the real mass and CG, which drift over time with modifications, repairs and accumulation." },
+      { q: "When weighing, usable fuel is normally:", o: ["Drained (or its mass precisely known)", "Filled to full", "Ignored entirely", "Replaced with water"], a: 0, e: "A defined configuration with unusable fluids accounted for and usable fuel drained gives a clean basic empty mass." },
+      { q: "CG from weighing is found by:", o: ["Total moment ÷ total mass of the wheel reactions", "Largest reaction × arm", "Total mass ÷ total moment", "The nose reaction only"], a: 0, e: "Each scale reaction × its arm gives a moment; sum the moments and divide by total mass." },
+      { q: "A fleet mean mass may be used when aircraft are:", o: ["Identical and within defined tolerances of the mean", "Of any type", "Never re-weighed", "Loaded identically every flight"], a: 0, e: "Identical configuration and individual masses within tolerance of the fleet mean, re-evaluated periodically." },
+      { q: "Individually-weighed aircraft are typically re-weighed at intervals of about:", o: ["4 years (or after significant change)", "Every flight", "Every 6 months", "Never"], a: 0, e: "Commonly 4-yearly, or sooner after modifications/repairs or when recorded changes exceed limits." },
+      { q: "Between weighings, the basic empty mass is kept current by:", o: ["A mass-change record of equipment changes", "Re-weighing each flight", "Estimating from fuel burn", "The load sheet alone"], a: 0, e: "Each modification's mass and arm are logged so DOM and CG stay accurate until the next weighing." },
+    ],
+  },
+  {
+    id: "fuelcg",
+    code: "031·02",
+    title: "Fuel, Density & CG Movement",
+    blurb: "Fuel mass vs volume, density effects, tank order and CG drift.",
+    cards: [
+      { t: "Mass vs volume", b: "Fuel is loaded by VOLUME (litres/gallons) but planned by MASS (kg). Mass = volume × DENSITY. Jet A-1 density is around 0.79–0.80 kg/L but varies with temperature — warmer fuel is less dense, so a given volume is less mass. Always convert using the actual fuel density, not a fixed assumption." },
+      { t: "Density and the load", b: "If actual density is LOWER than assumed, a planned fuel MASS needs more VOLUME — which may not fit the tanks (a volume limit). Conversely, the same volume gives less mass than expected. Density errors can leave you short of fuel mass or over a tank's volume capacity." },
+      { t: "Fuel and CG", b: "Fuel sits in tanks at particular arms (wings, centre, trim/tail tank), so loading and BURNING fuel moves the CG. Depending on tank layout and usage order, fuel burn can move CG forward OR aft. Planning must keep CG in limits not just at take-off but throughout the burn to landing." },
+      { t: "Wing fuel and structural relief", b: "Fuel in the WINGS relieves wing-bending in flight (the wings are loaded up by lift but down by fuel mass). This is why MZFM limits the non-wing load: with little wing fuel, more bending stress falls on the structure. Burning wing fuel last preserves this relief." },
+      { t: "Trim/tail tanks & CofG control", b: "Some large aircraft pump fuel to a TAIL (trim) tank in cruise to move the CG AFT, reducing tail download and trim drag for efficiency, then transfer it forward before descent. This active CG management squeezes out fuel savings but must always keep CG within limits." },
+      { t: "Unusable fuel & tankering", b: "UNUSABLE fuel (trapped, below the pickup) is part of the basic empty mass, not usable load. TANKERING — carrying extra fuel to avoid buying expensive fuel downroute — raises take-off mass, burn and CG considerations; it's an economic trade-off that still must respect every mass and CG limit." },
+    ],
+    quiz: [
+      { q: "Fuel mass is calculated from volume using:", o: ["Mass = volume × density", "Mass = volume ÷ density", "Mass = volume × temperature", "Mass = volume only"], a: 0, e: "Loaded by volume, planned by mass — convert with the actual fuel density." },
+      { q: "Warmer fuel is:", o: ["Less dense, so a given volume is less mass", "More dense", "The same density", "Unusable"], a: 0, e: "Density falls with temperature; a fixed volume of warm fuel weighs less." },
+      { q: "If actual fuel density is lower than assumed, a required fuel MASS:", o: ["Needs more volume (may hit a tank volume limit)", "Needs less volume", "Cannot be loaded", "Weighs more"], a: 0, e: "Lower density means more litres for the same kilograms — possibly exceeding tank capacity." },
+      { q: "Burning fuel during flight:", o: ["Moves the CG (forward or aft, depending on tanks)", "Never affects CG", "Always moves CG forward", "Only affects mass, never CG"], a: 0, e: "Tanks are at specific arms, so fuel use shifts CG — it must stay in limits throughout." },
+      { q: "Fuel in the wings is significant because it:", o: ["Relieves wing-bending stress in flight", "Increases wing-bending", "Has no structural effect", "Raises the stall speed"], a: 0, e: "Wing fuel offsets lift-induced bending — the basis of the MZFM limit on non-wing load." },
+      { q: "Pumping fuel to a tail trim tank in cruise is done to:", o: ["Move CG aft, cutting trim drag for efficiency", "Increase the stall speed", "Move CG forward", "Empty the wings first"], a: 0, e: "An aft (legal) CG reduces tail download and trim drag — a fuel-saving technique, always within limits." },
+    ],
+  },
+  {
+    id: "trimsheet",
+    code: "031·04",
+    title: "The Load & Trim Sheet",
+    blurb: "Index/DOI, building the sheet graphically, reading CG and trim.",
+    cards: [
+      { t: "Purpose of the load & trim sheet", b: "It is the working document that proves the aircraft is within ALL mass limits and the CG is in the envelope for take-off, zero-fuel and landing, and gives the take-off TRIM setting. It is built systematically and cross-checked before every departure." },
+      { t: "The index and DOI", b: "To avoid huge moment numbers, each item's moment is converted to an INDEX (scaled, offset to avoid negatives). The DRY OPERATING INDEX (DOI) is the index of the DOM. Loading adds each item's index to the DOI; the running total index, read against mass, gives the CG in %MAC." },
+      { t: "Building the sheet", b: "Start from DOM and DOI. Add traffic load by compartment/zone and passengers by seat row — each adds mass and index. This gives ZFM and its index (check ZFM ≤ MZFM and CG in limits). Add fuel to get TOM and its index (check TOM and CG). Subtract trip fuel to confirm LM and landing CG." },
+      { t: "Reading CG from the graph", b: "On the trim graph, plot the final index against the mass; the point's horizontal position gives the CG in %MAC, which must fall between the forward and aft limit lines AT THAT MASS. Three checks: zero-fuel, take-off and landing CG must all be inside the envelope." },
+      { t: "Deriving the trim setting", b: "The take-off CG (%MAC) is read across to the stabiliser/trim scale to give the take-off TRIM (stab) setting. This is set before take-off so the aircraft rotates correctly. A transposed figure or wrong ZFM corrupts the CG and trim — a known cause of mis-rotations and tail strikes." },
+      { t: "Checks and last-minute changes", b: "Sanity-check every limiting mass (ZFM, TOM, LM, ramp) and all three CG points. Small late changes are entered as a LAST-MINUTE CHANGE within the allowed limit, adjusting mass and index; larger changes need a fresh sheet. Electronic systems automate the arithmetic but the same checks apply." },
+    ],
+    quiz: [
+      { q: "The Dry Operating Index (DOI) is the index of the:", o: ["Dry operating mass", "Take-off mass", "Traffic load", "Fuel"], a: 0, e: "Loading adds each item's index to the DOI; the running total gives CG in %MAC." },
+      { q: "An index is used on the trim sheet to:", o: ["Convert moments into manageable scaled numbers", "Replace the mass limits", "Measure fuel volume", "Set the flaps"], a: 0, e: "Scaled (and offset) moments are easier to add; the method is identical to raw moments." },
+      { q: "On the trim graph, plotting final index against mass gives the:", o: ["CG in %MAC", "Stall speed", "Fuel required", "V2"], a: 0, e: "The plotted point's position shows CG in %MAC, which must lie within the limits at that mass." },
+      { q: "Which CG points must be checked on the load sheet?", o: ["Zero-fuel, take-off and landing", "Take-off only", "Landing only", "Ramp only"], a: 0, e: "All three must fall inside the envelope, since CG moves as fuel burns." },
+      { q: "The take-off trim (stabiliser) setting is derived from the:", o: ["Take-off CG in %MAC", "Fuel quantity", "Flap setting", "Outside air temperature"], a: 0, e: "Read the take-off CG across to the trim scale; a wrong CG entry gives a wrong, hazardous trim." },
+      { q: "A small late change after the sheet is produced is handled as a:", o: ["Last-minute change within the allowed limit", "Reason to cancel the flight", "Verbal note only", "New aircraft weighing"], a: 0, e: "LMCs adjust mass and index within limits; larger changes require a fresh load sheet." },
+    ],
+  },
+  {
+    id: "units",
+    code: "031·02",
+    title: "Units & Conversions",
+    blurb: "kg/lb, litres/gallons, density and converting fuel volume to mass.",
+    cards: [
+      { t: "Mass units", b: "1 kilogram = 2.2046 pounds (≈ 2.2). 1 tonne = 1000 kg. To convert lb → kg divide by 2.2046; kg → lb multiply. Mixing units is a classic error: a load sheet in kg with a chart in lb must be converted before use, or the CG and limits will be wrong." },
+      { t: "Volume units", b: "1 US gallon = 3.785 litres; 1 Imperial gallon = 4.546 litres; 1 litre = 1000 cm³. US and Imperial gallons are NOT the same — always check which a chart uses. Fuel uplift is usually in litres or gallons (a volume), but planning is in kg (a mass)." },
+      { t: "Density & specific gravity", b: "Density = mass ÷ volume (kg/L). SPECIFIC GRAVITY (relative density) compares a fluid's density to water (1.000 kg/L). Jet A-1 has a density around 0.79–0.80 kg/L (SG ≈ 0.80). Avgas is lighter (≈ 0.72). Density falls as temperature rises." },
+      { t: "Volume → mass", b: "Fuel MASS = volume × density. Example: 5000 L of Jet A-1 at 0.80 kg/L = 4000 kg. If you only know SG, multiply litres by SG to get kg (since water is 1 kg/L). Always use the ACTUAL density of the day, not a fixed assumption." },
+      { t: "Mass → volume (capacity check)", b: "To find the volume needed for a required mass: volume = mass ÷ density. Example: 4000 kg at 0.78 kg/L = 5128 L — more litres than at 0.80. A lower density needs more volume, which might exceed tank capacity. Always confirm the required volume fits." },
+      { t: "Length, arm and moment units", b: "Arms are in metres or inches (1 inch = 0.0254 m; 1 m = 39.37 in). Moments are kg·m or lb·in — keep them consistent within one calculation. A common slip is mixing inches and metres, or kg·m with lb·in, which corrupts the CG. Decide the unit system first and stick to it." },
+    ],
+    quiz: [
+      { q: "1 kilogram is approximately:", o: ["2.2 pounds", "1.0 pound", "3.8 pounds", "0.45 pounds"], a: 0, e: "1 kg ≈ 2.2046 lb; divide lb by 2.2 to get kg." },
+      { q: "5000 litres of fuel at density 0.80 kg/L is:", o: ["4000 kg", "6250 kg", "5000 kg", "4000 litres"], a: 0, e: "Mass = volume × density = 5000 × 0.80 = 4000 kg." },
+      { q: "If fuel density is lower than assumed, the volume needed for a given mass:", o: ["Increases", "Decreases", "Stays the same", "Becomes zero"], a: 0, e: "Volume = mass ÷ density; lower density means more litres for the same kilograms." },
+      { q: "Specific gravity compares a fluid's density to that of:", o: ["Water", "Air", "Mercury", "Jet fuel"], a: 0, e: "Water = 1.000; Jet A-1 SG ≈ 0.80, so litres × SG ≈ kg." },
+      { q: "A US gallon and an Imperial gallon are:", o: ["Different volumes (3.785 L vs 4.546 L)", "Identical", "Both 3.785 L", "Both 4.546 L"], a: 0, e: "Always check which gallon a chart uses — they differ by about 20%." },
+      { q: "To avoid CG errors, within one calculation you should:", o: ["Keep all units consistent (e.g. all kg·m)", "Mix inches and metres freely", "Use lb for some items and kg for others", "Ignore the arm units"], a: 0, e: "Mixing kg·m with lb·in, or metres with inches, corrupts the result — choose one system." },
+    ],
+  },
+  {
+    id: "mbworked",
+    code: "031·02",
+    title: "Worked Examples",
+    blurb: "Step-by-step CG, shift, add/remove, %MAC and loading problems.",
+    cards: [
+      { t: "Finding the CG", b: "List each item's mass and arm, compute moments (mass×arm), sum both columns, divide. Empty 1200 kg @ 2.5 m = 3000; crew 160 kg @ 1.8 m = 288; fuel 300 kg @ 3.2 m = 960; cargo 200 kg @ 4.0 m = 800. Totals: 1860 kg, 5048 kg·m. CG = 5048 ÷ 1860 = 2.71 m. Then check against limits." },
+      { t: "Shifting a load", b: "CG shift = (mass moved × distance) ÷ total mass, CG moves the SAME way. Total 3000 kg; move 150 kg from arm 2.0 m to 5.0 m (3.0 m aft). Shift = (150 × 3.0) ÷ 3000 = 0.15 m AFT. If old CG was 2.60 m, new CG = 2.75 m." },
+      { t: "Adding mass", b: "CG shift = (mass added × (arm − old CG)) ÷ new total mass. Aircraft 2500 kg @ CG 2.8 m; add 250 kg @ 4.5 m. New mass 2750 kg. Shift = (250 × (4.5 − 2.8)) ÷ 2750 = (250 × 1.7) ÷ 2750 = 0.155 m AFT → new CG 2.955 m." },
+      { t: "Removing mass", b: "Same formula, mass is negative (or reverse the direction). Aircraft 2750 kg @ 2.96 m; remove 200 kg from arm 1.5 m. Shift = (−200 × (1.5 − 2.96)) ÷ 2550 = (−200 × −1.46) ÷ 2550 = +0.114 m AFT (removing forward load moves CG aft) → 3.07 m." },
+      { t: "Converting to %MAC", b: "%MAC = ((CG arm − LEMAC) ÷ MAC) × 100. CG 2.71 m, LEMAC 2.20 m, MAC 1.7 m → ((2.71 − 2.20) ÷ 1.7) × 100 = (0.51 ÷ 1.7) × 100 = 30% MAC. Compare with the limits, e.g. 15–35% MAC → in limits." },
+      { t: "Loading to a target", b: "To move CG by a needed amount, rearrange: mass to move = (total mass × required shift) ÷ distance. Need CG 0.10 m forward, total 3000 kg, can shift cargo 2.5 m forward: mass = (3000 × 0.10) ÷ 2.5 = 120 kg to relocate. Always re-check the new CG lands inside the envelope." },
+    ],
+    quiz: [
+      { q: "Totals: mass 1860 kg, moment 5048 kg·m. CG is:", o: ["2.71 m", "9.39 m", "0.37 m", "2.50 m"], a: 0, e: "CG = total moment ÷ total mass = 5048 ÷ 1860 = 2.71 m." },
+      { q: "Total 3000 kg; move 150 kg 3.0 m aft. CG shift:", o: ["0.15 m aft", "0.45 m aft", "0.05 m aft", "1.5 m aft"], a: 0, e: "(150 × 3.0) ÷ 3000 = 0.15 m, in the direction the load moved (aft)." },
+      { q: "2500 kg @ CG 2.8 m; add 250 kg @ 4.5 m. New CG ≈", o: ["2.96 m", "2.80 m", "3.30 m", "2.64 m"], a: 0, e: "Shift = (250 × (4.5−2.8)) ÷ 2750 = 0.155 m aft → 2.955 ≈ 2.96 m." },
+      { q: "CG 2.71 m, LEMAC 2.20 m, MAC 1.7 m. %MAC is:", o: ["30%", "51%", "16%", "27%"], a: 0, e: "((2.71−2.20) ÷ 1.7) × 100 = 30% MAC." },
+      { q: "Removing mass from FORWARD of the CG moves the CG:", o: ["Aft", "Forward", "Nowhere", "To the datum"], a: 0, e: "Taking away forward load shifts the balance toward the tail (aft)." },
+      { q: "To shift CG 0.10 m using a 2.5 m relocation on a 3000 kg aircraft, move:", o: ["120 kg", "75 kg", "300 kg", "12 kg"], a: 0, e: "mass = (total × shift) ÷ distance = (3000 × 0.10) ÷ 2.5 = 120 kg." },
+    ],
+  },
+];
+
+// ===================== THEME =====================
+const C = {
+  bg: "#E9EEF2",
+  panel: "#FFFFFF",
+  ink: "#16222C",
+  sub: "#5A6B78",
+  line: "#C8D3DB",
+  cold: "#2B5C8A",
+  warm: "#B5402F",
+  good: "#2E7D4F",
+  bad: "#B5402F",
+  coldSoft: "#E3ECF4",
+  warmSoft: "#F6E8E5",
+};
+
+const FONTS = `
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+* { box-sizing: border-box; }
+body { margin: 0; }
+button { font-family: inherit; }
+button:focus-visible { outline: 3px solid #2B5C8A; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+`;
+
+// Front-line divider: alternating warm-front semicircles & cold-front triangles
+function FrontLine({ width = "100%" }) {
+  const units = [];
+  for (let i = 0; i < 30; i++) {
+    const x = i * 28;
+    if (i % 2 === 0) units.push(React.createElement('path', { key: i, d: `M ${x + 4} 10 A 8 8 0 0 1 ${x + 20} 10 Z`, fill: C.warm,} ));
+    else units.push(React.createElement('path', { key: i, d: `M ${x + 4} 10 L ${x + 12} 0 L ${x + 20} 10 Z`, fill: C.cold,} ));
+  }
+  return (
+    React.createElement('div', { style: { width, overflow: "hidden", lineHeight: 0 }, 'aria-hidden': "true",}
+      , React.createElement('svg', { width: "840", height: "12", viewBox: "0 0 840 12"   , style: { display: "block" },}
+        , React.createElement('line', { x1: "0", y1: "10", x2: "840", y2: "10", stroke: C.ink, strokeWidth: "2",} )
+        , units
+      )
+    )
+  );
+}
+
+const mono = { fontFamily: "'IBM Plex Mono', monospace" };
+const disp = { fontFamily: "'Archivo', sans-serif" };
+
+
+// ===================== CALC DRILL GENERATOR =====================
+function rnd(min, max, step = 1) {
+  const n = Math.floor(Math.random() * ((max - min) / step + 1));
+  return min + n * step;
+}
+function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
+function opts(correct, distractors, unit) {
+  const set = [correct, ...distractors.filter((d, i, a) => d !== correct && a.indexOf(d) === i).slice(0, 3)];
+  const shuffled = shuffle(set);
+  return { options: shuffled.map((v) => `${v}${unit}`), answer: shuffled.indexOf(correct) };
+}
+function genDrill() {
+  const type = rnd(0, 5);
+  if (type === 0) {
+    const fl = rnd(4, 35) * 10;
+    const ans = 15 - 2 * (fl / 10);
+    const { options, answer } = opts(ans, [ans + 5, ans - 5, ans + 10, -ans], "\u00b0C");
+    return { q: `What is the ISA temperature at FL${fl}?`, options, answer, e: `ISA = 15 \u2212 (2 \u00d7 ${fl / 10}) = ${ans}\u00b0C.` };
+  }
+  if (type === 1) {
+    const fl = rnd(8, 35) * 10;
+    const isa = 15 - 2 * (fl / 10);
+    const dev = rnd(-12, 12, 2);
+    const oat = isa + dev;
+    const { options, answer } = opts(dev, [dev + 5, dev - 5, -dev, dev + 10], "");
+    return { q: `OAT at FL${fl} is ${oat}\u00b0C. What is the ISA deviation?`, options, answer, e: `ISA at FL${fl} = ${isa}\u00b0C. Deviation = ${oat} \u2212 (${isa}) = ISA ${dev >= 0 ? "+" : ""}${dev}.` };
+  }
+  if (type === 2) {
+    const pa = rnd(1, 8) * 1000;
+    const isa = 15 - 2 * (pa / 1000);
+    const dev = rnd(2, 16, 2);
+    const oat = isa + dev;
+    const ans = pa + 120 * dev;
+    const { options, answer } = opts(ans, [pa + 120 * (dev - 5), pa + 60 * dev, pa - 120 * dev], " ft");
+    return { q: `Pressure altitude ${pa} ft, OAT ${oat > 0 ? "+" : ""}${oat}\u00b0C. Density altitude is approximately:`, options, answer, e: `ISA at ${pa} ft = ${isa}\u00b0C \u2192 deviation +${dev}. DA \u2248 ${pa} + (120 \u00d7 ${dev}) = ${ans} ft.` };
+  }
+  if (type === 3) {
+    const spread = rnd(3, 12);
+    const ans = 400 * spread;
+    const t = rnd(14, 26);
+    const { options, answer } = opts(ans, [ans + 800, ans - 800, 100 * spread], " ft");
+    return { q: `Surface temperature +${t}\u00b0C, dew point +${t - spread}\u00b0C. Estimated cumulus cloud base:`, options, answer, e: `Base \u2248 400 \u00d7 spread = 400 \u00d7 ${spread} = ${ans} ft AGL.` };
+  }
+  if (type === 4) {
+    const alt = rnd(4, 14) * 1000;
+    const dev = rnd(-3, 3, 1) * 10 || 10;
+    const ans = Math.round(alt * (1 + 0.04 * (dev / 10)));
+    const { options, answer } = opts(ans, [Math.round(alt * (1 - 0.04 * (dev / 10))), alt, ans + 400], " ft");
+    return { q: `Indicated altitude ${alt} ft on correct QNH, temperature ISA ${dev > 0 ? "+" : ""}${dev}. Approximate TRUE altitude (4% rule):`, options, answer, e: `4% per 10\u00b0C: ${alt} \u00d7 (1 ${dev > 0 ? "+" : "\u2212"} ${Math.abs(dev) * 0.4}%) \u2248 ${ans} ft. ${dev < 0 ? "Colder \u2192 true altitude LOWER." : "Warmer \u2192 true altitude HIGHER."}` };
+  }
+  const qnh = rnd(983, 1008);
+  const fl = rnd(4, 8) * 10;
+  const diff = 1013 - qnh;
+  const ans = fl * 100 - diff * 27;
+  const { options, answer } = opts(ans, [fl * 100 + diff * 27, fl * 100, ans + 270], " ft");
+  return { q: `Flying at FL${fl} (1013 set). QNH is ${qnh} hPa. Approximate altitude AMSL:`, options, answer, e: `1013 \u2212 ${qnh} = ${diff} hPa \u00d7 27 ft = ${diff * 27} ft. QNH is lower, so you are LOWER: ${fl * 100} \u2212 ${diff * 27} = ${ans} ft.` };
+}
+
+
+
+// ===================== DIAGRAMS (inline SVG) =====================
+const dW = { width: "100%", height: "auto", display: "block" };
+function DiaWrap({ children, vb = "0 0 340 210", cap }) {
+  return (
+    React.createElement('figure', { style: { margin: "14px 0 0", border: `1px solid ${C.line}`, background: "#FBFCFD", borderRadius: 2, padding: "10px 10px 6px" },}
+      , React.createElement('svg', { viewBox: vb, style: dW, role: "img",}, children)
+      , cap && React.createElement('figcaption', { style: { ...mono, fontSize: 10.5, color: C.sub, marginTop: 6, lineHeight: 1.4 },}, cap)
+    )
+  );
+}
+const AX = { stroke: C.ink, strokeWidth: 1 };
+const txt = (x, y, s, extra = {}) => React.createElement('text', { x: x, y: y, fontSize: extra.fs || 11, fontFamily: "'IBM Plex Mono', monospace"   , fill: extra.fill || C.ink, textAnchor: extra.ta || "start", fontWeight: extra.fw || 400,}, s);
+function Arrow({ x1, y1, x2, y2, color = C.ink, w = 2, id }) {
+  return (React.createElement('g', null, React.createElement('defs', null, React.createElement('marker', { id: id, markerWidth: "8", markerHeight: "8", refX: "6", refY: "3", orient: "auto",}, React.createElement('path', { d: "M0,0 L6,3 L0,6 Z"   , fill: color,} )))
+    , React.createElement('line', { x1: x1, y1: y1, x2: x2, y2: y2, stroke: color, strokeWidth: w, markerEnd: `url(#${id})`,} )));
+}
+
+const DIAGRAMS = {
+  datumarm: () => (
+    React.createElement(DiaWrap, { cap: "Moment = mass × arm. The arm is the distance from the datum to the item's CG. CG = total moment ÷ total mass."                       ,}
+      /* aircraft outline */
+      , React.createElement('path', { d: "M40,90 L250,90 L290,98 L250,106 L40,106 Z"     , fill: C.coldSoft, stroke: C.cold, strokeWidth: "1.5",} )
+      , React.createElement('line', { x1: "40", y1: "70", x2: "40", y2: "170", stroke: C.warm, strokeWidth: "2",} )
+      , txt(20, 64, "DATUM", { fs: 10, fill: C.warm, fw: 700 })
+      /* an item */
+      , React.createElement('rect', { x: "150", y: "78", width: "22", height: "14", fill: C.good,} )
+      , txt(150, 74, "mass", { fs: 8.5, fill: C.good })
+      /* arm */
+      , React.createElement(Arrow, { x1: "40", y1: "150", x2: "161", y2: "150", color: C.ink, w: "1.5", id: "mb-arm",} )
+      , txt(85, 145, "arm", { fs: 9, fill: C.ink })
+      /* CG marker */
+      , React.createElement('line', { x1: "180", y1: "68", x2: "180", y2: "118", stroke: C.ink, strokeWidth: "1", strokeDasharray: "3 2" ,} )
+      , React.createElement('circle', { cx: "180", cy: "98", r: "4", fill: "#fff", stroke: C.ink, strokeWidth: "1.5",} )
+      , txt(186, 130, "CG", { fs: 9, fill: C.ink, fw: 700 })
+    )
+  ),
+  cgenvelope: () => (
+    React.createElement(DiaWrap, { cap: "The CG envelope: loaded mass vs CG must plot INSIDE the forward and aft limits at every phase of flight."                   ,}
+      , React.createElement('line', { x1: "55", y1: "20", x2: "55", y2: "175", ...AX,} )
+      , React.createElement('line', { x1: "55", y1: "175", x2: "320", y2: "175", ...AX,} )
+      , txt(12, 100, "MASS", { fs: 9, fill: C.sub })
+      , txt(150, 195, "CG (%MAC) →", { fs: 10, fill: C.sub })
+      /* envelope polygon */
+      , React.createElement('path', { d: "M110,160 L100,70 L230,45 L255,70 L250,160 Z"     , fill: C.coldSoft, stroke: C.cold, strokeWidth: "2",} )
+      , txt(150, 110, "IN LIMITS", { fs: 10, fill: C.cold, fw: 700, ta: "middle" })
+      , txt(95, 60, "fwd limit", { fs: 8.5, fill: C.warm })
+      , txt(235, 38, "aft limit", { fs: 8.5, fill: C.warm })
+      , React.createElement('circle', { cx: "175", cy: "95", r: "4", fill: C.bad,} )
+      , txt(182, 92, "loaded CG", { fs: 8.5, fill: C.bad })
+    )
+  ),
+  cgshift: () => (
+    React.createElement(DiaWrap, { cap: "Move a load and the CG shifts the SAME way: CG shift = (mass moved × distance) ÷ total mass."                   ,}
+      , React.createElement('path', { d: "M30,80 L290,80 L300,88 L290,96 L30,96 Z"     , fill: C.coldSoft, stroke: C.cold, strokeWidth: "1.3",} )
+      /* old position */
+      , React.createElement('rect', { x: "90", y: "68", width: "20", height: "12", fill: C.sub, opacity: "0.5",} )
+      /* new position */
+      , React.createElement('rect', { x: "200", y: "68", width: "20", height: "12", fill: C.good,} )
+      , React.createElement(Arrow, { x1: "112", y1: "62", x2: "198", y2: "62", color: C.ink, w: "1.5", id: "mb-move",} )
+      , txt(130, 56, "load moved aft", { fs: 9, fill: C.ink })
+      /* CG marks */
+      , React.createElement('line', { x1: "150", y1: "100", x2: "150", y2: "120", stroke: C.sub, strokeWidth: "1.5",} )
+      , txt(120, 134, "old CG", { fs: 8.5, fill: C.sub })
+      , React.createElement('line', { x1: "172", y1: "100", x2: "172", y2: "128", stroke: C.bad, strokeWidth: "2",} )
+      , txt(176, 142, "new CG (aft)", { fs: 8.5, fill: C.bad })
+      , React.createElement(Arrow, { x1: "150", y1: "124", x2: "172", y2: "124", color: C.bad, w: "1.5", id: "mb-cgmove",} )
+    )
+  ),
+};
+
+// ===================== NUMBERS DRILL =====================
+const NUMBERS = [
+  { q: "The centre of gravity is found by:", o: ["total moment \\u00f7 total mass", "total mass \\u00f7 total moment", "mass \\u00d7 arm", "largest arm"], a: 0, e: "CG = \\u03a3moments \\u00f7 \\u03a3mass." },
+  { q: "A moment equals:", o: ["mass \\u00d7 arm", "mass \\u00f7 arm", "arm \\u00f7 mass", "mass + arm"], a: 0, e: "Moment = mass \\u00d7 arm (turning effect about the datum)." },
+  { q: "CG shift when moving a load = ", o: ["(mass moved \\u00d7 distance) \\u00f7 total mass", "mass \\u00d7 distance", "distance \\u00f7 mass", "total mass \\u00f7 distance"], a: 0, e: "The CG moves the same way as the load." },
+  { q: "Zero fuel mass =", o: ["DOM + traffic load", "DOM + fuel", "TOM \\u2212 trip fuel", "ramp \\u2212 taxi fuel"], a: 0, e: "Everything except usable fuel; MZFM is a structural (wing-bending) limit." },
+  { q: "Take-off mass =", o: ["ramp mass \\u2212 taxi fuel", "ZFM \\u2212 fuel", "DOM + trip fuel", "landing mass \\u2212 trip fuel"], a: 0, e: "TOM = ramp \\u2212 taxi fuel; LM = TOM \\u2212 trip fuel." },
+  { q: "Landing mass =", o: ["TOM \\u2212 trip fuel", "TOM + trip fuel", "ZFM + reserves", "ramp \\u2212 taxi fuel"], a: 0, e: "Burn the trip fuel off the take-off mass." },
+  { q: "MZFM is primarily a:", o: ["structural limit", "performance limit", "climb limit", "runway limit"], a: 0, e: "Fuel in the wings relieves bending; the non-wing load is capped." },
+  { q: "Total mass 1200 kg, total moment 3600 kg\\u00b7m. CG =", o: ["3.0 m", "4.0 m", "2.0 m", "3600 m"], a: 0, e: "3600 \\u00f7 1200 = 3.0 m from datum." },
+  { q: "Move 200 kg 5 m aft, total 4000 kg. CG shift =", o: ["0.25 m aft", "1.0 m aft", "0.05 m aft", "2.5 m aft"], a: 0, e: "(200\\u00d75)\\u00f74000 = 0.25 m aft." },
+  { q: "Adding mass behind the CG moves the CG:", o: ["aft", "forward", "to the datum", "nowhere"], a: 0, e: "CG moves toward added mass; removing does the reverse." },
+  { q: "A forward CG gives:", o: ["higher stall speed, heavier controls", "lower stall speed, light controls", "instability", "lower approach speed"], a: 0, e: "More tail download \\u2192 more lift needed \\u2192 higher stall speed, more stability." },
+  { q: "An aft CG (within limits):", o: ["reduces stability, lighter controls", "increases stability", "raises stall speed", "needs more tail download"], a: 0, e: "Light, sensitive controls; slightly better efficiency but worse recovery." },
+  { q: "CG at 12.0 m, LEMAC 11.0 m, MAC 4 m gives:", o: ["25% MAC", "12% MAC", "40% MAC", "11% MAC"], a: 0, e: "((12\\u221211)\\u00f74)\\u00d7100 = 25% MAC." },
+  { q: "Useful load =", o: ["traffic load + usable fuel", "DOM \\u2212 fuel", "just passengers", "empty mass"], a: 0, e: "Useful load = TOM \\u2212 DOM = payload + fuel." },
+  { q: "Area load limit is the max mass per:", o: ["unit floor area", "unit length", "compartment", "aircraft"], a: 0, e: "kg/m\\u00b2 \\u2014 spread the load to comply." },
+  { q: "Running load limit is the max mass per:", o: ["unit length", "unit area", "passenger", "engine"], a: 0, e: "kg/m \\u2014 long heavy items must occupy enough length." },
+  { q: "Most demanding cargo restraint direction:", o: ["forward", "up", "sideways", "rearward"], a: 0, e: "Emergency forward deceleration is the critical case." },
+  { q: "Responsibility for correct loading rests with the:", o: ["commander", "caterers", "passengers", "ATC"], a: 0, e: "The commander ensures limits and the load sheet are correct." },
+  { q: "The regulated take-off mass is the:", o: ["lowest of structural and performance limits", "highest limit", "ramp mass", "ZFM"], a: 0, e: "Most restrictive limit governs." },
+  { q: "Take-off trim is set from the:", o: ["take-off CG (%MAC)", "fuel quantity", "flap speed", "landing mass"], a: 0, e: "A wrong CG entry gives a wrong trim and mis-rotation." },
+];
+function genDrill() {
+  const pool = [...NUMBERS].sort(() => Math.random() - 0.5)[0];
+  const idx = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
+  return { q: pool.q, options: idx.map((k) => pool.o[k]), answer: idx.indexOf(pool.a), e: pool.e };
+}
+
+
+// ===================== APP =====================
+function App() {
+  const [view, setView] = useState({ type: "home" });
+  const [progress, setProgress] = useState({ read: {}, best: {} });
+
+  useEffect(() => {
+    (async () => {
+      try {
+        if (typeof window !== "undefined" && window.storage) {
+          const r = await window.storage.get("atpl-mb-v1");
+          if (r && r.value) setProgress(JSON.parse(r.value));
+        }
+      } catch (e) { /* first visit — nothing saved yet */ }
+    })();
+  }, []);
+
+  const save = (p) => {
+    setProgress(p);
+    (async () => {
+      try {
+        if (typeof window !== "undefined" && window.storage) {
+          await window.storage.set("atpl-mb-v1", JSON.stringify(p));
+        }
+      } catch (e) { console.error("save failed", e); }
+    })();
+  };
+
+  const overall = Math.round(
+    TOPICS.reduce((s, t) => s + (progress.best[t.id] || 0), 0) / TOPICS.length
+  );
+
+  return (
+    React.createElement('div', { style: { minHeight: "100vh", background: C.bg, color: C.ink, ...disp },}
+      , React.createElement('style', null, FONTS)
+      , React.createElement(Header, { overall: overall, onHome: () => setView({ type: "home" }),} )
+      , React.createElement('main', { style: { maxWidth: 880, margin: "0 auto", padding: "20px 16px 60px" },}
+        , view.type === "home" && (
+          React.createElement(Home, { progress: progress, save: save, onOpen: (id) => setView({ type: "topic", id, tab: "learn" }), onDrill: () => setView({ type: "drill" }), onSaved: () => setView({ type: "saved" }),} )
+        )
+        , view.type === "saved" && (
+          React.createElement(Saved, { progress: progress, save: save, onOpen: (id) => setView({ type: "topic", id, tab: "learn" }), onBack: () => setView({ type: "home" }),} )
+        )
+        , view.type === "drill" && (
+          React.createElement(Drill, { progress: progress, save: save, onBack: () => setView({ type: "home" }),} )
+        )
+        , view.type === "topic" && (
+          React.createElement(Topic, {
+            topic: TOPICS.find((t) => t.id === view.id),
+            tab: view.tab,
+            setTab: (tab) => setView({ ...view, tab }),
+            progress: progress,
+            save: save,
+            onBack: () => setView({ type: "home" }),}
+          )
+        )
+      )
+    )
+  );
+}
+
+function Header({ overall, onHome }) {
+  return (
+    React.createElement('header', { style: { background: C.ink, color: "#F2F5F7" },}
+      , React.createElement('div', { style: { maxWidth: 880, margin: "0 auto", padding: "18px 16px 14px", display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 },}
+        , React.createElement('button', { onClick: onHome, style: { background: "none", border: "none", color: "inherit", cursor: "pointer", padding: 0, textAlign: "left" },}
+          , React.createElement('div', { style: { ...mono, fontSize: 11, letterSpacing: 3, color: "#9FB3C2" },}, "EASA ATPL · SUBJECT 031"    )
+          , React.createElement('div', { style: { ...disp, fontWeight: 800, fontSize: 26, letterSpacing: 1 },}, "MASS & BALANCE"  )
+        )
+        , React.createElement('div', { style: { ...mono, fontSize: 13, color: "#9FB3C2" },}, "MASTERY "
+           , React.createElement('span', { style: { color: "#fff", fontWeight: 600 },}, String(overall).padStart(3, "0"), "%"), " · QNH1013"
+        )
+      )
+      , React.createElement(FrontLine, null )
+    )
+  );
+}
+
+function Home({ progress, save, onOpen, onDrill, onSaved }) {
+  const firstUndone = TOPICS.find((t) => !((progress.best[t.id] != null && progress.best[t.id] >= 75) || (progress.done && progress.done[t.id])));
+  const bmCount = progress.bookmarks ? Object.keys(progress.bookmarks).filter((k) => progress.bookmarks[k]).length : 0;
+  return (
+    React.createElement('div', null
+      , React.createElement(ExamBanner, { progress: progress,} )
+      , React.createElement('div', { style: { display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" },}
+        , firstUndone && React.createElement('button', { onClick: () => onOpen(firstUndone.id), style: { ...mono, fontSize: 13.5, padding: "11px 16px", border: "none", borderRadius: 3, background: C.cold, color: "#fff", fontWeight: 600, cursor: "pointer" },}, "▶ Continue: "  , firstUndone.title)
+        , React.createElement('button', { onClick: onSaved, style: { ...mono, fontSize: 13.5, padding: "11px 16px", border: `1px solid ${C.line}`, borderRadius: 3, background: C.panel, color: C.ink, cursor: "pointer" },}, "★ Saved ("  , bmCount, ")")
+      )
+      , React.createElement('p', { style: { color: C.sub, fontSize: 15, lineHeight: 1.5, margin: "6px 0 20px" },}, "Twenty-three modules covering the 050 syllabus. Work through "
+                , React.createElement('b', null, "Learn"), " first, then sit the "     , React.createElement('b', null, "Quiz"), " — your best scores are saved here between sessions."
+      )
+      , React.createElement('div', { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: 12 },}
+        , TOPICS.map((t) => {
+          const read = progress.read[t.id] || 0;
+          const best = progress.best[t.id];
+          const done = (best != null && best >= 75) || (progress.done && progress.done[t.id]);
+          return (
+            React.createElement('button', {
+              key: t.id,
+              onClick: () => onOpen(t.id),
+              style: {
+                position: "relative", textAlign: "left",
+                background: done ? "#F1F5F2" : C.panel, border: `1px solid ${C.line}`,
+                borderTop: `4px solid ${done ? C.good : (best != null ? C.warm : C.cold)}`,
+                padding: "14px 16px 12px", cursor: "pointer", borderRadius: 2,
+                opacity: done ? 0.6 : 1,
+              },}
+
+              , done && React.createElement('span', { 'aria-label': "completed", style: { position: "absolute", top: 8, right: 10, width: 20, height: 20, borderRadius: 10, background: C.good, color: "#fff", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" },}, "✓")
+              , React.createElement('div', { style: { ...mono, fontSize: 11, color: C.sub, letterSpacing: 2 },}, t.code)
+              , React.createElement('div', { style: { fontWeight: 700, fontSize: 17, margin: "4px 0 6px" },}, t.title)
+              , React.createElement('div', { style: { fontSize: 13, color: C.sub, lineHeight: 1.45, minHeight: 38 },}, t.blurb)
+              , React.createElement('div', { style: { ...mono, fontSize: 12, marginTop: 10, display: "flex", justifyContent: "space-between" },}
+                , React.createElement('span', { style: { color: read >= t.cards.length ? C.good : C.sub },}, "LEARN " , read, "/", t.cards.length)
+                , React.createElement('span', { style: { color: best == null ? C.sub : best >= 75 ? C.good : C.warm },}
+                  , best == null ? "QUIZ —" : `BEST ${best}%`
+                )
+              )
+            )
+          );
+        })
+      )
+      , React.createElement('button', {
+        onClick: onDrill,
+        style: {
+          width: "100%", textAlign: "left", marginTop: 12, cursor: "pointer", borderRadius: 2,
+          background: C.ink, color: "#F2F5F7", border: "none", padding: "16px 18px",
+          display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8,
+        },}
+
+        , React.createElement('span', null
+          , React.createElement('span', { style: { ...mono, fontSize: 11, letterSpacing: 2, color: "#9FB3C2", display: "block" },}, "QUICK-FIRE RECALL" )
+          , React.createElement('span', { style: { fontWeight: 700, fontSize: 18 },}, "Numbers Drill" )
+          , React.createElement('span', { style: { display: "block", fontSize: 13, color: "#9FB3C2", marginTop: 2 },}, "CG, moments, the standard masses and loading formulas — quick-fire."
+
+          )
+        )
+        , React.createElement('span', { style: { ...mono, fontSize: 13 },}, "BEST STREAK "  , (progress.drill && progress.drill.best) || 0, " →" )
+      )
+    )
+  );
+}
+
+function Topic({ topic, tab, setTab, progress, save, onBack }) {
+  return (
+    React.createElement('div', null
+      , React.createElement('button', { onClick: onBack, style: { ...mono, background: "none", border: "none", color: C.cold, cursor: "pointer", fontSize: 13, padding: "4px 0", marginBottom: 8 },}, "← ALL MODULES"
+
+      )
+      , React.createElement('div', { style: { ...mono, fontSize: 11, color: C.sub, letterSpacing: 2 },}, topic.code)
+      , React.createElement('h1', { style: { fontSize: 26, fontWeight: 800, margin: "2px 0 14px" },}, topic.title)
+      , React.createElement('div', { style: { display: "flex", gap: 8, marginBottom: 18 },}
+        , ["learn", "quiz"].map((m) => (
+          React.createElement('button', {
+            key: m,
+            onClick: () => setTab(m),
+            style: {
+              ...mono, fontSize: 13, letterSpacing: 1, padding: "8px 18px", cursor: "pointer", borderRadius: 2,
+              border: `1px solid ${tab === m ? C.ink : C.line}`,
+              background: tab === m ? C.ink : C.panel,
+              color: tab === m ? "#fff" : C.ink,
+            },}
+
+            , m.toUpperCase()
+          )
+        ))
+      )
+      , React.createElement(DoneToggle, { topic: topic, progress: progress, save: save,} )
+      , tab === "learn" ? (
+        React.createElement(Learn, { topic: topic, progress: progress, save: save, goQuiz: () => setTab("quiz"),} )
+      ) : (
+        React.createElement(Quiz, { topic: topic, progress: progress, save: save,} )
+      )
+    )
+  );
+}
+
+function Learn({ topic, progress, save, goQuiz }) {
+  const [i, setI] = useState(0);
+  const card = topic.cards[i];
+
+  useEffect(() => {
+    const seen = progress.read[topic.id] || 0;
+    if (i + 1 > seen) save({ ...progress, read: { ...progress.read, [topic.id]: i + 1 } });
+  }, [i]); // eslint-disable-line
+
+  return (
+    React.createElement('div', null
+      , React.createElement('div', { style: { background: C.panel, border: `1px solid ${C.line}`, borderRadius: 2, padding: "20px 22px" },}
+        , React.createElement('div', { style: { ...mono, fontSize: 12, color: C.sub },}, "CARD " , i + 1, " / "  , topic.cards.length)
+        , React.createElement('h2', { style: { fontSize: 20, fontWeight: 700, margin: "8px 0 10px" },}, card.t)
+        , React.createElement('p', { style: { fontSize: 15.5, lineHeight: 1.65, margin: 0 },}, card.b)
+        , card.dia && DIAGRAMS[card.dia] && DIAGRAMS[card.dia]()
+        , card.dia && DIAGRAMS[card.dia] && DIAGRAMS[card.dia]()
+      )
+      , React.createElement(LearnControls, { topic: topic, i: i, card: card, progress: progress, save: save,} )
+      , React.createElement('div', { style: { display: "flex", gap: 6, margin: "12px 0" },}
+        , topic.cards.map((_, k) => (
+          React.createElement('div', { key: k, style: { flex: 1, height: 4, background: k <= i ? C.cold : C.line, borderRadius: 2 },} )
+        ))
+      )
+      , React.createElement('div', { style: { display: "flex", justifyContent: "space-between", gap: 10 },}
+        , React.createElement(Btn, { ghost: true, disabled: i === 0, onClick: () => setI(i - 1),}, "← Back" )
+        , i < topic.cards.length - 1 ? (
+          React.createElement(Btn, { onClick: () => setI(i + 1),}, "Next card →"  )
+        ) : (
+          React.createElement(Btn, { onClick: goQuiz, color: C.good,}, "Take the quiz →"   )
+        )
+      )
+    )
+  );
+}
+
+function Quiz({ topic, progress, save }) {
+  const [i, setI] = useState(0);
+  const [picked, setPicked] = useState(null);
+  const [score, setScore] = useState(0);
+  const [done, setDone] = useState(false);
+  const [order] = useState(() =>
+    topic.quiz.map((q) => {
+      const idx = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
+      return { ...q, o: idx.map((k) => q.o[k]), a: idx.indexOf(q.a) };
+    })
+  );
+
+  const q = order[i];
+
+  const finish = (finalScore) => {
+    const pct = Math.round((finalScore / order.length) * 100);
+    const prev = progress.best[topic.id] || 0;
+    if (pct > prev) save({ ...progress, best: { ...progress.best, [topic.id]: pct } });
+    setDone(true);
+  };
+
+  if (done) {
+    const pct = Math.round((score / order.length) * 100);
+    const pass = pct >= 75;
+    return (
+      React.createElement('div', { style: { background: C.panel, border: `1px solid ${C.line}`, borderTop: `4px solid ${pass ? C.good : C.warm}`, borderRadius: 2, padding: "26px 22px", textAlign: "center" },}
+        , React.createElement('div', { style: { ...mono, fontSize: 12, color: C.sub, letterSpacing: 2 },}, "RESULT")
+        , React.createElement('div', { style: { fontSize: 44, fontWeight: 800, color: pass ? C.good : C.warm, margin: "6px 0" },}, pct, "%")
+        , React.createElement('p', { style: { color: C.sub, fontSize: 14, margin: "0 0 4px" },}, score, " of "  , order.length, " correct · EASA pass mark is 75%"       )
+        , React.createElement('p', { style: { fontSize: 15, margin: "10px 0 18px" },}
+          , pass ? "Pass — keep it warm with a re-run in a few days." : "Below the pass mark — revisit the Learn cards, then try again."
+        )
+        , React.createElement(Btn, { onClick: () => { setI(0); setPicked(null); setScore(0); setDone(false); },}, "Retake quiz" )
+      )
+    );
+  }
+
+  return (
+    React.createElement('div', null
+      , React.createElement('div', { style: { ...mono, fontSize: 12, color: C.sub, marginBottom: 8 },}, "QUESTION "
+         , i + 1, " / "  , order.length, " · SCORE "   , score
+      )
+      , React.createElement('div', { style: { background: C.panel, border: `1px solid ${C.line}`, borderRadius: 2, padding: "18px 20px" },}
+        , React.createElement('p', { style: { fontSize: 16.5, fontWeight: 700, lineHeight: 1.5, margin: "0 0 14px" },}, q.q)
+        , React.createElement('div', { style: { display: "grid", gap: 8 },}
+          , q.o.map((opt, k) => {
+            let bg = C.panel, border = C.line;
+            if (picked != null) {
+              if (k === q.a) { bg = "#E7F2EA"; border = C.good; }
+              else if (k === picked) { bg = C.warmSoft; border = C.warm; }
+            }
+            return (
+              React.createElement('button', {
+                key: k,
+                disabled: picked != null,
+                onClick: () => { setPicked(k); if (k === q.a) setScore(score + 1); },
+                style: {
+                  textAlign: "left", padding: "11px 14px", fontSize: 15, lineHeight: 1.4,
+                  background: bg, border: `1.5px solid ${border}`, borderRadius: 2,
+                  cursor: picked == null ? "pointer" : "default", color: C.ink,
+                },}
+
+                , React.createElement('span', { style: { ...mono, color: C.sub, marginRight: 8 },}, "ABCD"[k]), opt
+              )
+            );
+          })
+        )
+        , picked != null && (
+          React.createElement('div', { style: { marginTop: 14, padding: "12px 14px", background: picked === q.a ? "#E7F2EA" : C.coldSoft, borderLeft: `4px solid ${picked === q.a ? C.good : C.cold}`, fontSize: 14.5, lineHeight: 1.55 },}
+            , React.createElement('b', null, picked === q.a ? "Correct. " : "Not quite. "), q.e
+          )
+        )
+      )
+      , picked != null && (
+        React.createElement('div', { style: { display: "flex", justifyContent: "flex-end", marginTop: 14 },}
+          , i < order.length - 1 ? (
+            React.createElement(Btn, { onClick: () => { setI(i + 1); setPicked(null); },}, "Next question →"  )
+          ) : (
+            React.createElement(Btn, { color: C.good, onClick: () => finish(score),}, "Finish →" )
+          )
+        )
+      )
+    )
+  );
+}
+
+function Btn({ children, onClick, disabled, ghost, color }) {
+  return (
+    React.createElement('button', {
+      onClick: onClick,
+      disabled: disabled,
+      style: {
+        ...mono, fontSize: 14, padding: "10px 20px", cursor: disabled ? "default" : "pointer",
+        borderRadius: 2, letterSpacing: 0.5,
+        background: ghost ? "transparent" : color || C.ink,
+        color: ghost ? (disabled ? C.line : C.ink) : "#fff",
+        border: ghost ? `1px solid ${disabled ? C.line : C.ink}` : "none",
+        opacity: disabled ? 0.6 : 1,
+      },}
+
+      , children
+    )
+  );
+}
+
+function Drill({ progress, save, onBack }) {
+  const [q, setQ] = useState(() => genDrill());
+  const [picked, setPicked] = useState(null);
+  const [streak, setStreak] = useState(0);
+  const [count, setCount] = useState(0);
+  const [right, setRight] = useState(0);
+
+  const pick = (k) => {
+    if (picked != null) return;
+    setPicked(k);
+    setCount(count + 1);
+    if (k === q.answer) {
+      setRight(right + 1);
+      const ns = streak + 1;
+      setStreak(ns);
+      const best = (progress.drill && progress.drill.best) || 0;
+      if (ns > best) save({ ...progress, drill: { best: ns } });
+    } else {
+      setStreak(0);
+    }
+  };
+
+  return (
+    React.createElement('div', null
+      , React.createElement('button', { onClick: onBack, style: { ...mono, background: "none", border: "none", color: C.cold, cursor: "pointer", fontSize: 13, padding: "4px 0", marginBottom: 8 },}, "← ALL MODULES"
+
+      )
+      , React.createElement('h1', { style: { fontSize: 26, fontWeight: 800, margin: "2px 0 4px" },}, "Numbers Drill" )
+      , React.createElement('div', { style: { ...mono, fontSize: 12, color: C.sub, marginBottom: 14 },}, "STREAK "
+         , streak, " · SESSION "   , right, "/", count, " · BEST "   , (progress.drill && progress.drill.best) || 0
+      )
+      , React.createElement('div', { style: { background: C.panel, border: `1px solid ${C.line}`, borderRadius: 2, padding: "18px 20px" },}
+        , React.createElement('p', { style: { fontSize: 16.5, fontWeight: 700, lineHeight: 1.5, margin: "0 0 14px" },}, q.q)
+        , React.createElement('div', { style: { display: "grid", gap: 8 },}
+          , q.options.map((opt, k) => {
+            let bg = C.panel, border = C.line;
+            if (picked != null) {
+              if (k === q.answer) { bg = "#E7F2EA"; border = C.good; }
+              else if (k === picked) { bg = C.warmSoft; border = C.warm; }
+            }
+            return (
+              React.createElement('button', { key: k, disabled: picked != null, onClick: () => pick(k),
+                style: { textAlign: "left", padding: "11px 14px", fontSize: 15, background: bg, border: `1.5px solid ${border}`, borderRadius: 2, cursor: picked == null ? "pointer" : "default", color: C.ink },}
+                , React.createElement('span', { style: { ...mono, color: C.sub, marginRight: 8 },}, "ABCD"[k]), opt
+              )
+            );
+          })
+        )
+        , picked != null && (
+          React.createElement('div', { style: { marginTop: 14, padding: "12px 14px", background: picked === q.answer ? "#E7F2EA" : C.coldSoft, borderLeft: `4px solid ${picked === q.answer ? C.good : C.cold}`, fontSize: 14.5, lineHeight: 1.55 },}
+            , React.createElement('b', null, picked === q.answer ? "Correct. " : "Not quite. "), q.e
+          )
+        )
+      )
+      , picked != null && (
+        React.createElement('div', { style: { display: "flex", justifyContent: "flex-end", marginTop: 14 },}
+          , React.createElement(Btn, { onClick: () => { setQ(genDrill()); setPicked(null); },}, "Next question →"  )
+        )
+      )
+    )
+  );
+}
+
+
+// ===================== ADDED FEATURES =====================
+function speak(text, onEnd) {
+  try {
+    const s = window.speechSynthesis; if (!s) return false;
+    s.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 1; u.onend = onEnd; s.speak(u); return true;
+  } catch (e) { return false; }
+}
+function stopSpeak() { try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {} }
+
+function ExamBanner({ progress }) {
+  const [date, setDate] = useState("");
+  const [editing, setEditing] = useState(false);
+  useEffect(() => { try { setDate(localStorage.getItem("atpl-exam-date") || ""); } catch (e) {} }, []);
+  const setExam = (v) => { setDate(v); try { v ? localStorage.setItem("atpl-exam-date", v) : localStorage.removeItem("atpl-exam-date"); } catch (e) {} setEditing(false); };
+  const undone = TOPICS.filter((t) => !((progress.best[t.id] != null && progress.best[t.id] >= 75) || (progress.done && progress.done[t.id]))).length;
+  let days = null;
+  if (date) { const d = new Date(date + "T00:00:00"); days = Math.ceil((d - new Date()) / 86400000); }
+  if (!date || editing) {
+    return (
+      React.createElement('div', { style: { background: C.panel, border: `1px solid ${C.line}`, borderRadius: 3, padding: "12px 14px", marginBottom: 14, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },}
+        , React.createElement('span', { style: { ...mono, fontSize: 12, color: C.sub },}, "Exam date:" )
+        , React.createElement('input', { type: "date", defaultValue: date, onChange: (e) => setExam(e.target.value), style: { ...mono, fontSize: 13, padding: "6px 8px", border: `1px solid ${C.line}`, borderRadius: 2 },} )
+        , date && React.createElement('button', { onClick: () => setExam(""), style: { ...mono, fontSize: 12, background: "none", border: "none", color: C.warm, cursor: "pointer" },}, "clear")
+      )
+    );
+  }
+  const overdue = days < 0;
+  const pace = days > 0 ? Math.ceil(undone / days) : undone;
+  return (
+    React.createElement('div', { onClick: () => setEditing(true), style: { cursor: "pointer", background: overdue ? C.warmSoft : C.ink, color: overdue ? C.warm : "#fff", borderRadius: 3, padding: "12px 16px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" },}
+      , React.createElement('span', null
+        , React.createElement('span', { style: { ...mono, fontSize: 11, letterSpacing: 2, color: overdue ? C.warm : "#9FB3C2", display: "block" },}, "EXAM COUNTDOWN" )
+        , React.createElement('span', { style: { fontWeight: 800, fontSize: 20 },}, overdue ? `${Math.abs(days)} days ago` : days === 0 ? "Exam today" : `${days} days to go`)
+      )
+      , !overdue && days > 0 && undone > 0 && React.createElement('span', { style: { ...mono, fontSize: 12, color: "#9FB3C2", textAlign: "right" },}, undone, " chapters left · ~"    , pace, "/day")
+    )
+  );
+}
+
+function DoneToggle({ topic, progress, save }) {
+  const passed = progress.best[topic.id] != null && progress.best[topic.id] >= 75;
+  const marked = !!(progress.done && progress.done[topic.id]);
+  const done = passed || marked;
+  const toggle = () => { const d = { ...(progress.done || {}) }; d[topic.id] = !marked; save({ ...progress, done: d }); };
+  return (
+    React.createElement('button', { onClick: toggle, style: { ...mono, fontSize: 12.5, padding: "8px 14px", borderRadius: 2, marginBottom: 16, cursor: "pointer", border: `1px solid ${done ? C.good : C.line}`, background: done ? "#E7F2EA" : C.panel, color: done ? C.good : C.sub },}
+      , done ? "✓ Completed — tap to unmark" : "○ Mark chapter complete"
+    )
+  );
+}
+
+function LearnControls({ topic, i, card, progress, save }) {
+  const [speaking, setSpeaking] = useState(false);
+  useEffect(() => { stopSpeak(); setSpeaking(false); }, [i]); // eslint-disable-line
+  const bmKey = topic.id + ":" + i;
+  const marked = !!(progress.bookmarks && progress.bookmarks[bmKey]);
+  const toggleBm = () => { const bm = { ...(progress.bookmarks || {}) }; bm[bmKey] = !marked; save({ ...progress, bookmarks: bm }); };
+  const toggleSpeak = () => {
+    if (speaking) { stopSpeak(); setSpeaking(false); }
+    else { const ok = speak(card.t + ". " + card.b, () => setSpeaking(false)); setSpeaking(ok); }
+  };
+  return (
+    React.createElement('div', { style: { display: "flex", gap: 8, marginTop: 12 },}
+      , React.createElement('button', { onClick: toggleSpeak, style: { ...mono, fontSize: 13, padding: "9px 14px", borderRadius: 2, border: `1px solid ${C.line}`, background: speaking ? C.coldSoft : C.panel, color: C.ink, cursor: "pointer" },}, speaking ? "■ Stop" : "▶ Listen")
+      , React.createElement('button', { onClick: toggleBm, style: { ...mono, fontSize: 13, padding: "9px 14px", borderRadius: 2, border: `1px solid ${marked ? C.warm : C.line}`, background: marked ? C.warmSoft : C.panel, color: marked ? C.warm : C.ink, cursor: "pointer" },}, marked ? "★ Saved" : "☆ Save card")
+    )
+  );
+}
+
+function Saved({ progress, save, onOpen, onBack }) {
+  const bm = progress.bookmarks || {};
+  const items = [];
+  TOPICS.forEach((t) => t.cards.forEach((c, idx) => { if (bm[t.id + ":" + idx]) items.push({ t, c, idx }); }));
+  const unsave = (key) => { const b = { ...bm }; delete b[key]; save({ ...progress, bookmarks: b }); };
+  return (
+    React.createElement('div', null
+      , React.createElement('button', { onClick: onBack, style: { ...mono, background: "none", border: "none", color: C.cold, cursor: "pointer", fontSize: 13, padding: "4px 0", marginBottom: 8 },}, "← ALL MODULES"  )
+      , React.createElement('h1', { style: { fontSize: 26, fontWeight: 800, margin: "2px 0 14px" },}, "★ Saved cards"  )
+      , items.length === 0 ? (
+        React.createElement('p', { style: { color: C.sub, fontSize: 15 },}, "No saved cards yet. Tap “☆ Save card” on any Learn card to keep it here for quick revision."                  )
+      ) : (
+        React.createElement('div', { style: { display: "grid", gap: 10 },}
+          , items.map(({ t, c, idx }) => (
+            React.createElement('div', { key: t.id + idx, style: { background: C.panel, border: `1px solid ${C.line}`, borderLeft: `4px solid ${C.warm}`, borderRadius: 2, padding: "12px 14px" },}
+              , React.createElement('div', { style: { ...mono, fontSize: 10.5, color: C.cold },}, t.code, " · "  , t.title)
+              , React.createElement('div', { style: { fontWeight: 700, fontSize: 15, margin: "3px 0 5px" },}, c.t)
+              , React.createElement('p', { style: { fontSize: 13.5, color: C.sub, lineHeight: 1.5, margin: "0 0 8px" },}, c.b)
+              , React.createElement('div', { style: { display: "flex", gap: 8 },}
+                , React.createElement('button', { onClick: () => onOpen(t.id), style: { ...mono, fontSize: 12, padding: "7px 12px", border: "none", borderRadius: 2, background: C.ink, color: "#fff", cursor: "pointer" },}, "Open chapter →"  )
+                , React.createElement('button', { onClick: () => unsave(t.id + ":" + idx), style: { ...mono, fontSize: 12, padding: "7px 12px", border: `1px solid ${C.line}`, borderRadius: 2, background: C.panel, color: C.warm, cursor: "pointer" },}, "Remove")
+              )
+            )
+          ))
+        )
+      )
+    )
+  );
+}
+
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));</script><script>if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{});}</script></body></html>

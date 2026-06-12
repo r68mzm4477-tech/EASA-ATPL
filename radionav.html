@@ -1,0 +1,52 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<title>Radio Navigation</title>
+<script src="quiz-engine.js"></script>
+</head>
+<body style="font-family:sans-serif;padding:20px;background:#F4F7F9;">
+<h1>Radio Navigation</h1>
+
+<div style="background:#fff;padding:14px;border-radius:6px;margin-bottom:20px;">
+<h2>Core Notes</h2>
+<ul>
+<li>VOR provides magnetic bearing information relative to the station.</li>
+<li>DME measures slant range distance, not horizontal distance.</li>
+<li>NDB bearings are affected by coastal refraction and thunderstorms.</li>
+<li>ILS consists of localizer and glide slope guidance.</li>
+<li>Marker beacons provide range indication on approach.</li>
+</ul>
+</div>
+
+<div id="quiz"></div>
+
+<script>
+ATPLQuiz("quiz",[
+{
+question:"What does DME measure?",
+answers:[
+"Groundspeed",
+"Slant range distance",
+"Magnetic bearing",
+"Pressure altitude"
+],
+correct:1
+},
+{
+question:"Which navigation aid provides azimuth guidance for an ILS?",
+answers:[
+"DME",
+"ADF",
+"Glide slope",
+"Localizer"
+],
+correct:3
+}
+]);
+</script>
+
+</body>
+</html>

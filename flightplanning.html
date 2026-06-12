@@ -1,0 +1,52 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<title>Flight Planning</title>
+<script src="quiz-engine.js"></script>
+</head>
+<body style="font-family:sans-serif;padding:20px;background:#F4F7F9;">
+<h1>Flight Planning & Monitoring</h1>
+
+<div style="background:#fff;padding:14px;border-radius:6px;margin-bottom:20px;">
+<h2>Operational Concepts</h2>
+<ul>
+<li>Contingency fuel accounts for unforeseen factors.</li>
+<li>Alternate fuel is carried to reach the destination alternate.</li>
+<li>Final reserve fuel must remain unused except in emergency.</li>
+<li>ETOPS planning requires diversion analysis and fuel calculations.</li>
+<li>Fuel planning is based on forecast conditions and operational procedures.</li>
+</ul>
+</div>
+
+<div id="quiz"></div>
+
+<script>
+ATPLQuiz("quiz",[
+{
+question:"What is the purpose of contingency fuel?",
+answers:[
+"Taxi operations",
+"Unforeseen operational factors",
+"APU operation only",
+"Passenger comfort"
+],
+correct:1
+},
+{
+question:"Final reserve fuel should normally:",
+answers:[
+"Be fully consumed",
+"Remain untouched except emergency",
+"Be used before alternate fuel",
+"Only be carried in winter"
+],
+correct:1
+}
+]);
+</script>
+
+</body>
+</html>
