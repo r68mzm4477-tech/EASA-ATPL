@@ -1,70 +1,1064 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" /><meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black" /><meta name="theme-color" content="#16222C" />
+<link rel="manifest" href="manifest.webmanifest" /><link rel="apple-touch-icon" href="icon-180.png" /><title>Enhanced ATPL Performance</title>
+<script src="vendor-react.js"></script>
+<style>html,body{margin:0;padding:0;background:#E9EEF2;-webkit-text-size-adjust:100%;}#root{min-height:100vh;}
+.homebar{position:sticky;top:0;z-index:50;background:#0f1820;display:flex;align-items:center;gap:8px;padding:8px 14px;font:600 13px 'IBM Plex Mono',monospace;color:#9FB3C2;}.homebar a{color:#9FB3C2;text-decoration:none;}</style>
+</head><body><div class="homebar"><a href="index.html">‹ SUBJECTS</a></div><div id="root"></div>
+<script>const storageShim={async get(k){try{const v=localStorage.getItem(k);return v==null?null:{key:k,value:v}}catch(e){return null}},async set(k,v){try{localStorage.setItem(k,v);return{key:k,value:v}}catch(e){return null}},async delete(k){try{localStorage.removeItem(k);return{key:k,deleted:true}}catch(e){return null}},async list(p){try{return{keys:Object.keys(localStorage).filter(k=>!p||k.startsWith(p))}}catch(e){return null}}};if(!window.storage)window.storage=storageShim;</script>
+<script>const {useState,useEffect}=React;
 
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Aircraft Performance</title>
-<style>
-body{font-family:Arial;background:#F4F7F9;padding:20px;}
-.box{background:#fff;padding:18px;border-radius:10px;margin-bottom:18px;border:1px solid #D7DFE5;}
-input{width:100%;padding:10px;margin:8px 0;}
-button{padding:10px 14px;background:#16222C;color:#fff;border:none;border-radius:6px;}
-</style>
-</head>
-<body>
+// ===================== SYLLABUS DATA =====================
+const TOPICS = [
+  {
+    id: "fundamentals",
+    code: "032·01",
+    title: "Performance Fundamentals",
+    blurb: "Factors affecting performance: weight, density, wind, slope, surface.",
+    cards: [
+      { t: "What 'performance' covers", b: "Performance is how well the aircraft accelerates, takes off, climbs, cruises, descends and lands — and whether it can do so safely within the available runway and obstacle environment. It's governed by the balance of thrust, drag, lift and weight, and by the air the aircraft operates in." },
+      { t: "Effect of mass (weight)", b: "Greater mass = more lift needed = higher speeds, longer take-off and landing distances, shallower climb gradient, lower ceiling and reduced range. Take-off and landing distances rise roughly with the SQUARE of the speed needed, so weight has a strong effect. Mass is usually the dominant performance variable the crew controls." },
+      { t: "Effect of density (altitude & temperature)", b: "Low air density (high airport elevation, high temperature, high humidity = high DENSITY ALTITUDE) reduces lift and engine thrust, so take-off/landing distances lengthen and climb degrades. The wing still stalls at the same IAS, but TAS and the ground run are higher. Hot-and-high airfields are performance-critical." },
+      { t: "Effect of wind", b: "A HEADWIND shortens the take-off and landing ground run and steepens the climb-out/approach path over the ground; a TAILWIND does the opposite and is heavily penalised. Regulations require factoring: typically only ~50% of a reported headwind may be credited, but 150% of a tailwind must be assumed — conservative both ways." },
+      { t: "Effect of runway slope & surface", b: "An UPSLOPE lengthens the take-off run (gravity opposes acceleration) but shortens the landing run; a downslope does the reverse. Surface matters: a wet or contaminated runway reduces braking and increases stopping distance, and contamination (slush/snow/water) also adds drag on take-off." },
+      { t: "Pressure altitude & the day's conditions", b: "Performance charts are entered with PRESSURE ALTITUDE (set 1013 to read it) and temperature (giving density altitude), plus mass, wind and slope. The same aircraft can be runway-limited on a hot day at a high, short, upsloping, tailwind runway and unrestricted on a cool day at a long sea-level one." },
+    ],
+    quiz: [
+      { q: "Increasing mass affects take-off distance how?", o: ["Increases it", "Decreases it", "No effect", "Halves it"], a: 0, e: "More mass needs higher speeds and more lift; distances rise (roughly with the square of speed)." },
+      { q: "High density altitude (hot, high, humid):", o: ["Reduces thrust and lift, lengthening distances", "Improves climb performance", "Shortens the take-off run", "Lowers the stall IAS"], a: 0, e: "Thin air cuts lift and thrust; TAS and ground run increase even though stall IAS is unchanged." },
+      { q: "For take-off performance, regulations typically allow crediting only:", o: ["50% of the headwind, but assume 150% of any tailwind", "100% of the headwind and tailwind", "150% of the headwind", "None of the wind"], a: 0, e: "Conservative factoring: under-credit headwind, over-credit tailwind to build in margin." },
+      { q: "An upslope runway, for take-off:", o: ["Lengthens the take-off run", "Shortens the take-off run", "Has no effect", "Reduces the stall speed"], a: 0, e: "Gravity opposes acceleration uphill — longer take-off run (but a shorter landing run)." },
+      { q: "Performance charts are entered using:", o: ["Pressure altitude and temperature", "Density only", "Indicated altitude on QNH", "True altitude"], a: 0, e: "Pressure altitude (1013 set) plus temperature gives density altitude; add mass, wind, slope." },
+      { q: "A contaminated (slush/snow) runway on take-off:", o: ["Adds drag and reduces braking, worsening performance", "Improves acceleration", "Has no effect if below MTOM", "Shortens stopping distance"], a: 0, e: "Contamination both retards acceleration (impingement drag) and degrades braking/stopping." },
+    ],
+  },
+  {
+    id: "classes",
+    code: "032·01",
+    title: "Performance Classes",
+    blurb: "Classes A, B and C; certification basis; why large jets are Class A.",
+    cards: [
+      { t: "Why performance classes", b: "Aircraft are grouped into PERFORMANCE CLASSES that set the regulatory requirements for take-off, climb, obstacle clearance and landing — scaled to the aircraft's capability and the consequences of an engine failure. The class determines how conservative the planning must be." },
+      { t: "Class A", b: "Multi-engine turbojets/large turboprops (broadly, aeroplanes with MTOM > 5700 kg or more than 9 passenger seats with turbine power). Class A demands the most rigorous rules: full account of ENGINE FAILURE at the critical point, net flight-path obstacle clearance, and the V1-based balanced/unbalanced field concept." },
+      { t: "Class B", b: "Smaller propeller aeroplanes (generally ≤ 9 passenger seats and MTOM ≤ 5700 kg). Requirements are simpler: single-engine failure after take-off is not guaranteed to be survivable in the same way, so planning uses factored take-off and landing distances and basic climb gradients with safety factors." },
+      { t: "Class C", b: "Large aeroplanes with PISTON engines (a small, mostly historical group — big recip airliners). It exists for completeness; few modern types fall here. The principles mirror Class A's rigour adapted to piston powerplants." },
+      { t: "Certification vs operating rules", b: "The AFM gives CERTIFIED performance (scheduled data demonstrated by the manufacturer). The OPERATING rules (the performance class requirements) then apply factors and obstacle criteria to that data for dispatch. You plan with the operating rules, reading from certified AFM charts." },
+      { t: "The engine-failure philosophy", b: "Class A is built around surviving the FAILURE OF THE CRITICAL ENGINE at the worst moment: the aircraft must be able to either stop or continue the take-off safely from V1, then climb away clearing obstacles on the remaining engine(s). This single idea shapes most Class A take-off rules." },
+    ],
+    quiz: [
+      { q: "Class A applies broadly to:", o: ["Multi-engine turbine aeroplanes > 5700 kg or > 9 seats", "Single-engine pistons only", "Gliders", "Light twins under 2000 kg"], a: 0, e: "Large multi-engine turbine types — the most rigorous engine-failure and obstacle rules." },
+      { q: "Class B covers:", o: ["Smaller propeller aeroplanes (≤ 9 seats, ≤ 5700 kg)", "Large jets", "Piston airliners", "All turboprops"], a: 0, e: "Simpler factored distances and climb requirements for small prop aeroplanes." },
+      { q: "The central philosophy of Class A take-off planning is:", o: ["Surviving critical engine failure at the worst moment", "Maximising passenger numbers", "Minimising fuel only", "Ignoring obstacles"], a: 0, e: "Stop or go safely from V1, then climb clear on the remaining engines." },
+      { q: "Certified performance data comes from the:", o: ["Aircraft Flight Manual (AFM)", "METAR", "Load sheet", "NOTAMs"], a: 0, e: "The AFM holds scheduled, demonstrated performance; operating rules then factor it for dispatch." },
+      { q: "Class C aeroplanes are:", o: ["Large piston-engine types (a small group)", "Modern jets", "Microlights", "Helicopters"], a: 0, e: "Large recip airliners — mostly historical; few modern aircraft are Class C." },
+      { q: "Operating (dispatch) rules differ from certified data by:", o: ["Applying factors and obstacle criteria to the AFM data", "Ignoring the AFM", "Using only TAS", "Removing all safety margins"], a: 0, e: "You plan by applying the class's factors and obstacle clearance to the certified AFM charts." },
+    ],
+  },
+  {
+    id: "takeoffspeeds",
+    code: "032·02",
+    title: "Take-off Speeds & Distances",
+    blurb: "V1, VR, V2, Vmcg/Vmca, TORA/TODA/ASDA, balanced field.",
+    cards: [
+      { t: "The declared distances", b: "TORA: take-off run available (the runway). TODA: TORA + any CLEARWAY (a clear area beyond the runway the aircraft may fly over while climbing to screen height). ASDA: TORA + any STOPWAY (a paved area beyond the runway able to bear the aircraft during a rejected take-off). These define what's available to go or stop.", dia: "declared" },
+      { t: "V1 — the decision speed", b: "V1 is the maximum speed at which the FIRST action to STOP (brakes/thrust levers) must be taken to stop within the ASDA, AND the minimum speed from which the take-off can be CONTINUED to screen height within the TODA after an engine failure. Above V1 you GO; below V1 (and a problem) you STOP." },
+      { t: "VR, V2 and screen height", b: "VR (rotate): speed to begin rotation. V2 (take-off safety speed): the climb speed to be achieved by the SCREEN HEIGHT (35 ft dry / 15 ft wet for Class A) and maintained in the climb-out with an engine failed. The ordering is Vmcg ≤ V1 ≤ VR ≤ V2 (with V2 ≥ certain margins above stall/Vmca)." },
+      { t: "Vmcg and Vmca", b: "Vmcg (minimum control speed on the GROUND): the lowest speed at which directional control can be kept using the rudder alone after the critical engine fails during the take-off run. Vmca (minimum control speed in the AIR): the airborne equivalent. V1 cannot be below Vmcg; V2 must give a margin above Vmca/stall." },
+      { t: "Accelerate-stop & accelerate-go", b: "ACCELERATE-STOP DISTANCE: accelerate to V1, then reject and stop — must fit within ASDA. ACCELERATE-GO DISTANCE: accelerate, lose the critical engine at VEF, continue and reach screen height — must fit within TODA. The take-off must satisfy BOTH for the chosen V1." },
+      { t: "Balanced field length", b: "If V1 is chosen so the accelerate-stop distance EQUALS the accelerate-go distance, that common distance is the BALANCED FIELD LENGTH, and the V1 is the balanced V1. Where stopway/clearway differ, an UNBALANCED field may allow a higher mass — but balanced field is the classic concept and often the limiting case.", dia: "balanced" },
+    ],
+    quiz: [
+      { q: "V1 is the speed at/above which, after an engine failure, you must:", o: ["Continue the take-off (go)", "Always stop", "Retract the gear", "Reduce to idle"], a: 0, e: "At or above V1 you GO; below V1 you can STOP within the ASDA. V1 is the go/stop decision speed." },
+      { q: "TODA is:", o: ["TORA plus clearway", "TORA plus stopway", "Just the runway", "TORA minus stopway"], a: 0, e: "Take-off distance available = runway + clearway (area to climb over to screen height)." },
+      { q: "ASDA is:", o: ["TORA plus stopway", "TORA plus clearway", "TORA only", "TODA plus clearway"], a: 0, e: "Accelerate-stop distance available = runway + stopway (paved area to stop on during a reject)." },
+      { q: "The balanced field length occurs when:", o: ["Accelerate-stop distance equals accelerate-go distance", "V1 equals VR", "There is no clearway", "The runway is wet"], a: 0, e: "Choosing V1 so stop distance = go distance gives the balanced field length and balanced V1." },
+      { q: "The correct speed ordering is:", o: ["Vmcg ≤ V1 ≤ VR ≤ V2", "V2 ≤ VR ≤ V1", "VR ≤ V1 ≤ Vmcg", "V1 ≤ Vmcg ≤ VR"], a: 0, e: "V1 can't be below Vmcg; rotate at VR; achieve V2 by screen height." },
+      { q: "V2 must be achieved by the:", o: ["Screen height (35 ft dry for Class A)", "Start of the roll", "End of the stopway", "Top of climb"], a: 0, e: "V2 is the take-off safety speed reached by screen height (35 ft dry / 15 ft wet) and held in the climb." },
+    ],
+  },
+  {
+    id: "climbsegments",
+    code: "032·02",
+    title: "Climb Segments & Obstacles",
+    blurb: "The four take-off climb segments, gross vs net path, gradients.",
+    cards: [
+      { t: "The net take-off flight path", b: "Class A obstacle clearance uses the NET flight path — the GROSS (actual demonstrated) climb gradient REDUCED by a mandated margin (e.g. 0.8% for a twin) — and the net path must clear obstacles by at least 35 ft. The gross path is what the aircraft really does; the net is the conservative planning path." },
+      { t: "First segment", b: "From screen height (35 ft) to gear fully UP. Speed V2, take-off thrust, one engine inoperative. The required gross gradient must simply be POSITIVE (> 0%). It's short — the gear is retracting and drag is high." },
+      { t: "Second segment", b: "From gear up to typically 400 ft (minimum) — the MOST DEMANDING segment. Speed V2, take-off thrust, one engine inoperative, flaps at take-off setting. Minimum required GROSS gradient: 2.4% (two-engine), 2.7% (three-engine), 3.0% (four-engine). Often the climb-limiting case for take-off mass.", dia: "segments" },
+      { t: "Third (acceleration) segment", b: "A level or shallow segment at/above ~400 ft where the aircraft ACCELERATES from V2 toward flap-retraction speed and the flaps are retracted. Thrust may be reduced to maximum continuous after the time limit on take-off thrust expires. Energy goes into speed rather than height here." },
+      { t: "Fourth (final) segment", b: "Clean configuration, flaps up, at final take-off speed, maximum continuous thrust, one engine inoperative, climbing to a safe en-route altitude (≥ 1500 ft). Minimum required gross gradient: 1.2% (two-engine), 1.5% (three-engine), 1.7% (four-engine)." },
+      { t: "Gradient, rate & obstacle domain", b: "CLIMB GRADIENT (% = height gained ÷ distance travelled) drives obstacle clearance; RATE of climb (ft/min) = gradient × groundspeed-related factor. Obstacles in the departure splay/domain are assessed against the NET path. If obstacles limit, take-off mass must be reduced until the net path clears them by 35 ft." },
+    ],
+    quiz: [
+      { q: "The most demanding take-off climb segment is the:", o: ["Second segment", "First segment", "Third segment", "Fourth segment"], a: 0, e: "Gear up, V2, take-off flap, one engine out — the steepest required gross gradient (2.4% for a twin)." },
+      { q: "The minimum second-segment gross gradient for a TWO-engine aircraft is:", o: ["2.4%", "2.7%", "3.0%", "1.2%"], a: 0, e: "2.4% (twin), 2.7% (three-engine), 3.0% (four-engine)." },
+      { q: "Obstacle clearance in Class A is assessed against the:", o: ["Net flight path (gross reduced by a margin)", "Gross flight path", "Cruise ceiling", "Landing path"], a: 0, e: "The net path (gross minus a mandated reduction, e.g. 0.8% twin) must clear obstacles by ≥ 35 ft." },
+      { q: "During the first segment the required gross gradient must be:", o: ["Positive (> 0%)", "At least 2.4%", "At least 3.0%", "Zero or negative"], a: 0, e: "From 35 ft to gear up the gradient need only be positive — drag is high with the gear retracting." },
+      { q: "The third (acceleration) segment is where the aircraft:", o: ["Accelerates and retracts flaps, often near-level", "Climbs steepest", "Lands", "Rotates"], a: 0, e: "Energy goes into speed: accelerate from V2 to flap-retract speed and clean up, around 400 ft." },
+      { q: "If obstacles limit the departure, the response is to:", o: ["Reduce take-off mass until the net path clears them", "Increase V2 only", "Ignore them below 1500 ft", "Use the gross path instead"], a: 0, e: "Lowering mass steepens the climb so the conservative net path clears the obstacle by 35 ft." },
+    ],
+  },
+  {
+    id: "climbcruise",
+    code: "032·03",
+    title: "Climb & Cruise Performance",
+    blurb: "Climb gradient vs rate, ceilings, drift-down, range & endurance.",
+    cards: [
+      { t: "Gradient vs rate of climb", b: "CLIMB GRADIENT (% — height per distance) depends on EXCESS THRUST and matters for obstacle clearance and terrain. RATE of climb (ft/min) depends on EXCESS POWER and matters for time to height. Vx (best angle) gives the steepest gradient; Vy (best rate) gives the fastest height gain. Both excesses shrink with altitude." },
+      { t: "Ceilings", b: "As you climb, excess thrust/power falls until climb performance runs out. ABSOLUTE ceiling: rate of climb = 0. SERVICE ceiling: rate falls to ~100 ft/min (jets often defined at 500 ft/min). Higher mass, higher temperature and (for some) humidity all LOWER the achievable ceiling and reduce climb performance." },
+      { t: "Optimum & maximum altitude", b: "OPTIMUM altitude gives the best fuel efficiency (best specific range) for the current mass — and RISES as fuel burns off and mass reduces (hence step climbs). MAXIMUM altitude is limited by climb capability or buffet (coffin corner). Cruising too high for the mass risks buffet and poor manoeuvre margin." },
+      { t: "Specific range & cruise techniques", b: "SPECIFIC RANGE = distance per unit fuel. It's maximised near the best-L/D speed (adjusted for engine efficiency and wind). LONG-RANGE CRUISE (LRC) trades a small range loss for more speed. Wind matters hugely: a strong headwind favours a higher cruise speed; tailwind favours slower." },
+      { t: "Endurance vs range", b: "MAX ENDURANCE (most time airborne, e.g. holding) is flown near minimum FUEL FLOW — for a jet roughly at Vmd; for a prop a bit slower. MAX RANGE is flown faster, near best specific range. They are different speeds — holding speed is slower than best-range cruise speed." },
+      { t: "Drift-down", b: "After an engine failure in the cruise, a twin may be unable to hold altitude, so it DRIFTS DOWN at the engine-out driftdown speed to a level it can maintain — which must clear terrain en route (the net driftdown path) and reach a suitable aerodrome. ETOPS and terrain planning hinge on driftdown capability." },
+    ],
+    quiz: [
+      { q: "Best climb GRADIENT (steepest angle) is flown at:", o: ["Vx", "Vy", "Vne", "Vmd only at sea level"], a: 0, e: "Vx (best angle, from excess thrust) clears obstacles; Vy (best rate, excess power) gains height fastest." },
+      { q: "The optimum cruise altitude for fuel efficiency:", o: ["Rises as fuel burns and mass reduces", "Falls as fuel burns", "Is fixed for the type", "Equals the absolute ceiling"], a: 0, e: "Lower mass → higher optimum altitude, which is why long flights use step climbs." },
+      { q: "Maximum endurance (longest time airborne) for a jet is flown:", o: ["Near Vmd (minimum drag / low fuel flow)", "At maximum speed", "At Vne", "At the stall"], a: 0, e: "Minimum fuel flow gives most time aloft — slower than the best-range speed." },
+      { q: "Service ceiling is conventionally where the rate of climb falls to:", o: ["About 100 ft/min (often 500 ft/min for jets)", "Zero", "1000 ft/min", "2000 ft/min"], a: 0, e: "Absolute ceiling is 0 ft/min; service ceiling uses a small residual rate." },
+      { q: "After an engine failure in cruise, an aircraft unable to hold level will:", o: ["Drift down to a maintainable altitude clearing terrain", "Climb to the ceiling", "Maintain altitude indefinitely", "Stall immediately"], a: 0, e: "Driftdown at the engine-out speed to a sustainable level — the net path must clear terrain and reach an aerodrome." },
+      { q: "Climb gradient depends primarily on:", o: ["Excess thrust", "Excess power", "Wing area", "CG position"], a: 0, e: "Excess THRUST sets gradient (angle); excess POWER sets rate of climb." },
+    ],
+  },
+  {
+    id: "landing",
+    code: "032·04",
+    title: "Landing Performance",
+    blurb: "Vref, landing distances, dispatch factors, wet & contaminated runways.",
+    cards: [
+      { t: "Approach & landing speeds", b: "VREF is the reference landing speed at the threshold, typically about 1.23 × the stall speed in landing configuration (Vs0/Vsr). It rises with mass. The approach is flown at Vref plus a wind/gust additive. A higher Vref (heavy, contaminated, gusty) lengthens the landing distance." },
+      { t: "Landing distance required", b: "The LANDING DISTANCE is measured from the screen height (50 ft for Class A) over the threshold, through the flare and touchdown, to a full stop. It increases with mass, density altitude, tailwind, upslope (no — DOWNslope lengthens landing), and a wet/contaminated surface that reduces braking." },
+      { t: "Dispatch factors (the 60/70 rule)", b: "For dispatch, the required landing distance must fit within a FACTORED portion of the landing distance available (LDA). Class A turbojets: the demonstrated landing distance must be ≤ 60% of LDA on a DRY runway (i.e. ÷ 0.6); turboprops ≤ 70%. This builds a large margin for the actual day." },
+      { t: "Wet & contaminated runways", b: "On a WET runway, the required landing distance is increased — commonly by a further 15% over the dry factored figure (unless type-specific wet data shows otherwise). CONTAMINATED runways (standing water, slush, snow, ice) use specific contaminated landing data with much longer distances and AQUAPLANING risk." },
+      { t: "Aquaplaning", b: "On standing water the tyres can ride up on a water film, losing braking and steering. Dynamic aquaplaning onset speed ≈ 9 × √(tyre pressure in psi). Above it, braking is largely lost — a major wet-runway landing hazard, mitigated by grooved runways, good tyres and not landing fast/long." },
+      { t: "Factors at the destination & alternate", b: "Landing performance is assessed for the planned landing mass at destination and alternates, using forecast conditions. A change in wind, a wet runway, or a higher landing mass (e.g. an overweight diversion) can make a runway that was adequate become limiting — re-check whenever conditions change." },
+    ],
+    quiz: [
+      { q: "Vref is typically about:", o: ["1.23 × the landing-configuration stall speed", "1.0 × the stall speed", "2.0 × the stall speed", "Equal to V2"], a: 0, e: "Reference landing speed ≈ 1.23 Vs0/Vsr; it rises with mass and adds a wind/gust margin." },
+      { q: "For a Class A turbojet, the landing distance must fit within what fraction of the LDA on a dry runway?", o: ["60%", "100%", "70%", "85%"], a: 0, e: "Dry dispatch: demonstrated landing distance ≤ 60% of LDA (÷ 0.6) for turbojets; 70% for turboprops." },
+      { q: "On a wet runway the required landing distance is typically increased by a further:", o: ["15%", "60%", "5%", "0%"], a: 0, e: "Commonly +15% on the dry factored distance unless approved wet data shows otherwise." },
+      { q: "Dynamic aquaplaning onset speed is approximately:", o: ["9 × √(tyre pressure in psi)", "Tyre pressure ÷ 9", "Equal to Vref", "9 × tyre pressure"], a: 0, e: "≈ 9√P (psi) — above it the tyre rides on water with little braking or steering." },
+      { q: "The Class A landing distance is measured from a screen height of:", o: ["50 ft", "35 ft", "15 ft", "100 ft"], a: 0, e: "Landing distance is from 50 ft over the threshold to a full stop (take-off screen is 35 ft dry)." },
+      { q: "Landing distance required increases with:", o: ["Higher mass, density altitude, tailwind and a wet surface", "Lower mass and a headwind", "Cooler temperature only", "Upslope only"], a: 0, e: "All of mass, density altitude, tailwind, downslope and reduced braking lengthen the landing." },
+    ],
+  },
+  {
+    id: "classb",
+    code: "032·05",
+    title: "Class B & Practical Application",
+    blurb: "Light-aircraft performance, factors, charts, and putting it together.",
+    cards: [
+      { t: "Class B framework", b: "For small propeller aeroplanes (≤ 9 seats, ≤ 5700 kg), performance planning is simpler but still factored. Take-off and landing distances from the AFM are multiplied by SAFETY FACTORS, and basic climb gradients must be met. There's no V1/balanced-field machinery, but obstacle and field-length checks still apply." },
+      { t: "Class B take-off & landing factors", b: "Typical factors (vary by reg/operation): take-off distance × 1.25; landing distance × 1.43 (i.e. ÷ 0.7) for public transport. Further multipliers apply for grass (e.g. ×1.15), slope, and wet conditions. The factored distance must fit the runway available — these stack multiplicatively." },
+      { t: "Class B climb requirements", b: "Minimum climb gradients are specified for the take-off and the balked-landing/go-around cases (e.g. a minimum gradient at a defined configuration and speed). Multi-engine Class B aircraft also have an engine-out climb consideration, though it's less demanding than Class A's segment structure." },
+      { t: "Reading performance charts", b: "Charts are entered with pressure altitude and temperature (often via a carpet/grid), then mass, then wind, then slope — following the chart's reference lines step by step in order. Read conservatively, interpolate carefully, and apply the regulatory factors AFTER the chart figure unless the chart already includes them." },
+      { t: "Common chart pitfalls", b: "Mistakes that cost marks (and safety): using indicated instead of pressure altitude, forgetting the wind/slope corrections, applying the wind credit the wrong way, missing the surface or contamination factor, and forgetting to apply the dispatch safety factor at the end. Always sanity-check the final distance against the runway." },
+      { t: "Putting it together", b: "A full check: compute the limiting take-off mass (lowest of field-length, climb, obstacle and structural limits); confirm en-route/driftdown capability; and confirm landing distance at destination and alternate for the forecast conditions. The most restrictive limit governs — performance is only adequate if EVERY check passes." },
+    ],
+    quiz: [
+      { q: "Class B applies to:", o: ["Small propeller aeroplanes (≤ 9 seats, ≤ 5700 kg)", "Large jets", "Piston airliners", "All multi-engine turbines"], a: 0, e: "Simpler factored planning than Class A, but field-length, climb and obstacle checks still apply." },
+      { q: "A typical Class B public-transport take-off distance factor is:", o: ["× 1.25", "× 0.6", "× 1.0", "× 2.0"], a: 0, e: "Take-off ×1.25; landing ×1.43 (÷0.7), with further factors for grass, slope and wet." },
+      { q: "Performance charts should be entered using:", o: ["Pressure altitude and temperature", "Indicated altitude on QNH", "True altitude", "Density only, ignoring temperature"], a: 0, e: "Pressure altitude + temperature give density altitude; then apply mass, wind and slope in order." },
+      { q: "The limiting take-off mass is:", o: ["The lowest of field, climb, obstacle and structural limits", "Always the structural MTOM", "The highest of all limits", "Set by fuel only"], a: 0, e: "Every limit must be met; the most restrictive governs the allowed take-off mass." },
+      { q: "A common chart error is to:", o: ["Use indicated instead of pressure altitude", "Use pressure altitude", "Apply the correct wind credit", "Interpolate carefully"], a: 0, e: "Wrong altitude input, mis-applied wind/slope, or forgetting the dispatch factor all corrupt the result." },
+      { q: "Performance for a flight is adequate only when:", o: ["Every required check passes", "The take-off check passes", "The landing check passes", "Just the climb check passes"], a: 0, e: "Take-off, climb, obstacle, en-route/driftdown and landing must ALL be satisfied — the most restrictive wins." },
+    ],
+  },
+  {
+    id: "tomlimits",
+    code: "032·02",
+    title: "Take-off Mass Limits",
+    blurb: "Field, climb (WAT), obstacle, tyre-speed and brake-energy limits.",
+    cards: [
+      { t: "The competing limits", b: "The maximum take-off mass on the day is the LOWEST of several limits: the structural MTOM, the FIELD-LENGTH limit, the CLIMB (WAT) limit, the OBSTACLE limit, the TYRE-SPEED limit and the BRAKE-ENERGY limit. Each is checked; whichever gives the smallest mass governs." },
+      { t: "Field-length limit", b: "The mass at which the required take-off distance, accelerate-stop distance and take-off run exactly fill the available distances (TODA/ASDA/TORA) for the chosen V1. Affected by runway length, density altitude, wind, slope and contamination. Often the limiting case on short runways." },
+      { t: "Climb (WAT) limit", b: "WAT = Weight-Altitude-Temperature. The mass at which the aircraft can just meet the required SECOND-SEGMENT climb gradient (2.4% twin) with one engine inoperative at the airfield's pressure altitude and temperature. High/hot conditions lower the WAT-limited mass — frequently limiting at hot-and-high airports." },
+      { t: "Obstacle limit", b: "The mass at which the NET take-off flight path just clears all obstacles in the departure area by the required 35 ft (with the critical engine failed). Closer/higher obstacles reduce the obstacle-limited mass. A special departure procedure (turn) may improve it by avoiding the obstacle." },
+      { t: "Tyre-speed & brake-energy limits", b: "TYRE-SPEED limit: lift-off groundspeed must not exceed the tyres' rated speed (commonly ~204 kt) — limiting with strong tailwinds or high density altitude (high TAS/GS). BRAKE-ENERGY limit (Vmbe): a rejected take-off must not exceed the brakes' energy absorption — limiting at high mass, high density altitude, downslope or tailwind." },
+      { t: "Putting the limits together", b: "Compute each limiting mass, take the lowest as the regulated take-off mass, then choose a V1 satisfying the field/stop case (and ≥ Vmcg). If the result is below the planned mass, you must offload, wait for better conditions, or use a longer/different runway. Reduced thrust may be used only once limits are met at full thrust." },
+    ],
+    quiz: [
+      { q: "The regulated take-off mass is:", o: ["The lowest of the field, climb, obstacle, tyre, brake and structural limits", "Always the structural MTOM", "The climb limit only", "The field limit only"], a: 0, e: "Every limit is checked; the most restrictive governs the allowed take-off mass." },
+      { q: "The WAT limit ensures the aircraft can meet the required:", o: ["Second-segment climb gradient, one engine out", "Field length", "Tyre speed", "Brake energy"], a: 0, e: "Weight-Altitude-Temperature limit guarantees the OEI climb gradient — often limiting hot-and-high." },
+      { q: "The tyre-speed limit is most likely to bite with:", o: ["Strong tailwind / high density altitude (high groundspeed)", "Strong headwind", "Low temperature", "A long runway"], a: 0, e: "Tyres have a rated speed (~204 kt); high TAS/GS at lift-off can exceed it." },
+      { q: "The brake-energy limit (Vmbe) is most restrictive with:", o: ["High mass, high density altitude, downslope or tailwind", "Low mass and a headwind", "Cool, sea-level conditions", "A short, upsloping runway only"], a: 0, e: "More kinetic energy to absorb in a reject — high mass/density altitude/downslope/tailwind all raise it." },
+      { q: "The obstacle-limited mass is the mass at which the:", o: ["Net flight path just clears obstacles by 35 ft", "Gross path clears by 50 ft", "Climb gradient is zero", "Tyres reach rated speed"], a: 0, e: "Obstacle clearance uses the conservative net path with a 35 ft margin, critical engine failed." },
+      { q: "Reduced (flex) thrust may be used:", o: ["Only when all limits are already met at full thrust", "To exceed the field limit", "To beat the WAT limit", "Whenever the crew wishes regardless of limits"], a: 0, e: "Reduced thrust is permitted only when performance limits are satisfied — it never buys extra margin you don't have." },
+    ],
+  },
+  {
+    id: "reducedthrust",
+    code: "032·02",
+    title: "Reduced & Derated Thrust",
+    blurb: "Flex/assumed temperature, derate, benefits and limitations.",
+    cards: [
+      { t: "Why reduce thrust", b: "When the runway and conditions allow take-off at LESS than full thrust, using reduced thrust lowers engine wear, maintenance cost and (sometimes) noise. It's permitted only when all performance requirements are met at the reduced thrust — it never compromises safety margins." },
+      { t: "The assumed (flex) temperature method", b: "FLEX/assumed-temperature take-off tells the engines to produce the lower thrust that would be needed on a HOTTER (assumed) day. The hotter the assumed temperature, the less thrust. The actual mass must satisfy all limits at that reduced thrust. Maximum reduction is typically capped (commonly 25% below full thrust)." },
+      { t: "Derated thrust", b: "A DERATE fixes a lower CERTIFIED thrust rating (a permanent, selectable lower rating), which also LOWERS the associated Vmcg/Vmca (since less asymmetric thrust). Derate and flex can be combined. Unlike flex, a derate changes the limiting speeds and is treated as a different thrust rating." },
+      { t: "Flex vs derate — the key difference", b: "FLEX (assumed temp) keeps the full thrust available if needed and does NOT change Vmcg/Vmca limits. DERATE is a lower certified rating that DOES reduce Vmcg/Vmca. Flex is not allowed on contaminated runways or with certain anti-skid/system issues; derate may be required in some such cases." },
+      { t: "When reduced thrust is NOT allowed", b: "Reduced thrust (especially flex) is generally PROHIBITED on contaminated runways, with windshear reported, with anti-skid inoperative, or where special procedures require full thrust. In these cases full (or a fixed derate) thrust is used. Crews can always firewall the thrust if needed during the take-off." },
+      { t: "Benefits and the trade-off", b: "Benefit: large savings in engine life and maintenance over a fleet's life, plus lower noise. Trade-off: longer ground roll and shallower initial climb (still within limits). The technique is standard airline practice on adequate runways — but the crew must apply full thrust if performance becomes marginal." },
+    ],
+    quiz: [
+      { q: "The assumed (flex) temperature method produces:", o: ["The lower thrust needed on a hotter assumed day", "More than full thrust", "Thrust set by mass alone", "A fixed certified derate"], a: 0, e: "Commanding thrust for a hotter assumed temperature reduces it — capped (often 25%) and only if limits are met." },
+      { q: "A key difference of DERATE versus flex is that derate:", o: ["Lowers the Vmcg/Vmca limits", "Keeps full thrust instantly available", "Cannot be combined with flex", "Increases thrust"], a: 0, e: "A derate is a lower certified rating with less asymmetric thrust, so the minimum control speeds reduce." },
+      { q: "Reduced (flex) thrust is generally NOT permitted on:", o: ["Contaminated runways", "Long dry runways", "Cool days", "Sea-level airports"], a: 0, e: "Flex is prohibited on contaminated runways, with windshear, or anti-skid inoperative." },
+      { q: "Reduced thrust may be used only when:", o: ["All performance requirements are met at that thrust", "The crew wants to save fuel regardless", "It beats the WAT limit", "The runway is short"], a: 0, e: "It never reduces required margins — every limit must still be satisfied at the reduced thrust." },
+      { q: "A consequence of reduced-thrust take-off is:", o: ["A longer ground roll and shallower initial climb (within limits)", "A shorter ground roll", "A steeper climb", "Higher Vmcg with flex"], a: 0, e: "Less thrust means more runway used and a gentler climb — acceptable because limits are still met." },
+      { q: "The main benefit of routine reduced-thrust take-offs is:", o: ["Reduced engine wear and maintenance cost", "Shorter runways needed", "Higher take-off mass", "Better obstacle clearance"], a: 0, e: "Lower operating temperatures extend engine life and cut costs across the fleet." },
+    ],
+  },
+  {
+    id: "landingclimb",
+    code: "032·04",
+    title: "Approach & Landing Climb",
+    blurb: "Go-around gradients, approach climb, landing climb, WAT landing limit.",
+    cards: [
+      { t: "Two go-around climb requirements", b: "Class A landing has two climb gradient requirements for a balked approach/landing: the APPROACH CLIMB (one engine inoperative, approach configuration) and the LANDING CLIMB (all engines, landing configuration). Both must be met at the landing mass — they can limit the landing mass via a WAT check." },
+      { t: "Approach climb gradient", b: "Flown ONE ENGINE INOPERATIVE in the approach configuration (gear up, approach flap), at approach climb speed, go-around thrust. Minimum gross gradients: 2.1% (two-engine), 2.4% (three-engine), 2.7% (four-engine). It models a single-engine go-around — often the limiting landing case at high/hot airfields." },
+      { t: "Landing climb gradient", b: "Flown with ALL ENGINES operating in the LANDING configuration (gear down, landing flap), at a speed near Vref, go-around thrust available within a set time. Minimum gross gradient: 3.2% for all aircraft. It models a baulked landing with everything still hanging out." },
+      { t: "The landing WAT limit", b: "Just as take-off has a climb (WAT) limit, landing has one: the mass must be low enough to meet the approach-climb and landing-climb gradients at the destination's pressure altitude and temperature. Hot-and-high destinations can be WAT-limited for landing as well as take-off." },
+      { t: "Landing field-length limit", b: "Separately, the landing distance required must fit the factored landing distance available (60%/70% dry, +15% wet, contaminated data as applicable). The landing mass is limited by the MORE restrictive of the field-length limit and the climb (WAT) limit — plus the structural MLM." },
+      { t: "Quick reference", b: "Take-off climb minimums (2nd seg): 2.4/2.7/3.0% (2/3/4 eng). Final seg: 1.2/1.5/1.7%. APPROACH climb: 2.1/2.4/2.7% (2/3/4 eng). LANDING climb: 3.2% all. Knowing which gradient applies to which case and engine count is heavily examined — learn the four sets." },
+    ],
+    quiz: [
+      { q: "The approach climb gradient (two-engine) minimum is:", o: ["2.1%", "2.4%", "3.2%", "1.2%"], a: 0, e: "Approach climb (one engine out, approach config): 2.1% twin, 2.4% tri, 2.7% four." },
+      { q: "The landing climb gradient minimum (all engines) is:", o: ["3.2%", "2.4%", "2.1%", "1.2%"], a: 0, e: "Landing climb in the landing configuration, all engines: 3.2% for all aircraft." },
+      { q: "The approach climb is flown:", o: ["One engine inoperative, approach configuration", "All engines, landing configuration", "All engines, clean", "Two engines out"], a: 0, e: "It models a single-engine go-around: OEI, gear up, approach flap, go-around thrust." },
+      { q: "The landing climb is flown:", o: ["All engines, landing configuration", "One engine out, clean", "One engine out, approach config", "Engines at idle"], a: 0, e: "All engines, gear down, landing flap — a baulked landing with everything extended." },
+      { q: "A hot-and-high destination may limit landing mass via the:", o: ["Climb (WAT) limit", "Tyre-speed limit only", "Brake-energy limit only", "Stall speed"], a: 0, e: "Meeting the approach/landing climb gradients at high pressure altitude and temperature can cap the landing mass." },
+      { q: "The allowed landing mass is the more restrictive of:", o: ["Field-length limit, climb (WAT) limit and structural MLM", "Field limit only", "WAT limit only", "Tyre and brake limits"], a: 0, e: "Landing field length, the landing WAT limit, and the structural maximum landing mass all apply." },
+    ],
+  },
+  {
+    id: "enroute",
+    code: "032·03",
+    title: "En-route, Driftdown & ETOPS",
+    blurb: "One/two-engine-out en-route, driftdown, PNR/ETP, ETOPS basics.",
+    cards: [
+      { t: "En-route obstacle clearance", b: "After take-off, the aircraft must still clear terrain EN ROUTE if an engine fails. Rules require the net one-engine-inoperative flight path to clear terrain/obstacles within a corridor either side of track by a vertical margin (commonly 1000 ft), or to be able to drift down and divert safely." },
+      { t: "Driftdown", b: "If a twin can't hold its cruise level on one engine, it DRIFTS DOWN at the driftdown speed (near best L/D for the engine-out case) to the level it can maintain. The NET driftdown path must clear terrain by the required margin; planning ensures a safe diversion to an adequate aerodrome." },
+      { t: "Two-engine-inoperative (4-engine aircraft)", b: "For four-engine aircraft on long sectors, rules also consider TWO engines inoperative en route, with its own (lower) driftdown level and terrain-clearance corridor. The aircraft must still be able to reach a suitable aerodrome from the critical point on the route." },
+      { t: "Point of no return & equal-time point", b: "PNR (point of no return): the furthest point you can fly and still return to the departure (or a chosen) aerodrome with required reserves — beyond it you must continue. ETP/CP (equal-time/critical point): the point from which it takes the same time to reach either of two aerodromes — used to plan diversions after a failure or depressurisation." },
+      { t: "ETOPS basics", b: "ETOPS (extended operations) lets twins fly routes taking them further than a set time from an adequate diversion aerodrome (e.g. 120 or 180 minutes at the one-engine-out speed). It requires approved aircraft/engine reliability, suitable en-route alternates within the threshold time, and extra dispatch and fuel considerations." },
+      { t: "Adequate vs suitable aerodromes", b: "An ADEQUATE aerodrome meets the physical/performance requirements (runway, etc.) for the aircraft. A SUITABLE aerodrome is an adequate one whose weather and conditions are forecast to be acceptable at the expected time of use. ETOPS and diversion planning hinge on having suitable alternates within range." },
+    ],
+    quiz: [
+      { q: "After an engine failure in the cruise, an aircraft unable to hold level will:", o: ["Drift down to a maintainable level clearing terrain", "Climb to the ceiling", "Maintain altitude indefinitely", "Stall"], a: 0, e: "Driftdown at the engine-out speed; the net path must clear terrain and reach an adequate aerodrome." },
+      { q: "The point of no return (PNR) is the furthest point at which you can:", o: ["Still return to a chosen aerodrome with required reserves", "Reach the destination fastest", "Begin driftdown", "Start ETOPS"], a: 0, e: "Beyond the PNR you must continue, as returning would breach fuel reserves." },
+      { q: "The equal-time point (ETP/critical point) is where:", o: ["It takes the same time to reach either of two aerodromes", "Fuel is exhausted", "The climb ends", "The PNR always is"], a: 0, e: "Used to plan the best diversion after a failure or depressurisation; wind shifts it from the midpoint." },
+      { q: "ETOPS permits a twin to operate:", o: ["Further than a set time from an adequate diversion aerodrome", "With no diversion planning", "Only over land", "Without reliability approval"], a: 0, e: "E.g. 120/180-minute rules, requiring approved reliability and suitable en-route alternates within the threshold." },
+      { q: "A 'suitable' aerodrome is an adequate aerodrome that also:", o: ["Has acceptable forecast weather/conditions at the time of use", "Has the longest runway", "Is the departure field", "Is closest to the PNR"], a: 0, e: "Adequate = physically capable; suitable = adequate plus acceptable forecast conditions when needed." },
+      { q: "En-route one-engine-out terrain clearance typically requires a vertical margin of about:", o: ["1000 ft within a corridor either side of track", "35 ft", "500 ft", "2000 ft above the ceiling"], a: 0, e: "The net OEI path must clear terrain within the route corridor by the required margin (commonly 1000 ft), or drift down and divert." },
+    ],
+  },
+  {
+    id: "descent",
+    code: "032·03",
+    title: "Descent, Diversion & Holding",
+    blurb: "Descent profiles & gradients, diversion and holding performance.",
+    cards: [
+      { t: "The descent", b: "An idle (or near-idle) descent trades height for distance efficiently. DESCENT GRADIENT = height lost ÷ distance. A steeper descent needs speedbrakes or a lower speed; a shallow one covers more ground. Descent performance sets the top-of-descent point and the fuel/time to the destination." },
+      { t: "The 3× rule of thumb", b: "A handy planning rule: distance to lose a given height (in thousands of ft) ≈ 3 × height. To descend 30,000 ft, start about 90 NM out (30 × 3). Add miles for tailwind or high speed, subtract for headwind. It approximates a 3° (≈ 5.2%) descent path." },
+      { t: "Speed and wind in the descent", b: "Descending into a HEADWIND steepens the path over the ground (less distance covered) — start later; a TAILWIND shallows it — start earlier. Higher mass needs a slightly higher descent speed. Emergency descents (depressurisation) use high speed and speedbrakes to lose height fast to a safe level." },
+      { t: "Diversion performance", b: "A diversion to an alternate must be planned for fuel and performance at the diversion mass and conditions. The aircraft may be heavier than a normal arrival (less fuel burned), so landing distance and the landing WAT limit at the alternate must still be satisfied — re-check, don't assume." },
+      { t: "Holding", b: "Holding is flown near the speed for MAXIMUM ENDURANCE (minimum fuel flow) — for a jet roughly the minimum-drag speed, giving the most time aloft per kg of fuel. Holding burns into reserves, so excessive holding can force a diversion. Maximum holding speeds are also published for containment within the holding pattern." },
+      { t: "Fuel planning links", b: "Performance feeds fuel planning: trip fuel (climb-cruise-descent), contingency, alternate (diversion) fuel, final reserve (holding at 1500 ft, ~30 min), and any extra/tankering. Each phase's performance — climb burn, cruise specific range, descent, hold — determines the fuel required and thus the take-off mass." },
+    ],
+    quiz: [
+      { q: "Using the 3× rule, to descend 24,000 ft you begin descent about:", o: ["72 NM out", "24 NM out", "240 NM out", "8 NM out"], a: 0, e: "Distance ≈ 3 × height in thousands = 3 × 24 = 72 NM (adjust for wind/speed)." },
+      { q: "Descending into a strong headwind, you should start the descent:", o: ["Later (the path steepens over the ground)", "Earlier", "At the same point", "Not at all"], a: 0, e: "A headwind reduces groundspeed, steepening the path — less distance is covered, so begin later." },
+      { q: "Holding is flown near the speed for:", o: ["Maximum endurance (minimum fuel flow)", "Maximum range", "Vne", "Best climb"], a: 0, e: "Minimum fuel flow gives the most time aloft per kg — important as holding eats into reserves." },
+      { q: "Descent gradient is:", o: ["Height lost ÷ distance travelled", "Distance ÷ height", "Speed × time", "Height × distance"], a: 0, e: "Gradient (%) = height lost ÷ horizontal distance; a 3° path ≈ 5.2%." },
+      { q: "When diverting, landing performance at the alternate must be:", o: ["Re-checked at the actual diversion mass and conditions", "Assumed adequate", "Ignored if fuel is sufficient", "Based on the destination figures"], a: 0, e: "A heavier-than-normal arrival mass and the alternate's conditions can make landing distance/WAT limiting." },
+      { q: "Final reserve fuel typically covers:", o: ["About 30 minutes holding at 1500 ft", "The whole diversion", "Taxi only", "The climb"], a: 0, e: "Final reserve is roughly 30 min holding at 1500 ft above the alternate — never to be planned into normal use." },
+    ],
+  },
+  {
+    id: "rangecruise",
+    code: "032·03",
+    title: "Range, Endurance & Cruise Control",
+    blurb: "Specific range, cost index, LRC, effect of mass, altitude and wind.",
+    cards: [
+      { t: "Specific range", b: "SPECIFIC RANGE (SR) = distance flown per unit of fuel (NM/kg). Maximising SR maximises still-air range. It depends on aerodynamic efficiency (best L/D region), engine efficiency, mass, altitude and wind. The best-range speed is a bit faster than the minimum-drag speed for a jet." },
+      { t: "Effect of mass and altitude", b: "As fuel burns and MASS falls, the best-range speed reduces and the optimum altitude RISES — hence STEP CLIMBS to stay near the optimum. Flying at the optimum altitude for the current mass gives the best specific range; too low or too high both cost fuel." },
+      { t: "Effect of wind", b: "Range over the GROUND depends on wind. In a HEADWIND, flying a little FASTER than best still-air range improves ground range (less time exposed to the headwind); in a TAILWIND, flying a little SLOWER is better. Flight management systems optimise this automatically." },
+      { t: "Maximum range vs long-range cruise", b: "MAXIMUM RANGE CRUISE gives the most miles per kg but is slow and speed-unstable. LONG-RANGE CRUISE (LRC) accepts ~1% less range for a useful speed increase and better handling — the traditional airline compromise. Both are flown as a schedule of speed/Mach versus mass and altitude." },
+      { t: "Cost index", b: "COST INDEX (CI) balances FUEL cost against TIME cost. CI = 0 flies for minimum fuel (max range). A high CI flies faster (minimum time) burning more fuel. The FMS computes the ECON speed for the selected CI, weather and mass — the modern way to manage cruise economically." },
+      { t: "Endurance vs range speeds", b: "MAX ENDURANCE (most time airborne — holding) is flown near minimum fuel flow (≈ Vmd for a jet). MAX RANGE is flown faster (best specific range). They are DIFFERENT speeds — a frequent exam point. Propeller aircraft fly both a little slower than equivalent jets due to differing efficiency curves." },
+    ],
+    quiz: [
+      { q: "Specific range is:", o: ["Distance flown per unit of fuel", "Fuel per hour", "Time per unit fuel", "Distance per hour"], a: 0, e: "NM per kg — maximise it for best still-air range." },
+      { q: "As fuel burns off, the optimum cruise altitude:", o: ["Rises (hence step climbs)", "Falls", "Stays fixed", "Equals the ceiling"], a: 0, e: "Lower mass → higher optimum altitude → step climbs to track it." },
+      { q: "In a strong headwind, best ground range is achieved by flying:", o: ["A little faster than best still-air range", "Much slower", "At the stall", "At Vne"], a: 0, e: "Speeding up slightly reduces time exposed to the headwind, improving ground range." },
+      { q: "A cost index of zero commands:", o: ["Minimum-fuel (maximum-range) speed", "Maximum speed", "Holding speed", "Vne"], a: 0, e: "CI = 0 ignores time cost → fly for minimum fuel; high CI flies faster for minimum time." },
+      { q: "Long-range cruise (LRC) trades about 1% range for:", o: ["A useful speed increase and better handling", "Lower altitude", "More fuel burn with no benefit", "A higher stall speed"], a: 0, e: "LRC is the classic compromise — slightly less range, more speed and stability than max-range cruise." },
+      { q: "Maximum-endurance speed compared with maximum-range speed is:", o: ["Slower", "Faster", "The same", "Always Vne"], a: 0, e: "Endurance (min fuel flow, ≈Vmd) is slower than best-range cruise — a common exam distinction." },
+    ],
+  },
+  {
+    id: "contaminated",
+    code: "032·02",
+    title: "Wet & Contaminated Runways",
+    blurb: "Runway states, performance effects, V1, aquaplaning, braking action.",
+    cards: [
+      { t: "Runway states", b: "DRY: no moisture effect. WET: surface visibly damp/water but no significant depth (≤ 3 mm). CONTAMINATED: more than 25% covered by standing water, slush, snow or ice (or water/slush > 3 mm). Each state has its own performance data — distances grow from dry → wet → contaminated." },
+      { t: "Effect on take-off", b: "Contamination hurts BOTH ways: a layer of water/slush adds IMPINGEMENT (displacement) DRAG that retards acceleration, AND reduces wheel braking for a reject. So the accelerate-go is slower to build speed and the accelerate-stop is longer. Take-off mass is often reduced on contaminated runways." },
+      { t: "V1 and screen height", b: "On wet/contaminated runways a LOWER V1 is often used to keep the accelerate-stop distance within limits (less braking available). The take-off screen height is reduced to 15 ft (from 35 ft dry) on a wet runway, reflecting the reduced go margin. Some operations require full thrust (no flex) when contaminated." },
+      { t: "Effect on landing", b: "Reduced friction lengthens the LANDING distance: wet adds ~15% to the dry factored figure, and contaminated runways use specific (much longer) data. Reverse thrust and spoilers become more important as wheel braking is degraded. Plan landing distance for the actual reported runway state." },
+      { t: "Aquaplaning", b: "On standing water the tyre can ride on a water film. DYNAMIC aquaplaning onset ≈ 9 × √(tyre pressure psi); above it braking and steering are largely lost. VISCOUS aquaplaning occurs on a thin film over smooth surfaces at lower speeds. REVERTED-RUBBER aquaplaning from a locked, skidding tyre boiling the water can persist to low speed." },
+      { t: "Braking action & friction", b: "Reported braking action (GOOD → POOR, the GRF runway condition code 6→0) and measured friction guide performance. As friction falls, stopping distance rises steeply. Crosswind handling also degrades on slippery runways. Always cross-check the reported runway condition against your landing/abort performance." },
+    ],
+    quiz: [
+      { q: "A runway is 'contaminated' when more than what fraction is covered?", o: ["25%", "10%", "50%", "75%"], a: 0, e: "More than 25% covered by water/slush/snow/ice (or >3 mm depth) = contaminated." },
+      { q: "Contamination affects take-off by:", o: ["Adding impingement drag AND reducing braking", "Improving acceleration", "Only helping the climb", "Reducing the stall speed"], a: 0, e: "Slush/water retards acceleration and degrades reject braking — both lengthen the required distances." },
+      { q: "The take-off screen height on a WET runway is:", o: ["15 ft", "35 ft", "50 ft", "0 ft"], a: 0, e: "Reduced to 15 ft (from 35 ft dry) to reflect the smaller go margin." },
+      { q: "A wet runway typically adds about ___ to the dry factored landing distance:", o: ["15%", "60%", "5%", "0%"], a: 0, e: "+15% for wet unless approved wet data applies; contaminated uses much longer specific data." },
+      { q: "Dynamic aquaplaning onset speed is approximately:", o: ["9 × √(tyre pressure psi)", "tyre pressure ÷ 9", "Vref", "9 × tyre pressure"], a: 0, e: "≈ 9√P (psi); above it the tyre rides on water with little braking/steering." },
+      { q: "On a contaminated runway, a LOWER V1 is often used because:", o: ["Less braking is available for the reject", "More braking is available", "The climb is steeper", "The tyres spin faster"], a: 0, e: "Reduced friction lengthens the stop, so V1 is lowered to keep accelerate-stop within ASDA." },
+    ],
+  },
+  {
+    id: "perfworked",
+    code: "032·05",
+    title: "Worked Examples",
+    blurb: "ISA deviation, density altitude, gradients, distances, V-speeds.",
+    cards: [
+      { t: "ISA deviation for performance", b: "ISA temp at altitude = 15 − (2 × altitude in 1000 ft). At a 4000 ft airport: ISA = 15 − 8 = +7°C. If actual OAT is +22°C, ISA deviation = 22 − 7 = ISA+15. Hotter-than-ISA = lower air density = degraded take-off/climb performance — enter charts with the actual temperature." },
+      { t: "Density altitude estimate", b: "Density altitude ≈ pressure altitude + 120 × (OAT − ISA temp). Pressure altitude 4000 ft, OAT +22°C, ISA +7°C → DA ≈ 4000 + 120 × 15 = 4000 + 1800 = 5800 ft. The aircraft performs as if at ~5800 ft — longer ground run, weaker climb." },
+      { t: "Climb gradient and rate", b: "Gradient (%) = (rate of climb ÷ groundspeed) — consistent units. Quick form: ROC (ft/min) ≈ gradient (%) × groundspeed (kt) × 1.013 ≈ gradient × GS. Example: 2.4% at 150 kt GS ≈ 2.4 × 150 ≈ 365 ft/min. Headwind raises gradient over the ground; tailwind lowers it." },
+      { t: "Gradient to clear an obstacle", b: "Required gradient (%) = (obstacle height ÷ distance to it) × 100, plus margin. An obstacle 300 ft high at 2 NM (12,152 ft): 300 ÷ 12152 × 100 = 2.47%. The net flight-path gradient must exceed this (with the 35 ft clearance built in) or mass must be reduced." },
+      { t: "Wind-corrected take-off distance", b: "Apply wind to the still-air chart distance: credit only 50% of headwind, assume 150% of tailwind. A 20 kt reported headwind is treated as 10 kt; a 10 kt tailwind as 15 kt. Then apply slope and surface factors, and finally confirm the result fits TORA/TODA/ASDA." },
+      { t: "Landing distance with factors", b: "From the AFM unfactored landing distance, apply the dispatch factor: ÷ 0.6 (turbojet dry) or ÷ 0.7 (turboprop), then +15% if wet. Unfactored 1000 m dry turbojet → required ≥ 1000 ÷ 0.6 = 1667 m of LDA; if wet, 1667 × 1.15 ≈ 1917 m. Confirm the runway provides it." },
+    ],
+    quiz: [
+      { q: "ISA temperature at a 4000 ft airport is:", o: ["+7°C", "+15°C", "−1°C", "+23°C"], a: 0, e: "15 − (2 × 4) = +7°C; compare with actual OAT for the ISA deviation." },
+      { q: "Pressure alt 4000 ft, OAT +22°C (ISA +7). Density altitude ≈", o: ["5800 ft", "4000 ft", "2200 ft", "7600 ft"], a: 0, e: "DA ≈ 4000 + 120 × (22−7) = 4000 + 1800 = 5800 ft." },
+      { q: "A 2.4% gradient at 150 kt groundspeed gives a rate of climb of about:", o: ["365 ft/min", "150 ft/min", "1000 ft/min", "60 ft/min"], a: 0, e: "ROC ≈ gradient × GS ≈ 2.4 × 150 ≈ 360–365 ft/min." },
+      { q: "To clear a 300 ft obstacle at 2 NM (≈12,150 ft) needs a gradient of at least about:", o: ["2.5%", "0.25%", "10%", "1.0%"], a: 0, e: "300 ÷ 12150 × 100 ≈ 2.47% (the net path must exceed this with margin)." },
+      { q: "A reported 20 kt headwind is credited for take-off as:", o: ["10 kt (50%)", "30 kt (150%)", "20 kt (100%)", "0 kt"], a: 0, e: "Only 50% of headwind is credited; tailwind is factored at 150%." },
+      { q: "Unfactored dry landing distance 1000 m (turbojet). Required LDA is:", o: ["≈ 1667 m", "≈ 600 m", "≈ 1000 m", "≈ 1150 m"], a: 0, e: "÷ 0.6 → 1667 m dry; if wet, × 1.15 ≈ 1917 m." },
+    ],
+  },
+  ,
+  {
+    id: "advanced_perf",
+    code: "032·99",
+    title: "Performance Calculations & Exam Traps",
+    blurb: "Core EASA performance concepts and operational limitations.",
+    cards: [
+      { t: "Density altitude", b: "High density altitude reduces engine performance, propeller efficiency and wing lift. It increases take-off distance and reduces climb performance." },
+      { t: "Accelerate-stop distance", b: "The distance required to accelerate to V1, experience an engine failure, then stop using braking." },
+      { t: "Balanced field length", b: "Occurs when accelerate-stop distance equals accelerate-go distance at a specific V1." },
+      { t: "Contaminated runway", b: "Standing water, slush, snow or ice significantly increase stopping distance and may reduce acceleration." },
+      { t: "Climb gradient", b: "Gradient is vertical distance gained divided by horizontal distance travelled, usually expressed as a percentage." },
+      { t: "Exam trap", b: "A headwind improves take-off and landing performance, but a tailwind rapidly increases required runway length." }
+    ]
+  }
 
-<h1>032 Aircraft Performance</h1>
+];
 
-<div class="box">
-<h2>Density Altitude Calculator</h2>
+// ===================== THEME =====================
+const C = {
+  bg: "#E9EEF2",
+  panel: "#FFFFFF",
+  ink: "#16222C",
+  sub: "#5A6B78",
+  line: "#C8D3DB",
+  cold: "#2B5C8A",
+  warm: "#B5402F",
+  good: "#2E7D4F",
+  bad: "#B5402F",
+  coldSoft: "#E3ECF4",
+  warmSoft: "#F6E8E5",
+};
 
-<input id="pa" type="number" placeholder="Pressure Altitude">
-<input id="oat" type="number" placeholder="OAT">
-<input id="isa" type="number" placeholder="ISA Temp">
+const FONTS = `
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+* { box-sizing: border-box; }
+body { margin: 0; }
+button { font-family: inherit; }
+button:focus-visible { outline: 3px solid #2B5C8A; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+`;
 
-<button onclick="calcDA()">Calculate</button>
-
-<p id="daOut"></p>
-
-<p><b>Exam Tip:</b> Hot, high and humid conditions reduce performance.</p>
-</div>
-
-<div class="box">
-<h2>Pressure Altitude Calculator</h2>
-
-<input id="elev" type="number" placeholder="Elevation">
-<input id="qnh" type="number" placeholder="QNH">
-
-<button onclick="calcPA()">Calculate</button>
-
-<p id="paOut"></p>
-
-<p><b>Exam Tip:</b> Lower QNH increases pressure altitude.</p>
-</div>
-
-<script>
-function calcDA(){
- const pa = parseFloat(document.getElementById('pa').value || 0);
- const oat = parseFloat(document.getElementById('oat').value || 0);
- const isa = parseFloat(document.getElementById('isa').value || 0);
-
- const da = pa + (120 * (oat - isa));
-
- document.getElementById('daOut').innerHTML =
-   "Density Altitude: " + Math.round(da) + " ft";
+// Front-line divider: alternating warm-front semicircles & cold-front triangles
+function FrontLine({ width = "100%" }) {
+  const units = [];
+  for (let i = 0; i < 30; i++) {
+    const x = i * 28;
+    if (i % 2 === 0) units.push(React.createElement('path', { key: i, d: `M ${x + 4} 10 A 8 8 0 0 1 ${x + 20} 10 Z`, fill: C.warm,} ));
+    else units.push(React.createElement('path', { key: i, d: `M ${x + 4} 10 L ${x + 12} 0 L ${x + 20} 10 Z`, fill: C.cold,} ));
+  }
+  return (
+    React.createElement('div', { style: { width, overflow: "hidden", lineHeight: 0 }, 'aria-hidden': "true",}
+      , React.createElement('svg', { width: "840", height: "12", viewBox: "0 0 840 12"   , style: { display: "block" },}
+        , React.createElement('line', { x1: "0", y1: "10", x2: "840", y2: "10", stroke: C.ink, strokeWidth: "2",} )
+        , units
+      )
+    )
+  );
 }
 
-function calcPA(){
- const elev = parseFloat(document.getElementById('elev').value || 0);
- const qnh = parseFloat(document.getElementById('qnh').value || 1013);
+const mono = { fontFamily: "'IBM Plex Mono', monospace" };
+const disp = { fontFamily: "'Archivo', sans-serif" };
 
- const pa = elev + ((1013 - qnh) * 30);
 
- document.getElementById('paOut').innerHTML =
-   "Pressure Altitude: " + Math.round(pa) + " ft";
+// ===================== CALC DRILL GENERATOR =====================
+function rnd(min, max, step = 1) {
+  const n = Math.floor(Math.random() * ((max - min) / step + 1));
+  return min + n * step;
 }
-</script>
+function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
+function opts(correct, distractors, unit) {
+  const set = [correct, ...distractors.filter((d, i, a) => d !== correct && a.indexOf(d) === i).slice(0, 3)];
+  const shuffled = shuffle(set);
+  return { options: shuffled.map((v) => `${v}${unit}`), answer: shuffled.indexOf(correct) };
+}
+function genDrill() {
+  const type = rnd(0, 5);
+  if (type === 0) {
+    const fl = rnd(4, 35) * 10;
+    const ans = 15 - 2 * (fl / 10);
+    const { options, answer } = opts(ans, [ans + 5, ans - 5, ans + 10, -ans], "\u00b0C");
+    return { q: `What is the ISA temperature at FL${fl}?`, options, answer, e: `ISA = 15 \u2212 (2 \u00d7 ${fl / 10}) = ${ans}\u00b0C.` };
+  }
+  if (type === 1) {
+    const fl = rnd(8, 35) * 10;
+    const isa = 15 - 2 * (fl / 10);
+    const dev = rnd(-12, 12, 2);
+    const oat = isa + dev;
+    const { options, answer } = opts(dev, [dev + 5, dev - 5, -dev, dev + 10], "");
+    return { q: `OAT at FL${fl} is ${oat}\u00b0C. What is the ISA deviation?`, options, answer, e: `ISA at FL${fl} = ${isa}\u00b0C. Deviation = ${oat} \u2212 (${isa}) = ISA ${dev >= 0 ? "+" : ""}${dev}.` };
+  }
+  if (type === 2) {
+    const pa = rnd(1, 8) * 1000;
+    const isa = 15 - 2 * (pa / 1000);
+    const dev = rnd(2, 16, 2);
+    const oat = isa + dev;
+    const ans = pa + 120 * dev;
+    const { options, answer } = opts(ans, [pa + 120 * (dev - 5), pa + 60 * dev, pa - 120 * dev], " ft");
+    return { q: `Pressure altitude ${pa} ft, OAT ${oat > 0 ? "+" : ""}${oat}\u00b0C. Density altitude is approximately:`, options, answer, e: `ISA at ${pa} ft = ${isa}\u00b0C \u2192 deviation +${dev}. DA \u2248 ${pa} + (120 \u00d7 ${dev}) = ${ans} ft.` };
+  }
+  if (type === 3) {
+    const spread = rnd(3, 12);
+    const ans = 400 * spread;
+    const t = rnd(14, 26);
+    const { options, answer } = opts(ans, [ans + 800, ans - 800, 100 * spread], " ft");
+    return { q: `Surface temperature +${t}\u00b0C, dew point +${t - spread}\u00b0C. Estimated cumulus cloud base:`, options, answer, e: `Base \u2248 400 \u00d7 spread = 400 \u00d7 ${spread} = ${ans} ft AGL.` };
+  }
+  if (type === 4) {
+    const alt = rnd(4, 14) * 1000;
+    const dev = rnd(-3, 3, 1) * 10 || 10;
+    const ans = Math.round(alt * (1 + 0.04 * (dev / 10)));
+    const { options, answer } = opts(ans, [Math.round(alt * (1 - 0.04 * (dev / 10))), alt, ans + 400], " ft");
+    return { q: `Indicated altitude ${alt} ft on correct QNH, temperature ISA ${dev > 0 ? "+" : ""}${dev}. Approximate TRUE altitude (4% rule):`, options, answer, e: `4% per 10\u00b0C: ${alt} \u00d7 (1 ${dev > 0 ? "+" : "\u2212"} ${Math.abs(dev) * 0.4}%) \u2248 ${ans} ft. ${dev < 0 ? "Colder \u2192 true altitude LOWER." : "Warmer \u2192 true altitude HIGHER."}` };
+  }
+  const qnh = rnd(983, 1008);
+  const fl = rnd(4, 8) * 10;
+  const diff = 1013 - qnh;
+  const ans = fl * 100 - diff * 27;
+  const { options, answer } = opts(ans, [fl * 100 + diff * 27, fl * 100, ans + 270], " ft");
+  return { q: `Flying at FL${fl} (1013 set). QNH is ${qnh} hPa. Approximate altitude AMSL:`, options, answer, e: `1013 \u2212 ${qnh} = ${diff} hPa \u00d7 27 ft = ${diff * 27} ft. QNH is lower, so you are LOWER: ${fl * 100} \u2212 ${diff * 27} = ${ans} ft.` };
+}
 
-</body>
-</html>
+
+
+// ===================== DIAGRAMS (inline SVG) =====================
+const dW = { width: "100%", height: "auto", display: "block" };
+function DiaWrap({ children, vb = "0 0 340 210", cap }) {
+  return (
+    React.createElement('figure', { style: { margin: "14px 0 0", border: `1px solid ${C.line}`, background: "#FBFCFD", borderRadius: 2, padding: "10px 10px 6px" },}
+      , React.createElement('svg', { viewBox: vb, style: dW, role: "img",}, children)
+      , cap && React.createElement('figcaption', { style: { ...mono, fontSize: 10.5, color: C.sub, marginTop: 6, lineHeight: 1.4 },}, cap)
+    )
+  );
+}
+const AX = { stroke: C.ink, strokeWidth: 1 };
+const txt = (x, y, s, extra = {}) => React.createElement('text', { x: x, y: y, fontSize: extra.fs || 11, fontFamily: "'IBM Plex Mono', monospace"   , fill: extra.fill || C.ink, textAnchor: extra.ta || "start", fontWeight: extra.fw || 400,}, s);
+function Arrow({ x1, y1, x2, y2, color = C.ink, w = 2, id }) {
+  return (React.createElement('g', null, React.createElement('defs', null, React.createElement('marker', { id: id, markerWidth: "8", markerHeight: "8", refX: "6", refY: "3", orient: "auto",}, React.createElement('path', { d: "M0,0 L6,3 L0,6 Z"   , fill: color,} )))
+    , React.createElement('line', { x1: x1, y1: y1, x2: x2, y2: y2, stroke: color, strokeWidth: w, markerEnd: `url(#${id})`,} )));
+}
+
+const DIAGRAMS = {
+  declared: () => (
+    React.createElement(DiaWrap, { cap: "Declared distances: TORA = runway; TODA = TORA + clearway; ASDA = TORA + stopway."              ,}
+      /* runway */
+      , React.createElement('rect', { x: "40", y: "70", width: "180", height: "20", fill: C.line, stroke: C.ink, strokeWidth: "1",} )
+      , txt(110, 84, "RUNWAY", { fs: 9, fill: C.ink, ta: "middle" })
+      /* stopway */
+      , React.createElement('rect', { x: "220", y: "70", width: "40", height: "20", fill: C.warmSoft, stroke: C.warm, strokeWidth: "1",} )
+      , txt(240, 84, "SW", { fs: 8, fill: C.warm, ta: "middle" })
+      /* clearway */
+      , React.createElement('rect', { x: "220", y: "70", width: "70", height: "20", fill: "none", stroke: C.cold, strokeDasharray: "3 2" ,} )
+      , txt(280, 64, "clearway", { fs: 8, fill: C.cold, ta: "middle" })
+      /* dimension lines */
+      , React.createElement(Arrow, { x1: "40", y1: "115", x2: "220", y2: "115", color: C.ink, w: "1.3", id: "p-tora",} )
+      , txt(110, 128, "TORA", { fs: 9, fill: C.ink, fw: 700, ta: "middle" })
+      , React.createElement(Arrow, { x1: "40", y1: "140", x2: "260", y2: "140", color: C.warm, w: "1.3", id: "p-asda",} )
+      , txt(140, 153, "ASDA (+stopway)", { fs: 8.5, fill: C.warm, ta: "middle" })
+      , React.createElement(Arrow, { x1: "40", y1: "165", x2: "290", y2: "165", color: C.cold, w: "1.3", id: "p-toda",} )
+      , txt(150, 178, "TODA (+clearway)", { fs: 8.5, fill: C.cold, ta: "middle" })
+    )
+  ),
+  balanced: () => (
+    React.createElement(DiaWrap, { cap: "Balanced field: V1 chosen so accelerate-STOP distance equals accelerate-GO distance."         ,}
+      , React.createElement('line', { x1: "50", y1: "20", x2: "50", y2: "170", ...AX,} )
+      , React.createElement('line', { x1: "50", y1: "170", x2: "320", y2: "170", ...AX,} )
+      , txt(12, 95, "DIST", { fs: 9, fill: C.sub })
+      , txt(170, 190, "V1 →", { fs: 10, fill: C.sub })
+      /* accel-stop rises with V1 */
+      , React.createElement('path', { d: "M60,150 Q180,150 290,40"  , fill: "none", stroke: C.warm, strokeWidth: "2.5",} )
+      , txt(250, 55, "accel-STOP", { fs: 9, fill: C.warm })
+      /* accel-go falls with V1 */
+      , React.createElement('path', { d: "M60,40 Q180,150 290,150"  , fill: "none", stroke: C.cold, strokeWidth: "2.5",} )
+      , txt(70, 55, "accel-GO", { fs: 9, fill: C.cold })
+      /* crossing */
+      , React.createElement('circle', { cx: "175", cy: "118", r: "4", fill: C.good,} )
+      , React.createElement('line', { x1: "175", y1: "118", x2: "175", y2: "170", stroke: C.good, strokeWidth: "1", strokeDasharray: "3 2" ,} )
+      , txt(175, 185, "balanced V1", { fs: 9, fill: C.good, fw: 700, ta: "middle" })
+      , React.createElement('line', { x1: "50", y1: "118", x2: "175", y2: "118", stroke: C.good, strokeWidth: "1", strokeDasharray: "3 2" ,} )
+      , txt(70, 112, "balanced field length", { fs: 8, fill: C.good })
+    )
+  ),
+  segments: () => (
+    React.createElement(DiaWrap, { cap: "The four take-off climb segments. The 2nd (gear up, V2, take-off flap, OEI) is the most demanding."                ,}
+      , React.createElement('line', { x1: "30", y1: "175", x2: "320", y2: "175", stroke: C.good, strokeWidth: "2",} )
+      /* path */
+      , React.createElement('polyline', { points: "40,170 90,150 150,95 230,95 300,55"    , fill: "none", stroke: C.cold, strokeWidth: "2.5",} )
+      /* screen */
+      , React.createElement('line', { x1: "40", y1: "170", x2: "40", y2: "160", stroke: C.ink, strokeWidth: "1",} )
+      , txt(28, 158, "35ft", { fs: 8, fill: C.sub })
+      , txt(55, 145, "1st", { fs: 8.5, fill: C.ink })
+      , txt(95, 110, "2nd (>2.4%)", { fs: 8.5, fill: C.warm, fw: 700 })
+      , txt(175, 88, "3rd accel", { fs: 8.5, fill: C.ink })
+      , txt(255, 60, "4th final", { fs: 8.5, fill: C.ink })
+      , React.createElement('line', { x1: "150", y1: "95", x2: "150", y2: "175", stroke: C.line, strokeDasharray: "2 2" ,} )
+      , txt(125, 168, "gear up", { fs: 7.5, fill: C.sub })
+      , React.createElement('line', { x1: "230", y1: "95", x2: "230", y2: "175", stroke: C.line, strokeDasharray: "2 2" ,} )
+      , txt(205, 168, "~400ft", { fs: 7.5, fill: C.sub })
+    )
+  ),
+};
+
+// ===================== NUMBERS DRILL =====================
+const NUMBERS = [
+  { q: "2nd-segment min gross gradient, TWO engines:", o: ["2.4%", "2.7%", "3.0%", "1.2%"], a: 0, e: "2.4% twin, 2.7% three, 3.0% four engines." },
+  { q: "2nd-segment min gradient, FOUR engines:", o: ["3.0%", "2.4%", "2.7%", "1.7%"], a: 0, e: "Four-engine: 3.0% (twin 2.4, tri 2.7)." },
+  { q: "Final-segment min gradient, TWO engines:", o: ["1.2%", "2.4%", "1.5%", "1.7%"], a: 0, e: "Final segment: 1.2% twin, 1.5% tri, 1.7% four." },
+  { q: "Class A dry landing dispatch: distance must be \\u2264", o: ["60% of LDA", "100% of LDA", "70% of LDA", "85% of LDA"], a: 0, e: "Turbojet 60% (\\u00f70.6); turboprop 70%." },
+  { q: "Wet runway adds about ___ to the landing distance:", o: ["15%", "60%", "5%", "0%"], a: 0, e: "+15% on the dry factored distance unless wet data approved." },
+  { q: "TODA =", o: ["TORA + clearway", "TORA + stopway", "runway only", "TORA \\u2212 stopway"], a: 0, e: "Take-off distance available adds the clearway." },
+  { q: "ASDA =", o: ["TORA + stopway", "TORA + clearway", "TORA only", "TODA + clearway"], a: 0, e: "Accelerate-stop distance available adds the stopway." },
+  { q: "V1 is the:", o: ["go/stop decision speed", "rotate speed", "safety climb speed", "stall speed"], a: 0, e: "At/above V1 go; below V1 you can stop within ASDA." },
+  { q: "Correct speed order:", o: ["Vmcg \\u2264 V1 \\u2264 VR \\u2264 V2", "V2 \\u2264 VR \\u2264 V1", "VR \\u2264 V1 \\u2264 Vmcg", "V1 \\u2264 Vmcg"], a: 0, e: "V1 can't be below Vmcg; V2 by screen height." },
+  { q: "Class A take-off screen height (dry):", o: ["35 ft", "50 ft", "15 ft", "100 ft"], a: 0, e: "35 ft dry / 15 ft wet; landing screen is 50 ft." },
+  { q: "Class A landing screen height:", o: ["50 ft", "35 ft", "15 ft", "100 ft"], a: 0, e: "Landing distance measured from 50 ft to a full stop." },
+  { q: "Balanced field length occurs when:", o: ["accel-stop = accel-go", "V1 = VR", "no clearway", "runway wet"], a: 0, e: "Choosing V1 so stop = go gives the balanced field." },
+  { q: "The most demanding climb segment is the:", o: ["2nd", "1st", "3rd", "4th"], a: 0, e: "Gear up, V2, take-off flap, one engine out." },
+  { q: "Headwind credit allowed for take-off is typically:", o: ["50%", "100%", "150%", "0%"], a: 0, e: "Credit only 50% headwind; assume 150% tailwind." },
+  { q: "Tailwind assumed for take-off is typically:", o: ["150%", "100%", "50%", "0%"], a: 0, e: "Conservative \\u2014 over-account the tailwind penalty." },
+  { q: "Vref is about:", o: ["1.23 \\u00d7 Vs0", "1.0 \\u00d7 Vs0", "2.0 \\u00d7 Vs0", "= V2"], a: 0, e: "Reference landing speed \\u2248 1.23 \\u00d7 landing stall speed." },
+  { q: "Best climb GRADIENT (angle) speed:", o: ["Vx", "Vy", "Vne", "Vmd"], a: 0, e: "Vx (excess thrust) for angle; Vy (excess power) for rate." },
+  { q: "Service ceiling rate of climb (typical):", o: ["~100 ft/min", "0 ft/min", "1000 ft/min", "2000 ft/min"], a: 0, e: "Absolute = 0; service \\u2248 100 ft/min (jets often 500)." },
+  { q: "Optimum cruise altitude as fuel burns:", o: ["rises", "falls", "fixed", "= ceiling"], a: 0, e: "Lower mass \\u2192 higher optimum \\u2192 step climbs." },
+  { q: "Aquaplaning onset speed \\u2248", o: ["9\\u00d7\\u221a(tyre psi)", "psi\\u00f79", "= Vref", "9\\u00d7psi"], a: 0, e: "Dynamic aquaplaning \\u2248 9\\u221aP (psi)." },
+  { q: "Net flight path is the gross path:", o: ["reduced by a margin", "increased by a margin", "unchanged", "doubled"], a: 0, e: "Net = gross minus a mandated reduction; obstacles cleared by 35 ft." },
+  { q: "Limiting take-off mass is the:", o: ["lowest of all limits", "highest limit", "structural only", "fuel limit"], a: 0, e: "Field, climb, obstacle and structural \\u2014 most restrictive wins." },
+];
+function genDrill() {
+  const pool = [...NUMBERS].sort(() => Math.random() - 0.5)[0];
+  const idx = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
+  return { q: pool.q, options: idx.map((k) => pool.o[k]), answer: idx.indexOf(pool.a), e: pool.e };
+}
+
+
+// ===================== APP =====================
+function App() {
+  const [view, setView] = useState({ type: "home" });
+  const [progress, setProgress] = useState({ read: {}, best: {} });
+
+  useEffect(() => {
+    (async () => {
+      try {
+        if (typeof window !== "undefined" && window.storage) {
+          const r = await window.storage.get("atpl-perf-v1");
+          if (r && r.value) setProgress(JSON.parse(r.value));
+        }
+      } catch (e) { /* first visit — nothing saved yet */ }
+    })();
+  }, []);
+
+  const save = (p) => {
+    setProgress(p);
+    (async () => {
+      try {
+        if (typeof window !== "undefined" && window.storage) {
+          await window.storage.set("atpl-perf-v1", JSON.stringify(p));
+        }
+      } catch (e) { console.error("save failed", e); }
+    })();
+  };
+
+  const overall = Math.round(
+    TOPICS.reduce((s, t) => s + (progress.best[t.id] || 0), 0) / TOPICS.length
+  );
+
+  return (
+    React.createElement('div', { style: { minHeight: "100vh", background: C.bg, color: C.ink, ...disp },}
+      , React.createElement('style', null, FONTS)
+      , React.createElement(Header, { overall: overall, onHome: () => setView({ type: "home" }),} )
+      , React.createElement('main', { style: { maxWidth: 880, margin: "0 auto", padding: "20px 16px 60px" },}
+        , view.type === "home" && (
+          React.createElement(Home, { progress: progress, save: save, onOpen: (id) => setView({ type: "topic", id, tab: "learn" }), onDrill: () => setView({ type: "drill" }), onSaved: () => setView({ type: "saved" }),} )
+        )
+        , view.type === "saved" && (
+          React.createElement(Saved, { progress: progress, save: save, onOpen: (id) => setView({ type: "topic", id, tab: "learn" }), onBack: () => setView({ type: "home" }),} )
+        )
+        , view.type === "drill" && (
+          React.createElement(Drill, { progress: progress, save: save, onBack: () => setView({ type: "home" }),} )
+        )
+        , view.type === "topic" && (
+          React.createElement(Topic, {
+            topic: TOPICS.find((t) => t.id === view.id),
+            tab: view.tab,
+            setTab: (tab) => setView({ ...view, tab }),
+            progress: progress,
+            save: save,
+            onBack: () => setView({ type: "home" }),}
+          )
+        )
+      )
+    )
+  );
+}
+
+function Header({ overall, onHome }) {
+  return (
+    React.createElement('header', { style: { background: C.ink, color: "#F2F5F7" },}
+      , React.createElement('div', { style: { maxWidth: 880, margin: "0 auto", padding: "18px 16px 14px", display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 },}
+        , React.createElement('button', { onClick: onHome, style: { background: "none", border: "none", color: "inherit", cursor: "pointer", padding: 0, textAlign: "left" },}
+          , React.createElement('div', { style: { ...mono, fontSize: 11, letterSpacing: 3, color: "#9FB3C2" },}, "EASA ATPL · SUBJECT 032"    )
+          , React.createElement('div', { style: { ...disp, fontWeight: 800, fontSize: 26, letterSpacing: 1 },}, "PERFORMANCE")
+        )
+        , React.createElement('div', { style: { ...mono, fontSize: 13, color: "#9FB3C2" },}, "MASTERY "
+           , React.createElement('span', { style: { color: "#fff", fontWeight: 600 },}, String(overall).padStart(3, "0"), "%"), " · QNH1013"
+        )
+      )
+      , React.createElement(FrontLine, null )
+    )
+  );
+}
+
+function Home({ progress, save, onOpen, onDrill, onSaved }) {
+  const firstUndone = TOPICS.find((t) => !((progress.best[t.id] != null && progress.best[t.id] >= 75) || (progress.done && progress.done[t.id])));
+  const bmCount = progress.bookmarks ? Object.keys(progress.bookmarks).filter((k) => progress.bookmarks[k]).length : 0;
+  return (
+    React.createElement('div', null
+      , React.createElement(ExamBanner, { progress: progress,} )
+      , React.createElement('div', { style: { display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" },}
+        , firstUndone && React.createElement('button', { onClick: () => onOpen(firstUndone.id), style: { ...mono, fontSize: 13.5, padding: "11px 16px", border: "none", borderRadius: 3, background: C.cold, color: "#fff", fontWeight: 600, cursor: "pointer" },}, "▶ Continue: "  , firstUndone.title)
+        , React.createElement('button', { onClick: onSaved, style: { ...mono, fontSize: 13.5, padding: "11px 16px", border: `1px solid ${C.line}`, borderRadius: 3, background: C.panel, color: C.ink, cursor: "pointer" },}, "★ Saved ("  , bmCount, ")")
+      )
+      , React.createElement('p', { style: { color: C.sub, fontSize: 15, lineHeight: 1.5, margin: "6px 0 20px" },}, "Twenty-three modules covering the 050 syllabus. Work through "
+                , React.createElement('b', null, "Learn"), " first, then sit the "     , React.createElement('b', null, "Quiz"), " — your best scores are saved here between sessions."
+      )
+      , React.createElement('div', { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: 12 },}
+        , TOPICS.map((t) => {
+          const read = progress.read[t.id] || 0;
+          const best = progress.best[t.id];
+          const done = (best != null && best >= 75) || (progress.done && progress.done[t.id]);
+          return (
+            React.createElement('button', {
+              key: t.id,
+              onClick: () => onOpen(t.id),
+              style: {
+                position: "relative", textAlign: "left",
+                background: done ? "#F1F5F2" : C.panel, border: `1px solid ${C.line}`,
+                borderTop: `4px solid ${done ? C.good : (best != null ? C.warm : C.cold)}`,
+                padding: "14px 16px 12px", cursor: "pointer", borderRadius: 2,
+                opacity: done ? 0.6 : 1,
+              },}
+
+              , done && React.createElement('span', { 'aria-label': "completed", style: { position: "absolute", top: 8, right: 10, width: 20, height: 20, borderRadius: 10, background: C.good, color: "#fff", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" },}, "✓")
+              , React.createElement('div', { style: { ...mono, fontSize: 11, color: C.sub, letterSpacing: 2 },}, t.code)
+              , React.createElement('div', { style: { fontWeight: 700, fontSize: 17, margin: "4px 0 6px" },}, t.title)
+              , React.createElement('div', { style: { fontSize: 13, color: C.sub, lineHeight: 1.45, minHeight: 38 },}, t.blurb)
+              , React.createElement('div', { style: { ...mono, fontSize: 12, marginTop: 10, display: "flex", justifyContent: "space-between" },}
+                , React.createElement('span', { style: { color: read >= t.cards.length ? C.good : C.sub },}, "LEARN " , read, "/", t.cards.length)
+                , React.createElement('span', { style: { color: best == null ? C.sub : best >= 75 ? C.good : C.warm },}
+                  , best == null ? "QUIZ —" : `BEST ${best}%`
+                )
+              )
+            )
+          );
+        })
+      )
+      , React.createElement('button', {
+        onClick: onDrill,
+        style: {
+          width: "100%", textAlign: "left", marginTop: 12, cursor: "pointer", borderRadius: 2,
+          background: C.ink, color: "#F2F5F7", border: "none", padding: "16px 18px",
+          display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8,
+        },}
+
+        , React.createElement('span', null
+          , React.createElement('span', { style: { ...mono, fontSize: 11, letterSpacing: 2, color: "#9FB3C2", display: "block" },}, "QUICK-FIRE RECALL" )
+          , React.createElement('span', { style: { fontWeight: 700, fontSize: 18 },}, "Numbers Drill" )
+          , React.createElement('span', { style: { display: "block", fontSize: 13, color: "#9FB3C2", marginTop: 2 },}, "V-speeds, climb gradients, dispatch factors and definitions — quick-fire."
+
+          )
+        )
+        , React.createElement('span', { style: { ...mono, fontSize: 13 },}, "BEST STREAK "  , (progress.drill && progress.drill.best) || 0, " →" )
+      )
+    )
+  );
+}
+
+function Topic({ topic, tab, setTab, progress, save, onBack }) {
+  return (
+    React.createElement('div', null
+      , React.createElement('button', { onClick: onBack, style: { ...mono, background: "none", border: "none", color: C.cold, cursor: "pointer", fontSize: 13, padding: "4px 0", marginBottom: 8 },}, "← ALL MODULES"
+
+      )
+      , React.createElement('div', { style: { ...mono, fontSize: 11, color: C.sub, letterSpacing: 2 },}, topic.code)
+      , React.createElement('h1', { style: { fontSize: 26, fontWeight: 800, margin: "2px 0 14px" },}, topic.title)
+      , React.createElement('div', { style: { display: "flex", gap: 8, marginBottom: 18 },}
+        , ["learn", "quiz"].map((m) => (
+          React.createElement('button', {
+            key: m,
+            onClick: () => setTab(m),
+            style: {
+              ...mono, fontSize: 13, letterSpacing: 1, padding: "8px 18px", cursor: "pointer", borderRadius: 2,
+              border: `1px solid ${tab === m ? C.ink : C.line}`,
+              background: tab === m ? C.ink : C.panel,
+              color: tab === m ? "#fff" : C.ink,
+            },}
+
+            , m.toUpperCase()
+          )
+        ))
+      )
+      , React.createElement(DoneToggle, { topic: topic, progress: progress, save: save,} )
+      , tab === "learn" ? (
+        React.createElement(Learn, { topic: topic, progress: progress, save: save, goQuiz: () => setTab("quiz"),} )
+      ) : (
+        React.createElement(Quiz, { topic: topic, progress: progress, save: save,} )
+      )
+    )
+  );
+}
+
+function Learn({ topic, progress, save, goQuiz }) {
+  const [i, setI] = useState(0);
+  const card = topic.cards[i];
+
+  useEffect(() => {
+    const seen = progress.read[topic.id] || 0;
+    if (i + 1 > seen) save({ ...progress, read: { ...progress.read, [topic.id]: i + 1 } });
+  }, [i]); // eslint-disable-line
+
+  return (
+    React.createElement('div', null
+      , React.createElement('div', { style: { background: C.panel, border: `1px solid ${C.line}`, borderRadius: 2, padding: "20px 22px" },}
+        , React.createElement('div', { style: { ...mono, fontSize: 12, color: C.sub },}, "CARD " , i + 1, " / "  , topic.cards.length)
+        , React.createElement('h2', { style: { fontSize: 20, fontWeight: 700, margin: "8px 0 10px" },}, card.t)
+        , React.createElement('p', { style: { fontSize: 15.5, lineHeight: 1.65, margin: 0 },}, card.b)
+        , card.dia && DIAGRAMS[card.dia] && DIAGRAMS[card.dia]()
+        , card.dia && DIAGRAMS[card.dia] && DIAGRAMS[card.dia]()
+      )
+      , React.createElement(LearnControls, { topic: topic, i: i, card: card, progress: progress, save: save,} )
+      , React.createElement('div', { style: { display: "flex", gap: 6, margin: "12px 0" },}
+        , topic.cards.map((_, k) => (
+          React.createElement('div', { key: k, style: { flex: 1, height: 4, background: k <= i ? C.cold : C.line, borderRadius: 2 },} )
+        ))
+      )
+      , React.createElement('div', { style: { display: "flex", justifyContent: "space-between", gap: 10 },}
+        , React.createElement(Btn, { ghost: true, disabled: i === 0, onClick: () => setI(i - 1),}, "← Back" )
+        , i < topic.cards.length - 1 ? (
+          React.createElement(Btn, { onClick: () => setI(i + 1),}, "Next card →"  )
+        ) : (
+          React.createElement(Btn, { onClick: goQuiz, color: C.good,}, "Take the quiz →"   )
+        )
+      )
+    )
+  );
+}
+
+function Quiz({ topic, progress, save }) {
+  const [i, setI] = useState(0);
+  const [picked, setPicked] = useState(null);
+  const [score, setScore] = useState(0);
+  const [done, setDone] = useState(false);
+  const [order] = useState(() =>
+    topic.quiz.map((q) => {
+      const idx = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
+      return { ...q, o: idx.map((k) => q.o[k]), a: idx.indexOf(q.a) };
+    })
+  );
+
+  const q = order[i];
+
+  const finish = (finalScore) => {
+    const pct = Math.round((finalScore / order.length) * 100);
+    const prev = progress.best[topic.id] || 0;
+    if (pct > prev) save({ ...progress, best: { ...progress.best, [topic.id]: pct } });
+    setDone(true);
+  };
+
+  if (done) {
+    const pct = Math.round((score / order.length) * 100);
+    const pass = pct >= 75;
+    return (
+      React.createElement('div', { style: { background: C.panel, border: `1px solid ${C.line}`, borderTop: `4px solid ${pass ? C.good : C.warm}`, borderRadius: 2, padding: "26px 22px", textAlign: "center" },}
+        , React.createElement('div', { style: { ...mono, fontSize: 12, color: C.sub, letterSpacing: 2 },}, "RESULT")
+        , React.createElement('div', { style: { fontSize: 44, fontWeight: 800, color: pass ? C.good : C.warm, margin: "6px 0" },}, pct, "%")
+        , React.createElement('p', { style: { color: C.sub, fontSize: 14, margin: "0 0 4px" },}, score, " of "  , order.length, " correct · EASA pass mark is 75%"       )
+        , React.createElement('p', { style: { fontSize: 15, margin: "10px 0 18px" },}
+          , pass ? "Pass — keep it warm with a re-run in a few days." : "Below the pass mark — revisit the Learn cards, then try again."
+        )
+        , React.createElement(Btn, { onClick: () => { setI(0); setPicked(null); setScore(0); setDone(false); },}, "Retake quiz" )
+      )
+    );
+  }
+
+  return (
+    React.createElement('div', null
+      , React.createElement('div', { style: { ...mono, fontSize: 12, color: C.sub, marginBottom: 8 },}, "QUESTION "
+         , i + 1, " / "  , order.length, " · SCORE "   , score
+      )
+      , React.createElement('div', { style: { background: C.panel, border: `1px solid ${C.line}`, borderRadius: 2, padding: "18px 20px" },}
+        , React.createElement('p', { style: { fontSize: 16.5, fontWeight: 700, lineHeight: 1.5, margin: "0 0 14px" },}, q.q)
+        , React.createElement('div', { style: { display: "grid", gap: 8 },}
+          , q.o.map((opt, k) => {
+            let bg = C.panel, border = C.line;
+            if (picked != null) {
+              if (k === q.a) { bg = "#E7F2EA"; border = C.good; }
+              else if (k === picked) { bg = C.warmSoft; border = C.warm; }
+            }
+            return (
+              React.createElement('button', {
+                key: k,
+                disabled: picked != null,
+                onClick: () => { setPicked(k); if (k === q.a) setScore(score + 1); },
+                style: {
+                  textAlign: "left", padding: "11px 14px", fontSize: 15, lineHeight: 1.4,
+                  background: bg, border: `1.5px solid ${border}`, borderRadius: 2,
+                  cursor: picked == null ? "pointer" : "default", color: C.ink,
+                },}
+
+                , React.createElement('span', { style: { ...mono, color: C.sub, marginRight: 8 },}, "ABCD"[k]), opt
+              )
+            );
+          })
+        )
+        , picked != null && (
+          React.createElement('div', { style: { marginTop: 14, padding: "12px 14px", background: picked === q.a ? "#E7F2EA" : C.coldSoft, borderLeft: `4px solid ${picked === q.a ? C.good : C.cold}`, fontSize: 14.5, lineHeight: 1.55 },}
+            , React.createElement('b', null, picked === q.a ? "Correct. " : "Not quite. "), q.e
+          )
+        )
+      )
+      , picked != null && (
+        React.createElement('div', { style: { display: "flex", justifyContent: "flex-end", marginTop: 14 },}
+          , i < order.length - 1 ? (
+            React.createElement(Btn, { onClick: () => { setI(i + 1); setPicked(null); },}, "Next question →"  )
+          ) : (
+            React.createElement(Btn, { color: C.good, onClick: () => finish(score),}, "Finish →" )
+          )
+        )
+      )
+    )
+  );
+}
+
+function Btn({ children, onClick, disabled, ghost, color }) {
+  return (
+    React.createElement('button', {
+      onClick: onClick,
+      disabled: disabled,
+      style: {
+        ...mono, fontSize: 14, padding: "10px 20px", cursor: disabled ? "default" : "pointer",
+        borderRadius: 2, letterSpacing: 0.5,
+        background: ghost ? "transparent" : color || C.ink,
+        color: ghost ? (disabled ? C.line : C.ink) : "#fff",
+        border: ghost ? `1px solid ${disabled ? C.line : C.ink}` : "none",
+        opacity: disabled ? 0.6 : 1,
+      },}
+
+      , children
+    )
+  );
+}
+
+function Drill({ progress, save, onBack }) {
+  const [q, setQ] = useState(() => genDrill());
+  const [picked, setPicked] = useState(null);
+  const [streak, setStreak] = useState(0);
+  const [count, setCount] = useState(0);
+  const [right, setRight] = useState(0);
+
+  const pick = (k) => {
+    if (picked != null) return;
+    setPicked(k);
+    setCount(count + 1);
+    if (k === q.answer) {
+      setRight(right + 1);
+      const ns = streak + 1;
+      setStreak(ns);
+      const best = (progress.drill && progress.drill.best) || 0;
+      if (ns > best) save({ ...progress, drill: { best: ns } });
+    } else {
+      setStreak(0);
+    }
+  };
+
+  return (
+    React.createElement('div', null
+      , React.createElement('button', { onClick: onBack, style: { ...mono, background: "none", border: "none", color: C.cold, cursor: "pointer", fontSize: 13, padding: "4px 0", marginBottom: 8 },}, "← ALL MODULES"
+
+      )
+      , React.createElement('h1', { style: { fontSize: 26, fontWeight: 800, margin: "2px 0 4px" },}, "Numbers Drill" )
+      , React.createElement('div', { style: { ...mono, fontSize: 12, color: C.sub, marginBottom: 14 },}, "STREAK "
+         , streak, " · SESSION "   , right, "/", count, " · BEST "   , (progress.drill && progress.drill.best) || 0
+      )
+      , React.createElement('div', { style: { background: C.panel, border: `1px solid ${C.line}`, borderRadius: 2, padding: "18px 20px" },}
+        , React.createElement('p', { style: { fontSize: 16.5, fontWeight: 700, lineHeight: 1.5, margin: "0 0 14px" },}, q.q)
+        , React.createElement('div', { style: { display: "grid", gap: 8 },}
+          , q.options.map((opt, k) => {
+            let bg = C.panel, border = C.line;
+            if (picked != null) {
+              if (k === q.answer) { bg = "#E7F2EA"; border = C.good; }
+              else if (k === picked) { bg = C.warmSoft; border = C.warm; }
+            }
+            return (
+              React.createElement('button', { key: k, disabled: picked != null, onClick: () => pick(k),
+                style: { textAlign: "left", padding: "11px 14px", fontSize: 15, background: bg, border: `1.5px solid ${border}`, borderRadius: 2, cursor: picked == null ? "pointer" : "default", color: C.ink },}
+                , React.createElement('span', { style: { ...mono, color: C.sub, marginRight: 8 },}, "ABCD"[k]), opt
+              )
+            );
+          })
+        )
+        , picked != null && (
+          React.createElement('div', { style: { marginTop: 14, padding: "12px 14px", background: picked === q.answer ? "#E7F2EA" : C.coldSoft, borderLeft: `4px solid ${picked === q.answer ? C.good : C.cold}`, fontSize: 14.5, lineHeight: 1.55 },}
+            , React.createElement('b', null, picked === q.answer ? "Correct. " : "Not quite. "), q.e
+          )
+        )
+      )
+      , picked != null && (
+        React.createElement('div', { style: { display: "flex", justifyContent: "flex-end", marginTop: 14 },}
+          , React.createElement(Btn, { onClick: () => { setQ(genDrill()); setPicked(null); },}, "Next question →"  )
+        )
+      )
+    )
+  );
+}
+
+
+// ===================== ADDED FEATURES =====================
+function speak(text, onEnd) {
+  try {
+    const s = window.speechSynthesis; if (!s) return false;
+    s.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 1; u.onend = onEnd; s.speak(u); return true;
+  } catch (e) { return false; }
+}
+function stopSpeak() { try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {} }
+
+function ExamBanner({ progress }) {
+  const [date, setDate] = useState("");
+  const [editing, setEditing] = useState(false);
+  useEffect(() => { try { setDate(localStorage.getItem("atpl-exam-date") || ""); } catch (e) {} }, []);
+  const setExam = (v) => { setDate(v); try { v ? localStorage.setItem("atpl-exam-date", v) : localStorage.removeItem("atpl-exam-date"); } catch (e) {} setEditing(false); };
+  const undone = TOPICS.filter((t) => !((progress.best[t.id] != null && progress.best[t.id] >= 75) || (progress.done && progress.done[t.id]))).length;
+  let days = null;
+  if (date) { const d = new Date(date + "T00:00:00"); days = Math.ceil((d - new Date()) / 86400000); }
+  if (!date || editing) {
+    return (
+      React.createElement('div', { style: { background: C.panel, border: `1px solid ${C.line}`, borderRadius: 3, padding: "12px 14px", marginBottom: 14, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },}
+        , React.createElement('span', { style: { ...mono, fontSize: 12, color: C.sub },}, "Exam date:" )
+        , React.createElement('input', { type: "date", defaultValue: date, onChange: (e) => setExam(e.target.value), style: { ...mono, fontSize: 13, padding: "6px 8px", border: `1px solid ${C.line}`, borderRadius: 2 },} )
+        , date && React.createElement('button', { onClick: () => setExam(""), style: { ...mono, fontSize: 12, background: "none", border: "none", color: C.warm, cursor: "pointer" },}, "clear")
+      )
+    );
+  }
+  const overdue = days < 0;
+  const pace = days > 0 ? Math.ceil(undone / days) : undone;
+  return (
+    React.createElement('div', { onClick: () => setEditing(true), style: { cursor: "pointer", background: overdue ? C.warmSoft : C.ink, color: overdue ? C.warm : "#fff", borderRadius: 3, padding: "12px 16px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" },}
+      , React.createElement('span', null
+        , React.createElement('span', { style: { ...mono, fontSize: 11, letterSpacing: 2, color: overdue ? C.warm : "#9FB3C2", display: "block" },}, "EXAM COUNTDOWN" )
+        , React.createElement('span', { style: { fontWeight: 800, fontSize: 20 },}, overdue ? `${Math.abs(days)} days ago` : days === 0 ? "Exam today" : `${days} days to go`)
+      )
+      , !overdue && days > 0 && undone > 0 && React.createElement('span', { style: { ...mono, fontSize: 12, color: "#9FB3C2", textAlign: "right" },}, undone, " chapters left · ~"    , pace, "/day")
+    )
+  );
+}
+
+function DoneToggle({ topic, progress, save }) {
+  const passed = progress.best[topic.id] != null && progress.best[topic.id] >= 75;
+  const marked = !!(progress.done && progress.done[topic.id]);
+  const done = passed || marked;
+  const toggle = () => { const d = { ...(progress.done || {}) }; d[topic.id] = !marked; save({ ...progress, done: d }); };
+  return (
+    React.createElement('button', { onClick: toggle, style: { ...mono, fontSize: 12.5, padding: "8px 14px", borderRadius: 2, marginBottom: 16, cursor: "pointer", border: `1px solid ${done ? C.good : C.line}`, background: done ? "#E7F2EA" : C.panel, color: done ? C.good : C.sub },}
+      , done ? "✓ Completed — tap to unmark" : "○ Mark chapter complete"
+    )
+  );
+}
+
+function LearnControls({ topic, i, card, progress, save }) {
+  const [speaking, setSpeaking] = useState(false);
+  useEffect(() => { stopSpeak(); setSpeaking(false); }, [i]); // eslint-disable-line
+  const bmKey = topic.id + ":" + i;
+  const marked = !!(progress.bookmarks && progress.bookmarks[bmKey]);
+  const toggleBm = () => { const bm = { ...(progress.bookmarks || {}) }; bm[bmKey] = !marked; save({ ...progress, bookmarks: bm }); };
+  const toggleSpeak = () => {
+    if (speaking) { stopSpeak(); setSpeaking(false); }
+    else { const ok = speak(card.t + ". " + card.b, () => setSpeaking(false)); setSpeaking(ok); }
+  };
+  return (
+    React.createElement('div', { style: { display: "flex", gap: 8, marginTop: 12 },}
+      , React.createElement('button', { onClick: toggleSpeak, style: { ...mono, fontSize: 13, padding: "9px 14px", borderRadius: 2, border: `1px solid ${C.line}`, background: speaking ? C.coldSoft : C.panel, color: C.ink, cursor: "pointer" },}, speaking ? "■ Stop" : "▶ Listen")
+      , React.createElement('button', { onClick: toggleBm, style: { ...mono, fontSize: 13, padding: "9px 14px", borderRadius: 2, border: `1px solid ${marked ? C.warm : C.line}`, background: marked ? C.warmSoft : C.panel, color: marked ? C.warm : C.ink, cursor: "pointer" },}, marked ? "★ Saved" : "☆ Save card")
+    )
+  );
+}
+
+function Saved({ progress, save, onOpen, onBack }) {
+  const bm = progress.bookmarks || {};
+  const items = [];
+  TOPICS.forEach((t) => t.cards.forEach((c, idx) => { if (bm[t.id + ":" + idx]) items.push({ t, c, idx }); }));
+  const unsave = (key) => { const b = { ...bm }; delete b[key]; save({ ...progress, bookmarks: b }); };
+  return (
+    React.createElement('div', null
+      , React.createElement('button', { onClick: onBack, style: { ...mono, background: "none", border: "none", color: C.cold, cursor: "pointer", fontSize: 13, padding: "4px 0", marginBottom: 8 },}, "← ALL MODULES"  )
+      , React.createElement('h1', { style: { fontSize: 26, fontWeight: 800, margin: "2px 0 14px" },}, "★ Saved cards"  )
+      , items.length === 0 ? (
+        React.createElement('p', { style: { color: C.sub, fontSize: 15 },}, "No saved cards yet. Tap “☆ Save card” on any Learn card to keep it here for quick revision."                  )
+      ) : (
+        React.createElement('div', { style: { display: "grid", gap: 10 },}
+          , items.map(({ t, c, idx }) => (
+            React.createElement('div', { key: t.id + idx, style: { background: C.panel, border: `1px solid ${C.line}`, borderLeft: `4px solid ${C.warm}`, borderRadius: 2, padding: "12px 14px" },}
+              , React.createElement('div', { style: { ...mono, fontSize: 10.5, color: C.cold },}, t.code, " · "  , t.title)
+              , React.createElement('div', { style: { fontWeight: 700, fontSize: 15, margin: "3px 0 5px" },}, c.t)
+              , React.createElement('p', { style: { fontSize: 13.5, color: C.sub, lineHeight: 1.5, margin: "0 0 8px" },}, c.b)
+              , React.createElement('div', { style: { display: "flex", gap: 8 },}
+                , React.createElement('button', { onClick: () => onOpen(t.id), style: { ...mono, fontSize: 12, padding: "7px 12px", border: "none", borderRadius: 2, background: C.ink, color: "#fff", cursor: "pointer" },}, "Open chapter →"  )
+                , React.createElement('button', { onClick: () => unsave(t.id + ":" + idx), style: { ...mono, fontSize: 12, padding: "7px 12px", border: `1px solid ${C.line}`, borderRadius: 2, background: C.panel, color: C.warm, cursor: "pointer" },}, "Remove")
+              )
+            )
+          ))
+        )
+      )
+    )
+  );
+}
+
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));</script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}</script>
+</body></html>
