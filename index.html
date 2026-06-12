@@ -1,0 +1,227 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EASA ATPL Platform</title>
+
+<style>
+:root{
+    --bg:#EEF2F5;
+    --card:#FFFFFF;
+    --border:#D7DEE5;
+    --text:#1E2A35;
+    --muted:#66727F;
+
+    --module1:#7A5C5A;
+    --module2:#8D8265;
+    --module3:#5E7468;
+
+    --header:#344452;
+}
+
+*{box-sizing:border-box;}
+
+body{
+    margin:0;
+    padding:28px;
+    background:var(--bg);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    color:var(--text);
+}
+
+.container{
+    max-width:1200px;
+    margin:0 auto;
+}
+
+h1{
+    margin:0 0 10px 0;
+    font-size:38px;
+    font-weight:700;
+    color:var(--header);
+}
+
+.subtitle{
+    color:var(--muted);
+    margin-bottom:36px;
+}
+
+.module{
+    background:var(--card);
+    border-radius:18px;
+    overflow:hidden;
+    margin-bottom:28px;
+    border:1px solid var(--border);
+    box-shadow:0 6px 18px rgba(20,30,40,0.05);
+}
+
+.module-header{
+    padding:18px 24px;
+    font-size:24px;
+    font-weight:700;
+    color:white;
+}
+
+.m1{background:var(--module1);}
+.m2{background:var(--module2);}
+.m3{background:var(--module3);}
+
+.row{
+    display:grid;
+    grid-template-columns:1.1fr 1fr;
+    border-top:1px solid #E7ECF0;
+}
+
+.subject{
+    padding:24px;
+    text-decoration:none;
+    color:var(--text);
+    font-size:21px;
+    font-weight:650;
+    border-right:1px solid #E7ECF0;
+}
+
+.subject:hover{
+    background:#F7F9FB;
+}
+
+.desc{
+    padding:24px;
+    display:flex;
+    align-items:center;
+    color:var(--muted);
+    line-height:1.5;
+}
+
+.tools-title{
+    margin:42px 0 18px 0;
+    font-size:28px;
+    color:var(--header);
+}
+
+.tools-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+    gap:18px;
+}
+
+.tool{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:22px;
+    text-decoration:none;
+    color:var(--text);
+    box-shadow:0 6px 18px rgba(20,30,40,0.05);
+}
+
+.tool h3{margin-top:0;}
+
+@media (max-width:900px){
+    .row{grid-template-columns:1fr;}
+    .subject{border-right:none;border-bottom:1px solid #E7ECF0;}
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h1>EASA ATPL Training Platform</h1>
+<div class="subtitle">
+Structured ATPL modules with integrated study tools and EASA-aligned subjects.
+</div>
+
+<div class="module">
+<div class="module-header m1">Module 1</div>
+
+<div class="row">
+<a class="subject" href="met.html">Meteorology</a>
+<div class="desc">Atmosphere, fronts, icing, turbulence and operational weather.</div>
+</div>
+
+<div class="row">
+<a class="subject" href="massbalance.html">Mass & Balance</a>
+<div class="desc">Centre of gravity, loading and balance calculations.</div>
+</div>
+
+<div class="row">
+<a class="subject" href="pof.html">Principles of Flight</a>
+<div class="desc">Lift, drag, stability, Mach effects and aircraft behaviour.</div>
+</div>
+
+<div class="row">
+<a class="subject" href="humanperformance.html">Human Performance</a>
+<div class="desc">Fatigue, hypoxia, CRM, stress and operational physiology.</div>
+</div>
+
+<div class="row">
+<a class="subject" href="perf.html">Aircraft Performance</a>
+<div class="desc">Runway performance, density altitude and exam-focused calculations.</div>
+</div>
+</div>
+
+<div class="module">
+<div class="module-header m2">Module 2</div>
+
+<div class="row">
+<a class="subject" href="radionav.html">Radio Navigation</a>
+<div class="desc">VOR, DME, NDB and ILS procedures.</div>
+</div>
+
+<div class="row">
+<a class="subject" href="instrumentation.html">Instrumentation</a>
+<div class="desc">Pitot-static systems, gyros and aircraft instruments.</div>
+</div>
+
+<div class="row">
+<a class="subject" href="flightplanning.html">Flight Planning & Communications</a>
+<div class="desc">Fuel planning, reserves and communications foundations.</div>
+</div>
+</div>
+
+<div class="module">
+<div class="module-header m3">Module 3</div>
+
+<div class="row">
+<a class="subject" href="nav.html">General Navigation</a>
+<div class="desc">Charts, wind triangles and Earth geometry.</div>
+</div>
+
+<div class="row">
+<a class="subject" href="agk.html">AGK – Airframes & Systems</a>
+<div class="desc">Aircraft systems, electrics, hydraulics and powerplant.</div>
+</div>
+
+<div class="row">
+<a class="subject" href="lawops.html">Air Law & Operational Procedures</a>
+<div class="desc">ICAO, ATC, CRM and operational regulations.</div>
+</div>
+</div>
+
+<h2 class="tools-title">Study Tools</h2>
+
+<div class="tools-grid">
+
+<a class="tool" href="tools.html">
+<h3>ATPL Tools</h3>
+<p>Original tools section and operational calculators.</p>
+</a>
+
+<a class="tool" href="planner.html">
+<h3>Study Planner</h3>
+<p>Track study goals and revision structure.</p>
+</a>
+
+<a class="tool" href="lo-mapping.html">
+<h3>LO Mapping</h3>
+<p>EASA learning objective and syllabus tracking.</p>
+</a>
+
+</div>
+
+</div>
+</body>
+</html>
